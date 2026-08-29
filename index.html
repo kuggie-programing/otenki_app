@@ -30,10 +30,15 @@
 
 <body class="bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 text-slate-100 antialiased min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white">
 
+    <!-- =====================================================
+         ヘッダー
+    ====================================================== -->
+
     <header class="glass-header text-white border-b border-slate-700/60 sticky top-0 z-50 shadow-lg">
         <div class="max-w-4xl mx-auto px-5 py-4 flex justify-between items-center">
 
             <div class="flex items-center space-x-3">
+
                 <span class="text-xl bg-sky-500/10 p-2 rounded-xl border border-sky-400/20 text-sky-400 shadow-inner">
                     ☁️
                 </span>
@@ -47,17 +52,22 @@
                         AMAKUSA CITY PLATFORM (JST)
                     </span>
                 </div>
+
             </div>
 
             <div id="headerUserArea" class="hidden flex items-center space-x-3">
-                <span id="currentUserLabel"
-                      class="text-xs text-slate-300 font-medium hidden sm:inline"></span>
+
+                <span
+                    id="currentUserLabel"
+                    class="text-xs text-slate-300 font-medium hidden sm:inline">
+                </span>
 
                 <button
                     onclick="handleLogout()"
                     class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-1.5 rounded-lg border border-slate-700 transition font-medium shadow-sm">
                     ログアウト
                 </button>
+
             </div>
 
         </div>
@@ -70,8 +80,9 @@
              1. ログイン画面
         ====================================================== -->
 
-        <div id="screen-login"
-             class="screen glass-panel rounded-3xl shadow-2xl border border-slate-700/50 p-8 max-w-md mx-auto text-slate-800">
+        <div
+            id="screen-login"
+            class="screen glass-panel rounded-3xl shadow-2xl border border-slate-700/50 p-8 max-w-md mx-auto text-slate-800">
 
             <div class="text-center mb-8">
 
@@ -86,12 +97,14 @@
                 <p class="text-xs text-slate-500 mt-1">
                     日本標準時(JST)対応スマート見守り
                 </p>
+
             </div>
 
 
             <div class="space-y-4">
 
                 <div>
+
                     <label class="block text-xs font-bold text-slate-700 mb-1.5">
                         グループコード
                     </label>
@@ -105,10 +118,12 @@
                     <p class="text-[10px] text-slate-400 mt-1">
                         家族・友達で同じコードを使うと情報が共有されます
                     </p>
+
                 </div>
 
 
                 <div>
+
                     <label class="block text-xs font-bold text-slate-700 mb-1.5">
                         パスワード
                     </label>
@@ -118,10 +133,12 @@
                         id="loginPassword"
                         placeholder="パスワードを入力"
                         class="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition shadow-inner">
+
                 </div>
 
 
                 <div>
+
                     <label class="block text-xs font-bold text-slate-700 mb-1.5">
                         あなたの表示名
                     </label>
@@ -131,6 +148,7 @@
                         id="loginName"
                         placeholder="例: 山田 太郎"
                         class="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition shadow-inner">
+
                 </div>
 
 
@@ -159,6 +177,7 @@
                 </div>
 
             </div>
+
         </div>
 
 
@@ -166,14 +185,16 @@
              2. ダッシュボード画面
         ====================================================== -->
 
-        <div id="screen-dashboard"
-             class="screen hidden space-y-6 max-w-lg mx-auto">
+        <div
+            id="screen-dashboard"
+            class="screen hidden space-y-6 max-w-lg mx-auto">
 
             <div class="glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-6 space-y-5">
 
                 <div class="flex justify-between items-start">
 
                     <div>
+
                         <span class="text-[10px] uppercase tracking-wider font-extrabold text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-200/60 shadow-sm">
                             JST Dashboard
                         </span>
@@ -183,6 +204,7 @@
                             <span id="welcomeUserName" class="text-sky-600"></span>
                             さん
                         </h2>
+
                     </div>
 
 
@@ -191,9 +213,13 @@
                         <div class="flex flex-col items-end gap-1.5">
 
                             <span class="inline-flex items-center text-[11px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-bold border border-emerald-200/60 shadow-sm">
+
                                 <span class="w-2 h-2 bg-emerald-500 rounded-full mr-1.5 animate-pulse"></span>
+
                                 JST定時監視中
+
                             </span>
+
 
                             <div
                                 id="serverConnIndicator"
@@ -207,9 +233,11 @@
                                 <span id="serverConnText">
                                     接続確認中...
                                 </span>
+
                             </div>
 
                         </div>
+
                     </div>
 
                 </div>
@@ -254,6 +282,7 @@
                         </span>
 
                         <div class="text-left">
+
                             <div class="text-sm font-extrabold text-slate-900">
                                 元気だよボタン！
                             </div>
@@ -261,6 +290,7 @@
                             <div class="text-[11px] text-slate-500 font-medium">
                                 安否確認・SOS発信
                             </div>
+
                         </div>
 
                     </div>
@@ -268,6 +298,7 @@
                     <span class="text-amber-500 font-bold text-lg">
                         ➔
                     </span>
+
                 </button>
 
 
@@ -282,6 +313,7 @@
                         </span>
 
                         <div class="text-left">
+
                             <div class="text-sm font-extrabold text-slate-900">
                                 天気予報 ＆ 防災クイズ
                             </div>
@@ -289,6 +321,7 @@
                             <div class="text-[11px] text-slate-500 font-medium">
                                 JST対応・朝6時/夜18時半レポート
                             </div>
+
                         </div>
 
                     </div>
@@ -296,6 +329,7 @@
                     <span class="text-sky-500 font-bold text-lg">
                         ➔
                     </span>
+
                 </button>
 
 
@@ -310,6 +344,7 @@
                         </span>
 
                         <div class="text-left">
+
                             <div class="text-sm font-extrabold text-slate-900">
                                 危険みーつけた！
                             </div>
@@ -317,6 +352,7 @@
                             <div class="text-[11px] text-slate-500 font-medium">
                                 カメラ・EXIF・マップ連携
                             </div>
+
                         </div>
 
                     </div>
@@ -324,9 +360,11 @@
                     <span class="text-orange-500 font-bold text-lg">
                         ➔
                     </span>
+
                 </button>
 
             </div>
+
         </div>
 
 
@@ -334,8 +372,9 @@
              3. 元気だよ画面
         ====================================================== -->
 
-        <div id="screen-safety"
-             class="screen hidden glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-8 max-w-md mx-auto">
+        <div
+            id="screen-safety"
+            class="screen hidden glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-8 max-w-md mx-auto">
 
             <div class="flex justify-between items-center mb-6">
 
@@ -417,8 +456,9 @@
              4. 天気予報 ＆ クイズ画面
         ====================================================== -->
 
-        <div id="screen-weather"
-             class="screen hidden glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-8 max-w-xl mx-auto space-y-6">
+        <div
+            id="screen-weather"
+            class="screen hidden glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-8 max-w-xl mx-auto space-y-6">
 
             <div class="flex justify-between items-center">
 
@@ -516,8 +556,9 @@
              5. 危険みーつけた！画面
         ====================================================== -->
 
-        <div id="screen-hazard"
-             class="screen hidden glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-8 max-w-lg mx-auto space-y-6">
+        <div
+            id="screen-hazard"
+            class="screen hidden glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-8 max-w-lg mx-auto space-y-6">
 
             <div class="flex justify-between items-center">
 
@@ -675,10 +716,12 @@
         // API設定
         // =====================================================
 
-        // RenderにデプロイしたバックエンドのURLを設定してください。
-        //
-        // 例:
-        // const API_BASE_URL = "https://amakusa-bousai-api.onrender.com";
+        /*
+         * RenderにデプロイしたバックエンドのURLを設定してください。
+         *
+         * 例:
+         * const API_BASE_URL = "https://amakusa-bousai-api.onrender.com";
+         */
 
         const API_BASE_URL =
             "https://YOUR-RENDER-APP-NAME.onrender.com";
@@ -766,7 +809,10 @@
             parts.forEach(part => {
 
                 if (part.type !== 'literal') {
-                    values[part.type] = part.value;
+
+                    values[part.type] =
+                        part.value;
+
                 }
 
             });
@@ -862,7 +908,8 @@
 
                 try {
 
-                    data = await res.json();
+                    data =
+                        await res.json();
 
                 } catch (e) {
 
@@ -1847,7 +1894,9 @@
                             JSON.stringify({
                                 group_code:
                                     groupCode,
+
                                 password,
+
                                 name:
                                     nameInput
                             })
@@ -1985,6 +2034,11 @@
                 );
 
 
+            if (!container) {
+                return;
+            }
+
+
             container.innerHTML =
                 '';
 
@@ -2102,7 +2156,24 @@
 
 
             if (!name) {
+
+                alert(
+                    '名前を入力してください。'
+                );
+
                 return;
+
+            }
+
+
+            if (!appState.groupCode) {
+
+                alert(
+                    'グループにログインしてください。'
+                );
+
+                return;
+
             }
 
 
@@ -2395,6 +2466,11 @@
                 );
 
 
+            if (!container) {
+                return;
+            }
+
+
             if (
                 !statuses ||
                 statuses.length === 0
@@ -2534,6 +2610,17 @@
             type
         ) {
 
+            if (!appState.groupCode) {
+
+                alert(
+                    'グループにログインしてください。'
+                );
+
+                return;
+
+            }
+
+
             const msgEl =
                 document.getElementById(
                     'safetyResultMsg'
@@ -2614,11 +2701,15 @@
 
         function triggerImageUpload() {
 
-            document
-                .getElementById(
+            const input =
+                document.getElementById(
                     'hazardImageInput'
-                )
-                .click();
+                );
+
+
+            if (input) {
+                input.click();
+            }
 
         }
 
@@ -2676,7 +2767,7 @@
 
 
                     // =================================================
-                    // main.pyの新API形式に合わせる
+                    // main.pyのAPI形式
                     // latitude / longitude / accuracy
                     // =================================================
 
@@ -2731,6 +2822,12 @@
                         return;
 
                     }
+
+
+                    triggerPushNotification(
+                        "危険情報を投稿しました",
+                        "グループメンバーと危険情報を共有しました。"
+                    );
 
 
                     await pollHazard();
@@ -2837,6 +2934,11 @@
                 );
 
 
+            if (!container) {
+                return;
+            }
+
+
             if (
                 !appState.hazardPosts ||
                 appState.hazardPosts.length === 0
@@ -2875,13 +2977,15 @@
                         );
 
 
-                    const mapUrl =
+                    const hasLocation =
                         Number.isFinite(lat) &&
-                        Number.isFinite(lon)
+                        Number.isFinite(lon);
 
+
+                    const mapUrl =
+                        hasLocation
                             ? `https://www.google.com/maps?q=${encodeURIComponent(lat)},${encodeURIComponent(lon)}`
-
-                            : '#';
+                            : '';
 
 
                     const jstTime =
@@ -2896,7 +3000,6 @@
                                             'Asia/Tokyo'
                                     }
                                 )
-
                             : '';
 
 
@@ -2922,32 +3025,42 @@
 
                     div.innerHTML = `
 
-                        <div class="flex justify-between text-xs text-slate-500 font-bold">
+                        <div class="flex justify-between gap-3 text-xs text-slate-500 font-bold">
 
                             <span>
-                                👤 ${escapeHtml(post.author)}
+                                👤 ${escapeHtml(post.author || '')}
                             </span>
 
-                            <span>
+                            <span class="text-right">
                                 ${escapeHtml(jstTime)}
                             </span>
 
                         </div>
 
 
-                        <img
-                            src="${safeImage}"
-                            class="w-full h-40 object-cover rounded-xl"
-                            alt="危険箇所の写真">
+                        ${
+                            safeImage
+                                ? `
+                                    <img
+                                        src="${safeImage}"
+                                        class="w-full h-40 object-cover rounded-xl"
+                                        alt="危険箇所の写真">
+                                  `
+                                : `
+                                    <div class="w-full h-40 flex items-center justify-center rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-400">
+                                        画像を表示できません
+                                    </div>
+                                  `
+                        }
 
 
                         <p class="text-xs text-slate-800 font-semibold">
-                            ${escapeHtml(post.text)}
+                            ${escapeHtml(post.text || '')}
                         </p>
 
 
                         ${
-                            mapUrl !== '#'
+                            mapUrl
                                 ? `
                                     <a
                                         href="${mapUrl}"
@@ -2956,8 +3069,12 @@
                                         class="text-xs text-sky-600 font-extrabold underline block">
                                         📍 マップで確認
                                     </a>
-                                `
-                                : ''
+                                  `
+                                : `
+                                    <div class="text-[10px] text-slate-400">
+                                        📍 位置情報なし
+                                    </div>
+                                  `
                         }
 
                     `;
@@ -3165,12 +3282,29 @@
             }
 
 
-            document
-                .getElementById(
+            const titleEl =
+                document.getElementById(
                     'jstReportTitle'
-                )
-                .innerText =
-                `🌤️ 天草市 JST気象情報 (${hourMinuteStr})`;
+                );
+
+
+            const recommendationEl =
+                document.getElementById(
+                    'lifestyleRecommendation'
+                );
+
+
+            if (titleEl) {
+
+                titleEl.innerText =
+                    `🌤️ 天草市 JST気象情報 (${hourMinuteStr})`;
+
+            }
+
+
+            if (!recommendationEl) {
+                return;
+            }
 
 
             let htmlOutput =
@@ -3191,11 +3325,7 @@
                 `</ul>`;
 
 
-            document
-                .getElementById(
-                    'lifestyleRecommendation'
-                )
-                .innerHTML =
+            recommendationEl.innerHTML =
                 htmlOutput;
 
         }
@@ -3413,12 +3543,18 @@
                     `天気情報の取得に失敗しました。${err.message || ''}`;
 
 
-                document
-                    .getElementById(
+                const recommendationEl =
+                    document.getElementById(
                         'lifestyleRecommendation'
-                    )
-                    .innerText =
-                    '天気APIに接続できないため、最新の気象情報を取得できませんでした。';
+                    );
+
+
+                if (recommendationEl) {
+
+                    recommendationEl.innerText =
+                        '天気APIに接続できないため、最新の気象情報を取得できませんでした。';
+
+                }
 
             }
 
@@ -3529,20 +3665,37 @@
                 );
 
 
-            document
-                .getElementById(
+            if (!banner) {
+                return;
+            }
+
+
+            const titleEl =
+                document.getElementById(
                     'pushNotificationTitle'
-                )
-                .innerText =
-                title;
+                );
 
 
-            document
-                .getElementById(
+            const textEl =
+                document.getElementById(
                     'pushNotificationText'
-                )
-                .innerText =
-                msg;
+                );
+
+
+            if (titleEl) {
+
+                titleEl.innerText =
+                    title;
+
+            }
+
+
+            if (textEl) {
+
+                textEl.innerText =
+                    msg;
+
+            }
 
 
             banner.classList
@@ -3565,14 +3718,20 @@
 
         function closePushBanner() {
 
-            document
-                .getElementById(
+            const banner =
+                document.getElementById(
                     'pushNotificationBanner'
-                )
-                .classList
-                .add(
-                    'translate-x-full'
                 );
+
+
+            if (banner) {
+
+                banner.classList
+                    .add(
+                        'translate-x-full'
+                    );
+
+            }
 
         }
 
