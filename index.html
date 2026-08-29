@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お天気通知君</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .glass-header { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 text-slate-100 antialiased min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white">
+
+    <header class="glass-header text-white border-b border-slate-700/60 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-4xl mx-auto px-5 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-xl bg-sky-500/10 p-2 rounded-xl border border-sky-400/20 text-sky-400 shadow-inner">☁️</span>
+                <div>
+                    <span class="text-sm font-bold tracking-tight block text-white">お天気通知君 ＆ 防災ネットワーク</span>
+                    <span class="text-[10px] text-sky-400/90 font-medium tracking-wide">AMAKUSA CITY PLATFORM (JST)</span>
+                </div>
+            </div>
+            <div id="headerUserArea" class="hidden flex items-center space-x-3">
+                <span id="currentUserLabel" class="text-xs text-slate-300 font-medium hidden sm:inline"></span>
+                <button onclick="handleLogout()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-1.5 rounded-lg border border-slate-700 transition font-medium shadow-sm">
+                    ログアウト
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 py-10 w-full">
+
+        <!-- 1. ログイン画面 -->
+        <div id="screen-login" class="screen glass-panel rounded-3xl shadow-2xl border border-slate-700/50 p-8 max-w-md mx-auto text-slate-800">
+            <div class="text-center mb-8">
+                <div class="inline-block bg-sky-500/10 text-sky-600 p-3.5 rounded-2xl mb-3 border border-sky-200/60 shadow-inner">
+                    <span class="text-2xl">🏡</span>
+                </div>
+                <h1 class="text-xl font-black text-slate-900 tracking-tight">ログイン / 新規登録</h1>
+                <p class="text-xs text-slate-500 mt-1">日本標準時(JST)対応スマート見守り</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">グループコード</label>
+                    <input type="text" id="loginGroupCode" placeholder="例: amakusa-yamada-family" class="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition shadow-inner">
+                    <p class="text-[10px] text-slate-400 mt-1">家族・友達で同じコードを使うと情報が共有されます</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">パスワード</label>
+                    <input type="password" id="loginPassword" placeholder="パスワードを入力" class="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition shadow-inner">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">あなたの表示名</label>
+                    <input type="text" id="loginName" placeholder="例: 山田 太郎" class="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition shadow-inner">
+                </div>
+                <div class="pt-3 space-y-2.5">
+                    <button id="loginRegisterBtn" onclick="handleAuth('register')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl text-sm transition shadow-sm border border-slate-200">
+                        新規登録する
+                    </button>
+                    <button id="loginLoginBtn" onclick="handleAuth('login')" class="w-full bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-sky-600/30">
+                        ログインする
+                    </button>
+                </div>
+                <div id="loginErrorMsg" class="hidden text-xs text-center font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3"></div>
+            </div>
+        </div>
+
+        <!-- 2. ダッシュボード画面 -->
+        <div id="screen-dashboard" class="screen hidden space-y-6 max-w-lg mx-auto">
+            <div class="glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-6 space-y-5">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-[10px] uppercase tracking-wider font-extrabold text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-200/60 shadow-sm">JST Dashboard</span>
+                        <h2 class="text-xl font-black text-slate-900 mt-2">ようこそ、<span id="welcomeUserName" class="text-sky-600"></span>さん</h2>
+                    </div>
+                    <div class="text-right">
+                        <div class="flex flex-col items-end gap-1.5">
+                            <span class="inline-flex items-center text-[11px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-bold border border-emerald-200/60 shadow-sm">
+                                <span class="w-2 h-2 bg-emerald-500 rounded-full mr-1.5 animate-pulse"></span>JST定時監視中
+                            </span>
+                            <div id="serverConnIndicator" class="inline-flex items-center text-[10px] bg-slate-50 text-slate-500 px-3 py-1 rounded-full font-bold border border-slate-200/60 shadow-sm">
+                                <span id="serverConnDot" class="w-1.5 h-1.5 bg-slate-400 rounded-full mr-1.5"></span><span id="serverConnText">接続確認中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 space-y-3 shadow-inner">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-700">👥 つながっているメンバー</span>
+                        <button onclick="openAddFamilyModal()" class="text-xs bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-xl font-bold transition">
+                            + メンバー追加
+                        </button>
+                    </div>
+                    <div id="familyMembersList" class="flex flex-wrap gap-2 pt-1"></div>
+                </div>
+            </div>
+
+            <div class="space-y-3.5">
+                <button onclick="switchScreen('safety')" class="w-full glass-panel text-slate-800 hover:bg-white border border-slate-700/30 font-bold py-4 px-6 rounded-2xl text-sm transition shadow-lg flex justify-between items-center group">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-2xl bg-amber-100 p-2.5 rounded-2xl border border-amber-200 group-hover:scale-110 transition-transform">😊</span>
+                        <div class="text-left">
+                            <div class="text-sm font-extrabold text-slate-900">元気だよボタン！</div>
+                            <div class="text-[11px] text-slate-500 font-medium">安否確認・SOS発信</div>
+                        </div>
+                    </div>
+                    <span class="text-amber-500 font-bold text-lg">➔</span>
+                </button>
+
+                <button onclick="switchScreen('weather')" class="w-full glass-panel text-slate-800 hover:bg-white border border-slate-700/30 font-bold py-4 px-6 rounded-2xl text-sm transition shadow-lg flex justify-between items-center group">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-2xl bg-sky-100 p-2.5 rounded-2xl border border-sky-200 group-hover:scale-110 transition-transform">🌤️</span>
+                        <div class="text-left">
+                            <div class="text-sm font-extrabold text-slate-900">天気予報 ＆ 防災クイズ</div>
+                            <div class="text-[11px] text-slate-500 font-medium">JST対応・朝6時/夜18時半レポート</div>
+                        </div>
+                    </div>
+                    <span class="text-sky-500 font-bold text-lg">➔</span>
+                </button>
+
+                <button onclick="switchScreen('hazard')" class="w-full glass-panel text-slate-800 hover:bg-white border border-slate-700/30 font-bold py-4 px-6 rounded-2xl text-sm transition shadow-lg flex justify-between items-center group">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-2xl bg-orange-100 p-2.5 rounded-2xl border border-orange-200 group-hover:scale-110 transition-transform">🚨</span>
+                        <div class="text-left">
+                            <div class="text-sm font-extrabold text-slate-900">危険みーつけた！</div>
+                            <div class="text-[11px] text-slate-500 font-medium">カメラ・EXIF・マップ連携</div>
+                        </div>
+                    </div>
+                    <span class="text-orange-500 font-bold text-lg">➔</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. 元気だよ画面 -->
+        <div id="screen-safety" class="screen hidden glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-8 max-w-md mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-base font-extrabold text-slate-900">😊 元気だよボタン！</h2>
+                <button onclick="switchScreen('dashboard')" class="text-xs text-slate-500 hover:text-slate-800 font-bold underline">← ダッシュボード</button>
+            </div>
+            <div class="space-y-3.5">
+                <button onclick="sendSafety('safe')" class="w-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 text-amber-900 font-bold py-4 px-5 rounded-2xl text-center shadow-md">
+                    😊 元気だよ！（無事を知らせる）
+                </button>
+                <button onclick="sendSafety('messy')" class="w-full bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 text-orange-900 font-bold py-4 px-5 rounded-2xl text-center shadow-md">
+                    🏠 被害あり！（部屋がバタバタ）
+                </button>
+                <button onclick="sendSafety('sos')" class="w-full bg-gradient-to-r from-rose-600 to-red-600 border border-rose-500 text-white font-bold py-4 px-5 rounded-2xl text-center shadow-lg">
+                    🆘 助けて！（要救助・緊急SOS）
+                </button>
+            </div>
+            <div id="safetyResultMsg" class="mt-4 text-xs text-center font-medium hidden p-3.5 rounded-xl bg-slate-100 border border-slate-200"></div>
+
+            <div class="mt-6 pt-5 border-t border-slate-200">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-bold text-slate-700">👥 グループの安否状況（リアルタイム）</span>
+                    <span id="safetyConnStatus" class="text-[10px] text-slate-400">同期中...</span>
+                </div>
+                <div id="groupSafetyStatusList" class="space-y-2">
+                    <p class="text-[11px] text-slate-400 text-center py-4">まだ誰も安否報告をしていません。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 天気予報 ＆ クイズ画面 -->
+        <div id="screen-weather" class="screen hidden glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-8 max-w-xl mx-auto space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-base font-extrabold text-slate-900">JST 天気予報と防災レポート</h2>
+                <button onclick="switchScreen('dashboard')" class="text-xs text-slate-500 hover:text-slate-800 font-bold underline">← ダッシュボード</button>
+            </div>
+
+            <div class="bg-gradient-to-br from-emerald-50/90 to-teal-50/90 border border-emerald-200/80 rounded-2xl p-6 text-emerald-900 space-y-3 shadow-sm">
+                <div class="flex justify-between items-center flex-wrap gap-2">
+                    <span class="font-bold text-sm" id="jstReportTitle">🌤️ 天草市 JST気象情報</span>
+                    <button onclick="fetchRealWeatherWithJST()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl font-bold transition shadow-md">
+                        🔄 最新天気を取得
+                    </button>
+                </div>
+                <p id="liveWeatherDesc" class="text-xs leading-relaxed font-semibold">取得ボタンを押してください。</p>
+                <div id="lifestyleRecommendation" class="text-xs bg-white/80 p-3 rounded-xl border border-emerald-200 font-bold text-emerald-800 space-y-1"></div>
+            </div>
+
+            <div class="bg-gradient-to-br from-sky-50/90 to-blue-50/90 border border-sky-200/80 rounded-2xl p-6 text-sky-900 space-y-4 shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="font-bold text-sm">❓ 防災お天気チャレンジ (730日完全非重複)</span>
+                    <span id="quizDayIndicator" class="text-xs bg-sky-200 text-sky-800 px-3 py-1 rounded-full font-extrabold">読み込み中...</span>
+                </div>
+                <div id="quizContainer" class="space-y-3">
+                    <p id="quizQuestion" class="text-xs font-bold leading-relaxed">読み込み中...</p>
+                    <div id="quizOptions" class="space-y-2.5"></div>
+                </div>
+                <div id="quizFeedback" class="hidden text-xs p-4 rounded-2xl bg-white border border-sky-200"></div>
+            </div>
+        </div>
+
+        <!-- 5. 危険みーつけた！画面 -->
+        <div id="screen-hazard" class="screen hidden glass-panel text-slate-800 rounded-3xl shadow-xl border border-slate-700/40 p-8 max-w-lg mx-auto space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-base font-extrabold text-slate-900">🚨 危険みーつけた！（リスク共有）</h2>
+                    <p id="hazardSyncStatus" class="text-[10px] text-slate-400 mt-1">同期中...</p>
+                </div>
+                <button onclick="switchScreen('dashboard')" class="text-xs text-slate-500 hover:text-slate-800 font-bold underline">← ダッシュボード</button>
+            </div>
+            <div id="hazardPostList" class="space-y-4 max-h-[480px] overflow-y-auto pr-1">
+                <div class="text-center py-12 text-xs text-slate-400 bg-white/60 rounded-2xl border border-dashed border-slate-300">
+                    まだ登録された危険情報はありません。<br>カメラで撮影して共有しましょう！
+                </div>
+            </div>
+            <button onclick="triggerImageUpload()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-4 rounded-2xl text-sm transition shadow-xl">
+                📸 カメラを起動して危険を撮影・投稿する
+            </button>
+            <input type="file" id="hazardImageInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelected(event)">
+        </div>
+
+    </main>
+
+    <!-- メンバー追加モーダル -->
+    <div id="addFamilyModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white text-slate-800 rounded-3xl p-7 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4">
+            <h3 class="text-base font-extrabold text-slate-900">👥 メンバー追加</h3>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">追加したい人の名前</label>
+                <input type="text" id="newMemberName" placeholder="例: 友達の佐藤くん" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+            </div>
+            <div class="flex space-x-2.5 pt-2">
+                <button onclick="closeAddFamilyModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs transition">キャンセル</button>
+                <button onclick="confirmAddFamilyMember()" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-md">追加する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- プッシュ通知バナー -->
+    <div id="pushNotificationBanner" class="fixed top-5 right-5 bg-slate-900/95 backdrop-blur-md text-white px-5 py-4 rounded-2xl shadow-2xl border border-slate-700/80 z-50 transform translate-x-full transition-transform duration-300 max-w-sm space-y-2.5">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <span>🔔</span>
+                <span id="pushNotificationTitle" class="text-xs font-bold text-sky-400">通知</span>
+            </div>
+            <button onclick="closePushBanner()" class="text-slate-400 hover:text-white text-xs font-bold">✕</button>
+        </div>
+        <p id="pushNotificationText" class="text-xs text-slate-200 leading-relaxed"></p>
+    </div>
+
+    <footer class="border-t border-slate-800/80 bg-slate-900/80 backdrop-blur py-5 mt-12 text-slate-400 text-center text-xs font-medium">
+        © 2026 Amakusa City Disaster Prevention Platform (JST).
+    </footer>
+
+    <script>
+        // RenderにデプロイしたバックエンドのURLを設定してください。
+        // GitHub Pagesで公開する場合は、ここを実際のRender URLに変更します。
+        // 例: "https://amakusa-bousai-api.onrender.com"
+        const API_BASE_URL = "https://YOUR-RENDER-APP-NAME.onrender.com";
+        const AMAKUSA_LAT = 32.4547;
+        const AMAKUSA_LON = 130.1978;
+        const POLL_INTERVAL_MS = 5000;
+
+        let appState = JSON.parse(localStorage.getItem('amakusa_disaster_app_state_jst_v2')) || {
+            userName: "",
+            groupCode: "",
+            familyMembers: [],
+            hazardPosts: [],
+            safetyStatuses: []
+        };
+
+        let disasterQuizzes = [];
+        let pollTimers = [];
+        let jstMonitorStarted = false;
+        let lastNotifiedKey = "";
+
+        function saveAppState() {
+            localStorage.setItem('amakusa_disaster_app_state_jst_v2', JSON.stringify(appState));
+        }
+
+        function getJSTNow() {
+            const now = new Date();
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Tokyo',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).formatToParts(now);
+
+            const values = {};
+            parts.forEach(part => {
+                if (part.type !== 'literal') {
+                    values[part.type] = part.value;
+                }
+            });
+
+            return new Date(
+                Number(values.year),
+                Number(values.month) - 1,
+                Number(values.day),
+                Number(values.hour) % 24,
+                Number(values.minute),
+                Number(values.second)
+            );
+        }
+
+        function isApiConfigured() {
+            return API_BASE_URL && !API_BASE_URL.includes("YOUR-RENDER-APP-NAME");
+        }
+
+        async function apiRequest(path, options = {}, timeoutMs = 15000) {
+            if (!isApiConfigured()) {
+                return {
+                    ok: false,
+                    error: "サーバーURLが未設定です（index.htmlのAPI_BASE_URLを設定してください）",
+                    status: 0
+                };
+            }
+
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+            try {
+                const res = await fetch(`${API_BASE_URL}${path}`, {
+                    ...options,
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(options.headers || {})
+                    },
+                    signal: controller.signal
+                });
+
+                clearTimeout(timer);
+
+                let data = null;
+                try {
+                    data = await res.json();
+                } catch (e) {
+                    data = null;
+                }
+
+                if (!res.ok) {
+                    return {
+                        ok: false,
+                        error: (data && data.error)
+                            ? data.error
+                            : `サーバーエラー（HTTP ${res.status}）`,
+                        status: res.status
+                    };
+                }
+
+                return {
+                    ok: true,
+                    data,
+                    status: res.status
+                };
+
+            } catch (err) {
+                clearTimeout(timer);
+
+                if (err.name === 'AbortError') {
+                    return {
+                        ok: false,
+                        error: "サーバーへの接続がタイムアウトしました。（無料サーバーはスリープから復帰するまで30秒ほどかかる場合があります）",
+                        status: 0
+                    };
+                }
+
+                return {
+                    ok: false,
+                    error: "サーバーに接続できませんでした。通信環境をご確認ください。",
+                    status: 0
+                };
+            }
+        }
+
+        function setServerConnStatus(connected) {
+            const dot = document.getElementById('serverConnDot');
+            const text = document.getElementById('serverConnText');
+
+            if (!dot || !text) return;
+
+            if (connected) {
+                dot.className = 'w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5';
+                text.innerText = 'サーバー同期中';
+            } else {
+                dot.className = 'w-1.5 h-1.5 bg-rose-400 rounded-full mr-1.5';
+                text.innerText = '未接続（再試行中）';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadQuizFile();
+
+            if (appState.userName && appState.groupCode) {
+                document.getElementById('currentUserLabel').innerText =
+                    `ログイン中: ${appState.userName}`;
+
+                document.getElementById('welcomeUserName').innerText =
+                    appState.userName;
+
+                document.getElementById('headerUserArea').classList.remove('hidden');
+
+                switchScreen('dashboard');
+                renderFamilyMembers();
+                renderHazardPosts();
+                initJSTBackgroundMonitors();
+                startPolling();
+
+            } else {
+                switchScreen('login');
+            }
+        });
+
+        function getSkippedLeapDayIndex(targetDate) {
+            let startYear = targetDate.getFullYear();
+            let baseDate = new Date(startYear, 0, 1);
+            let diffDays = Math.floor(
+                (targetDate - baseDate) / (1000 * 60 * 60 * 24)
+            );
+
+            let isLeap =
+                (startYear % 4 === 0 && startYear % 100 !== 0) ||
+                (startYear % 400 === 0);
+
+            let feb29 = new Date(startYear, 1, 29);
+
+            if (isLeap && targetDate > feb29) {
+                diffDays -= 1;
+            }
+
+            let yearOffset = (startYear % 2 === 0) ? 0 : 365;
+
+            return (yearOffset + diffDays) % 730;
+        }
+
+        async function loadQuizFile() {
+            try {
+                const response = await fetch(`quiz.txt?v=${Date.now()}`, {
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`quiz.txt HTTP ${response.status}`);
+                }
+
+                const text = await response.text();
+                parseQuizText(text);
+
+                if (disasterQuizzes.length !== 730) {
+                    throw new Error(
+                        `quiz.txtの問題数が730問ではありません（${disasterQuizzes.length}問）`
+                    );
+                }
+            } catch (err) {
+                console.error('quiz.txtの読み込みに失敗しました:', err);
+
+                disasterQuizzes = [];
+
+                const questionEl = document.getElementById('quizQuestion');
+                const indicatorEl = document.getElementById('quizDayIndicator');
+                const optionsEl = document.getElementById('quizOptions');
+
+                if (indicatorEl) {
+                    indicatorEl.innerText = 'クイズ読み込みエラー';
+                }
+
+                if (questionEl) {
+                    questionEl.innerText =
+                        'quiz.txtの読み込みに失敗しました。ファイル配置と内容を確認してください。';
+                }
+
+                if (optionsEl) {
+                    optionsEl.innerHTML = '';
+                }
+            }
+        }
+
+        function parseQuizText(rawText) {
+            disasterQuizzes = [];
+
+            const regex =
+                /{\s*q:\s*"([\s\S]*?)",\s*a:\s*"([\s\S]*?)"\s*}/g;
+
+            let match;
+
+            while ((match = regex.exec(rawText)) !== null) {
+                const qContent = match[1].replace(/\\n/g, '\n');
+                const aContent = match[2].replace(/\\n/g, '\n');
+
+                const lines = qContent.split('\n');
+                const questionText = lines[0].trim();
+
+                const options = [];
+                let correctAnswerIndex = -1;
+
+                const correctNumMatch =
+                    aContent.match(/正解[：:]\s*([0-9０-９])/);
+
+                if (correctNumMatch) {
+                    const normalized =
+                        correctNumMatch[1].replace(/[０-９]/g, d =>
+                            String.fromCharCode(d.charCodeAt(0) - 0xfee0)
+                        );
+
+                    correctAnswerIndex = Number(normalized) - 1;
+                }
+
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+
+                    if (line) {
+                        options.push(
+                            line.replace(
+                                /^[0-9０-９][.．、)]\\s*/,
+                                ''
+                            )
+                        );
+                    }
+                }
+
+                if (
+                    !questionText ||
+                    options.length === 0 ||
+                    correctAnswerIndex < 0 ||
+                    correctAnswerIndex >= options.length
+                ) {
+                    console.warn('不正なクイズデータをスキップしました:', {
+                        questionText,
+                        options,
+                        correctAnswerIndex
+                    });
+                    continue;
+                }
+
+                disasterQuizzes.push({
+                    questionText,
+                    options,
+                    correctAnswerIndex,
+                    explanationText: aContent
+                });
+            }
+
+            if (disasterQuizzes.length !== 730) {
+                throw new Error(
+                    `quiz.txtを正しく解析できませんでした（${disasterQuizzes.length}問）`
+                );
+            }
+        }
+
+        function getQuizDayIndex() {
+            const jst = getJSTNow();
+
+            // うるう年を含めず、固定した開始日から730日で1周させる。
+            // 2026-01-01を1日目とする。
+            const start = new Date(2026, 0, 1);
+            const current = new Date(
+                jst.getFullYear(),
+                jst.getMonth(),
+                jst.getDate()
+            );
+
+            let diffDays = Math.floor(
+                (current - start) / (1000 * 60 * 60 * 24)
+            );
+
+            if (diffDays < 0) {
+                diffDays = 0;
+            }
+
+            // 2月29日は「存在しない日」として扱う。
+            // うるう年の2月29日より後の日付から1日引く。
+            const year = current.getFullYear();
+            const isLeap =
+                (year % 4 === 0 && year % 100 !== 0) ||
+                (year % 400 === 0);
+
+            const feb29 = new Date(year, 1, 29);
+
+            if (isLeap && current > feb29) {
+                diffDays -= 1;
+            }
+
+            return ((diffDays % 730) + 730) % 730;
+        }
+
+        function initQuizSystem() {
+            if (disasterQuizzes.length !== 730) {
+                return;
+            }
+
+            const dayIndex = getQuizDayIndex();
+            const quiz = disasterQuizzes[dayIndex];
+
+            document.getElementById('quizDayIndicator').innerText =
+                `730日サイクル: ${dayIndex + 1}日目`;
+
+            document.getElementById('quizQuestion').innerText =
+                quiz.questionText;
+
+            const optionsContainer =
+                document.getElementById('quizOptions');
+
+            optionsContainer.innerHTML = '';
+
+            quiz.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+
+                btn.className =
+                    'w-full text-left text-xs bg-white hover:bg-sky-50 border border-sky-200/80 p-3.5 rounded-2xl transition text-sky-900 font-bold shadow-sm';
+
+                btn.innerText = `${idx + 1}. ${opt}`;
+
+                btn.onclick = () =>
+                    answerQuiz(
+                        idx,
+                        quiz.correctAnswerIndex,
+                        quiz.explanationText
+                    );
+
+                optionsContainer.appendChild(btn);
+            });
+
+            document
+                .getElementById('quizFeedback')
+                .classList.add('hidden');
+        }
+
+        function answerQuiz(selectedIdx, correctIdx, explanationText) {
+            const feedbackEl =
+                document.getElementById('quizFeedback');
+
+            feedbackEl.classList.remove('hidden');
+
+            document
+                .getElementById('quizOptions')
+                .querySelectorAll('button')
+                .forEach(b => b.disabled = true);
+
+            if (selectedIdx === correctIdx) {
+                feedbackEl.className =
+                    "text-xs p-4 rounded-2xl bg-emerald-100 border border-emerald-300 text-emerald-900 font-semibold shadow-sm";
+
+                feedbackEl.innerHTML =
+                    `🎉 <strong>正解！</strong><br><span style="white-space: pre-wrap;">${explanationText}</span>`;
+
+            } else {
+                feedbackEl.className =
+                    "text-xs p-4 rounded-2xl bg-rose-100 border border-rose-300 text-rose-900 font-semibold shadow-sm";
+
+                feedbackEl.innerHTML =
+                    `❌ <strong>不正解です。</strong><br><span style="white-space: pre-wrap;">${explanationText}</span>`;
+            }
+        }
+
+        function switchScreen(screenId) {
+            document
+                .querySelectorAll('.screen')
+                .forEach(el => el.classList.add('hidden'));
+
+            document
+                .getElementById(`screen-${screenId}`)
+                .classList.remove('hidden');
+
+            window.scrollTo(0, 0);
+
+            if (screenId === 'weather') {
+                initQuizSystem();
+                evaluateJSTWeatherAndAdvice("晴れ", 2.0, []);
+            }
+
+            if (screenId === 'safety') {
+                pollSafety();
+            }
+
+            if (screenId === 'hazard') {
+                pollHazard();
+            }
+        }
+
+        function showLoginError(msg) {
+            const el =
+                document.getElementById('loginErrorMsg');
+
+            el.innerText = msg;
+            el.classList.remove('hidden');
+        }
+
+        function hideLoginError() {
+            document
+                .getElementById('loginErrorMsg')
+                .classList.add('hidden');
+        }
+
+        function setLoginButtonsDisabled(disabled) {
+            document.getElementById('loginRegisterBtn').disabled =
+                disabled;
+
+            document.getElementById('loginLoginBtn').disabled =
+                disabled;
+
+            document
+                .getElementById('loginRegisterBtn')
+                .classList.toggle('opacity-50', disabled);
+
+            document
+                .getElementById('loginLoginBtn')
+                .classList.toggle('opacity-50', disabled);
+        }
+
+        async function handleAuth(type) {
+            hideLoginError();
+
+            const groupCode =
+                document.getElementById('loginGroupCode')
+                    .value.trim();
+
+            const password =
+                document.getElementById('loginPassword')
+                    .value.trim();
+
+            const nameInput =
+                document.getElementById('loginName')
+                    .value.trim();
+
+            if (!groupCode || !password || !nameInput) {
+                showLoginError(
+                    'グループコード・パスワード・表示名はすべて入力してください。'
+                );
+                return;
+            }
+
+            if (!isApiConfigured()) {
+                showLoginError(
+                    'サーバーURLが未設定です。index.html内のAPI_BASE_URLを設定してください。'
+                );
+                return;
+            }
+
+            setLoginButtonsDisabled(true);
+
+            showLoginError(
+                'サーバーに接続中です…（無料サーバーの場合、初回起動に30秒ほどかかることがあります）'
+            );
+
+            const path =
+                type === 'register'
+                    ? '/api/group/register'
+                    : '/api/group/login';
+
+            const result = await apiRequest(
+                path,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        group_code: groupCode,
+                        password,
+                        name: nameInput
+                    })
+                },
+                40000
+            );
+
+            setLoginButtonsDisabled(false);
+
+            if (!result.ok) {
+                showLoginError(
+                    result.error || '接続に失敗しました。'
+                );
+                return;
+            }
+
+            hideLoginError();
+
+            appState.userName = nameInput;
+            appState.groupCode = groupCode;
+            appState.familyMembers =
+                result.data.members || [];
+
+            saveAppState();
+
+            document.getElementById('welcomeUserName').innerText =
+                appState.userName;
+
+            document.getElementById('currentUserLabel').innerText =
+                `ログイン中: ${appState.userName}`;
+
+            document
+                .getElementById('headerUserArea')
+                .classList.remove('hidden');
+
+            renderFamilyMembers();
+
+            switchScreen('dashboard');
+
+            initJSTBackgroundMonitors();
+            startPolling();
+        }
+
+        function handleLogout() {
+            if (confirm('ログアウトしますか？')) {
+                stopPolling();
+
+                appState.userName = "";
+                appState.groupCode = "";
+
+                saveAppState();
+
+                document
+                    .getElementById('headerUserArea')
+                    .classList.add('hidden');
+
+                switchScreen('login');
+            }
+        }
+
+        function renderFamilyMembers() {
+            const container =
+                document.getElementById('familyMembersList');
+
+            container.innerHTML = '';
+
+            appState.familyMembers.forEach((member) => {
+                const tag =
+                    document.createElement('span');
+
+                tag.className =
+                    'inline-flex items-center text-xs bg-white text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 font-semibold shadow-sm';
+
+                const safeMember =
+                    String(member)
+                        .replace(/\\/g, '\\\\')
+                        .replace(/'/g, "\\'");
+
+                tag.innerHTML =
+                    `🛡️ ${escapeHtml(member)} <button onclick="removeFamilyMember('${safeMember}')" class="ml-2 text-slate-400 hover:text-rose-500 font-extrabold">×</button>`;
+
+                container.appendChild(tag);
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(
+                /[&<>'"]/g,
+                ch => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[ch])
+            );
+        }
+
+        function openAddFamilyModal() {
+            document
+                .getElementById('addFamilyModal')
+                .classList.remove('hidden');
+        }
+
+        function closeAddFamilyModal() {
+            document
+                .getElementById('addFamilyModal')
+                .classList.add('hidden');
+        }
+
+        async function confirmAddFamilyMember() {
+            const name =
+                document.getElementById('newMemberName')
+                    .value.trim();
+
+            if (!name) return;
+
+            const result = await apiRequest(
+                `/api/members/${encodeURIComponent(appState.groupCode)}`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({ name })
+                }
+            );
+
+            if (!result.ok) {
+                alert(
+                    `メンバー追加に失敗しました：${result.error}`
+                );
+                return;
+            }
+
+            appState.familyMembers =
+                result.data.members || [];
+
+            saveAppState();
+            renderFamilyMembers();
+
+            document.getElementById('newMemberName').value = '';
+
+            closeAddFamilyModal();
+        }
+
+        async function removeFamilyMember(name) {
+            if (appState.familyMembers.length <= 1) {
+                alert('最低1人は残してください');
+                return;
+            }
+
+            const result = await apiRequest(
+                `/api/members/${encodeURIComponent(appState.groupCode)}/${encodeURIComponent(name)}`,
+                {
+                    method: 'DELETE'
+                }
+            );
+
+            if (!result.ok) {
+                alert(
+                    `メンバー削除に失敗しました：${result.error}`
+                );
+                return;
+            }
+
+            appState.familyMembers =
+                result.data.members || [];
+
+            saveAppState();
+            renderFamilyMembers();
+        }
+
+        function startPolling() {
+            stopPolling();
+
+            pollMembers();
+            pollSafety();
+            pollHazard();
+
+            pollTimers.push(
+                setInterval(
+                    pollMembers,
+                    POLL_INTERVAL_MS
+                )
+            );
+
+            pollTimers.push(
+                setInterval(
+                    pollSafety,
+                    POLL_INTERVAL_MS
+                )
+            );
+
+            pollTimers.push(
+                setInterval(
+                    pollHazard,
+                    POLL_INTERVAL_MS
+                )
+            );
+        }
+
+        function stopPolling() {
+            pollTimers.forEach(t =>
+                clearInterval(t)
+            );
+
+            pollTimers = [];
+        }
+
+        async function pollMembers() {
+            if (!appState.groupCode) return;
+
+            const result = await apiRequest(
+                `/api/members/${encodeURIComponent(appState.groupCode)}`,
+                {
+                    method: 'GET'
+                },
+                10000
+            );
+
+            setServerConnStatus(result.ok);
+
+            if (!result.ok) return;
+
+            const members =
+                result.data.members || [];
+
+            if (
+                JSON.stringify(members) !==
+                JSON.stringify(appState.familyMembers)
+            ) {
+                appState.familyMembers = members;
+
+                saveAppState();
+                renderFamilyMembers();
+            }
+        }
+
+        function safetyStatusLabel(status) {
+            if (status === 'safe') {
+                return {
+                    emoji: '😊',
+                    text: '元気です',
+                    cls: 'bg-amber-50 border-amber-200 text-amber-900'
+                };
+            }
+
+            if (status === 'messy') {
+                return {
+                    emoji: '🏠',
+                    text: '被害あり',
+                    cls: 'bg-orange-50 border-orange-200 text-orange-900'
+                };
+            }
+
+            if (status === 'sos') {
+                return {
+                    emoji: '🆘',
+                    text: '緊急SOS',
+                    cls: 'bg-rose-100 border-rose-300 text-rose-900'
+                };
+            }
+
+            return {
+                emoji: '❔',
+                text: status,
+                cls: 'bg-slate-50 border-slate-200 text-slate-700'
+            };
+        }
+
+        function renderSafetyList(statuses) {
+            const container =
+                document.getElementById(
+                    'groupSafetyStatusList'
+                );
+
+            if (!statuses || statuses.length === 0) {
+                container.innerHTML =
+                    '<p class="text-[11px] text-slate-400 text-center py-4">まだ誰も安否報告をしていません。</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            statuses.forEach(s => {
+                const info =
+                    safetyStatusLabel(s.status);
+
+                const jstTime =
+                    new Date(s.created_at)
+                        .toLocaleString(
+                            'ja-JP',
+                            {
+                                timeZone: 'Asia/Tokyo'
+                            }
+                        );
+
+                const row =
+                    document.createElement('div');
+
+                row.className =
+                    `flex justify-between items-center text-xs font-bold px-3.5 py-2.5 rounded-xl border ${info.cls}`;
+
+                row.innerHTML =
+                    `<span>${info.emoji} ${escapeHtml(s.name)}：${escapeHtml(info.text)}</span><span class="text-[10px] font-medium opacity-70">${jstTime}</span>`;
+
+                container.appendChild(row);
+            });
+        }
+
+        async function pollSafety() {
+            if (!appState.groupCode) return;
+
+            const statusEl =
+                document.getElementById(
+                    'safetyConnStatus'
+                );
+
+            const result = await apiRequest(
+                `/api/safety/${encodeURIComponent(appState.groupCode)}`,
+                {
+                    method: 'GET'
+                },
+                10000
+            );
+
+            setServerConnStatus(result.ok);
+
+            if (!result.ok) {
+                if (statusEl) {
+                    statusEl.innerText =
+                        '同期エラー（再試行中）';
+                }
+                return;
+            }
+
+            if (statusEl) {
+                statusEl.innerText =
+                    `最終同期: ${getJSTNow().toLocaleTimeString('ja-JP')}`;
+            }
+
+            appState.safetyStatuses =
+                result.data.statuses || [];
+
+            renderSafetyList(
+                appState.safetyStatuses
+            );
+        }
+
+        async function sendSafety(type) {
+            const msgEl =
+                document.getElementById(
+                    'safetyResultMsg'
+                );
+
+            const result = await apiRequest(
+                `/api/safety/${encodeURIComponent(appState.groupCode)}`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: appState.userName,
+                        status: type
+                    })
+                }
+            );
+
+            if (!result.ok) {
+                msgEl.innerText =
+                    `送信に失敗しました：${result.error}`;
+
+                msgEl.className =
+                    "mt-4 text-xs text-center font-medium p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700";
+
+                msgEl.classList.remove('hidden');
+
+                return;
+            }
+
+            msgEl.innerText =
+                "安否情報をグループ全員に送信しました！";
+
+            msgEl.className =
+                "mt-4 text-xs text-center font-medium p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700";
+
+            msgEl.classList.remove('hidden');
+
+            triggerPushNotification(
+                "安否確認送信",
+                "グループメンバーにステータスを通知しました。"
+            );
+
+            setTimeout(
+                () => msgEl.classList.add('hidden'),
+                5000
+            );
+
+            pollSafety();
+        }
+
+        function triggerImageUpload() {
+            document
+                .getElementById('hazardImageInput')
+                .click();
+        }
+
+        function handleImageSelected(e) {
+            const file = e.target.files[0];
+
+            if (!file) return;
+
+            const reader =
+                new FileReader();
+
+            reader.onload = async function (evt) {
+                const text =
+                    prompt(
+                        '危険な箇所の内容を入力してください',
+                        'ひび割れを発見'
+                    );
+
+                if (!text) return;
+
+                const syncEl =
+                    document.getElementById(
+                        'hazardSyncStatus'
+                    );
+
+                if (syncEl) {
+                    syncEl.innerText =
+                        '投稿を送信中...';
+                }
+
+                const result = await apiRequest(
+                    `/api/hazard/${encodeURIComponent(appState.groupCode)}`,
+                    {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            author: appState.userName,
+                            image: evt.target.result,
+                            text: text,
+                            lat: AMAKUSA_LAT,
+                            lon: AMAKUSA_LON
+                        })
+                    },
+                    20000
+                );
+
+                if (!result.ok) {
+                    alert(
+                        `投稿の送信に失敗しました：${result.error}`
+                    );
+
+                    if (syncEl) {
+                        syncEl.innerText =
+                            '送信失敗（もう一度お試しください）';
+                    }
+
+                    return;
+                }
+
+                await pollHazard();
+            };
+
+            reader.onerror = function () {
+                alert(
+                    '画像の読み込みに失敗しました。別の画像で再度お試しください。'
+                );
+            };
+
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        }
+
+        async function pollHazard() {
+            if (!appState.groupCode) return;
+
+            const syncEl =
+                document.getElementById(
+                    'hazardSyncStatus'
+                );
+
+            const result = await apiRequest(
+                `/api/hazard/${encodeURIComponent(appState.groupCode)}`,
+                {
+                    method: 'GET'
+                },
+                10000
+            );
+
+            setServerConnStatus(result.ok);
+
+            if (!result.ok) {
+                if (syncEl) {
+                    syncEl.innerText =
+                        '同期エラー（再試行中）';
+                }
+
+                return;
+            }
+
+            if (syncEl) {
+                syncEl.innerText =
+                    `最終同期: ${getJSTNow().toLocaleTimeString('ja-JP')}`;
+            }
+
+            appState.hazardPosts =
+                result.data.posts || [];
+
+            renderHazardPosts();
+        }
+
+        function renderHazardPosts() {
+            const container =
+                document.getElementById(
+                    'hazardPostList'
+                );
+
+            if (
+                !appState.hazardPosts ||
+                appState.hazardPosts.length === 0
+            ) {
+                container.innerHTML =
+                    '<div class="text-center py-12 text-xs text-slate-400 bg-white/60 rounded-2xl border border-dashed border-slate-300">まだ登録された危険情報はありません。<br>カメラで撮影して共有しましょう！</div>';
+
+                return;
+            }
+
+            container.innerHTML = '';
+
+            appState.hazardPosts.forEach(post => {
+                const lat = Number(post.lat);
+                const lon = Number(post.lon);
+
+                const mapUrl =
+                    Number.isFinite(lat) &&
+                    Number.isFinite(lon)
+                        ? `https://www.google.com/maps?q=${encodeURIComponent(lat)},${encodeURIComponent(lon)}`
+                        : '#';
+
+                const jstTime =
+                    post.created_at
+                        ? new Date(post.created_at)
+                            .toLocaleString(
+                                'ja-JP',
+                                {
+                                    timeZone: 'Asia/Tokyo'
+                                }
+                            )
+                        : '';
+
+                const div =
+                    document.createElement('div');
+
+                div.className =
+                    'bg-white/90 border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2';
+
+                div.innerHTML = `
+                    <div class="flex justify-between text-xs text-slate-500 font-bold">
+                        <span>👤 ${escapeHtml(post.author)}</span><span>${escapeHtml(jstTime)}</span>
+                    </div>
+                    <img src="${String(post.image || '').startsWith('data:image/') ? post.image : ''}" class="w-full h-40 object-cover rounded-xl" alt="危険箇所の写真">
+                    <p class="text-xs text-slate-800 font-semibold">${escapeHtml(post.text)}</p>
+                    ${mapUrl !== '#' ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="text-xs text-sky-600 font-extrabold underline block">📍 マップで確認</a>` : ''}
+                `;
+
+                container.appendChild(div);
+            });
+        }
+
+        function evaluateJSTWeatherAndAdvice(
+            desc,
+            windSpeed,
+            forecastList
+        ) {
+            const jst = getJSTNow();
+
+            const hour = jst.getHours();
+
+            const hourMinuteStr =
+                `${hour.toString().padStart(2, '0')}:${jst.getMinutes().toString().padStart(2, '0')}`;
+
+            let recommendations = [];
+            let timeGreeting = "";
+
+            let rainFlag =
+                desc.includes("雨") ||
+                desc.includes("降水");
+
+            if (hour === 6) {
+                timeGreeting =
+                    `おはようございます。日本標準時 ${hourMinuteStr}、天草市の朝の気象情報をお届けします。`;
+
+                let afternoonRain = false;
+
+                for (let fc of forecastList) {
+                    if (
+                        fc.hour >= 12 &&
+                        fc.hour <= 18 &&
+                        (
+                            fc.description.includes("雨") ||
+                            fc.description.includes("降水")
+                        )
+                    ) {
+                        afternoonRain = true;
+                        break;
+                    }
+                }
+
+                if (rainFlag) {
+                    if (windSpeed >= 7.0) {
+                        recommendations.push(
+                            "現在、風が強く雨も降っているため、傘だけでなくレインコートの持参を強く推奨します。"
+                        );
+                    } else {
+                        recommendations.push(
+                            "現在雨が降っているため、傘をお持ちください。"
+                        );
+                    }
+
+                } else if (afternoonRain) {
+                    recommendations.push(
+                        "午後から雨が降る予報が出ています。洗濯物を外で干す場合は、早めに取り込んでおくことをお勧めします。"
+                    );
+                }
+
+                if (windSpeed >= 10.0) {
+                    recommendations.push(
+                        "風が非常に強いため、外出の際は飛来物等に十分ご注意ください。"
+                    );
+                }
+
+                if (recommendations.length === 0) {
+                    recommendations.push(
+                        "本日は安定した天候が見込まれます。洗濯日和となりますのでご活用ください。"
+                    );
+                }
+
+            } else if (hour === 18) {
+                timeGreeting =
+                    `こんばんは。日本標準時 ${hourMinuteStr}、天草市の翌日気象情報・夜間見守りレポートです。`;
+
+                let tomorrowRain =
+                    forecastList.some(
+                        fc =>
+                            fc.description &&
+                            fc.description.includes("雨")
+                    );
+
+                let tomorrowWind =
+                    forecastList.some(
+                        fc =>
+                            fc.wind_speed >= 8.0
+                    );
+
+                if (tomorrowRain) {
+                    if (tomorrowWind) {
+                        recommendations.push(
+                            "明日は雨風ともに強まる予報です。通勤・通学にはレインコートや丈夫な雨具の準備を推奨します。"
+                        );
+                    } else {
+                        recommendations.push(
+                            "明日は雨の予報が出ています。お出かけの際は傘の準備をお忘れなく。"
+                        );
+                    }
+                } else {
+                    recommendations.push(
+                        "明日の天気は比較的穏やかな見込みです。夜間に備えて戸締まりをしっかり行いお休みください。"
+                    );
+                }
+
+            } else {
+                timeGreeting =
+                    `現在時刻は日本標準時で ${hourMinuteStr} です。`;
+
+                recommendations.push(
+                    "定時配信（朝6:00 / 夜18:30）以外の臨時確認モードです。空模様の変化にご注意ください。"
+                );
+            }
+
+            document.getElementById('jstReportTitle').innerText =
+                `🌤️ 天草市 JST気象情報 (${hourMinuteStr})`;
+
+            let htmlOutput =
+                `<div class="font-bold text-emerald-900 mb-1">${timeGreeting}</div><ul class="list-disc pl-4 space-y-1">`;
+
+            recommendations.forEach(rec => {
+                htmlOutput += `<li>${rec}</li>`;
+            });
+
+            htmlOutput += `</ul>`;
+
+            document
+                .getElementById('lifestyleRecommendation')
+                .innerHTML = htmlOutput;
+        }
+
+        function weatherCodeToJapanese(code) {
+            const map = {
+                0: '快晴',
+                1: '晴れ',
+                2: '一部曇り',
+                3: '曇り',
+                45: '霧',
+                48: '着氷性の霧',
+                51: '弱い霧雨',
+                53: '霧雨',
+                55: '強い霧雨',
+                56: '弱い着氷性の霧雨',
+                57: '強い着氷性の霧雨',
+                61: '弱い雨',
+                63: '雨',
+                65: '強い雨',
+                66: '弱い着氷性の雨',
+                67: '強い着氷性の雨',
+                71: '弱い雪',
+                73: '雪',
+                75: '強い雪',
+                77: '雪あられ',
+                80: '弱いにわか雨',
+                81: 'にわか雨',
+                82: '強いにわか雨',
+                85: '弱いにわか雪',
+                86: '強いにわか雪',
+                95: '雷雨',
+                96: '雷雨・ひょうの可能性',
+                99: '強い雷雨・ひょうの可能性'
+            };
+
+            return map[Number(code)] || '天候不明';
+        }
+
+        async function fetchRealWeatherWithJST() {
+            const descEl =
+                document.getElementById('liveWeatherDesc');
+
+            if (!descEl) return;
+
+            descEl.innerText = 'JST基準で気象データを取得中...';
+
+            try {
+                const url =
+                    'https://api.open-meteo.com/v1/forecast' +
+                    `?latitude=${AMAKUSA_LAT}` +
+                    `&longitude=${AMAKUSA_LON}` +
+                    '&current=temperature_2m,wind_speed_10m,weather_code' +
+                    '&hourly=temperature_2m,wind_speed_10m,weather_code,precipitation_probability' +
+                    '&forecast_days=2' +
+                    '&timezone=Asia%2FTokyo';
+
+                const response = await fetch(url, {
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`天気API HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.current) {
+                    throw new Error('現在の天気データがありません。');
+                }
+
+                const currentDesc =
+                    weatherCodeToJapanese(data.current.weather_code);
+
+                const temperature =
+                    Number(data.current.temperature_2m);
+
+                const windSpeed =
+                    Number(data.current.wind_speed_10m);
+
+                const hourly = data.hourly || {};
+                const times = hourly.time || [];
+                const descriptions =
+                    hourly.weather_code || [];
+                const windSpeeds =
+                    hourly.wind_speed_10m || [];
+
+                const forecastList = times.map((time, index) => {
+                    const date = new Date(time);
+
+                    return {
+                        hour: date.getHours(),
+                        description:
+                            weatherCodeToJapanese(
+                                descriptions[index]
+                            ),
+                        wind_speed:
+                            Number(windSpeeds[index] ?? 0)
+                    };
+                });
+
+                descEl.innerText =
+                    `天草市：${currentDesc} / 気温: ${temperature.toFixed(1)}℃ / 風速: ${windSpeed.toFixed(1)} m/s (JST)`;
+
+                evaluateJSTWeatherAndAdvice(
+                    currentDesc,
+                    windSpeed,
+                    forecastList
+                );
+
+            } catch (err) {
+                console.error('天気取得エラー:', err);
+
+                descEl.innerText =
+                    `天気情報の取得に失敗しました。${err.message || ''}`;
+
+                document.getElementById(
+                    'lifestyleRecommendation'
+                ).innerText =
+                    '天気APIに接続できないため、最新の気象情報を取得できませんでした。';
+            }
+        }
+
+        function initJSTBackgroundMonitors() {
+            if (jstMonitorStarted) return;
+
+            jstMonitorStarted = true;
+
+            setInterval(() => {
+                if (!appState.userName) return;
+
+                const jst = getJSTNow();
+
+                const h = jst.getHours();
+                const m = jst.getMinutes();
+
+                const dateKey =
+                    `${jst.toDateString()}-${h}-${m}`;
+
+                if (
+                    h === 6 &&
+                    m === 0 &&
+                    lastNotifiedKey !== dateKey
+                ) {
+                    lastNotifiedKey = dateKey;
+
+                    triggerPushNotification(
+                        "朝6:00 定時お天気レポート",
+                        "【JST】本日の天気予報と生活アドバイス配信をお届けします。"
+                    );
+
+                } else if (
+                    h === 18 &&
+                    m === 30 &&
+                    lastNotifiedKey !== dateKey
+                ) {
+                    lastNotifiedKey = dateKey;
+
+                    triggerPushNotification(
+                        "夜18:30 翌日お天気レポート",
+                        "【JST】明日の天気予報と夜間見守りのお知らせをお届けします。"
+                    );
+                }
+
+            }, 30000);
+        }
+
+        function triggerPushNotification(title, msg) {
+            const banner =
+                document.getElementById(
+                    'pushNotificationBanner'
+                );
+
+            document.getElementById(
+                'pushNotificationTitle'
+            ).innerText = title;
+
+            document.getElementById(
+                'pushNotificationText'
+            ).innerText = msg;
+
+            banner.classList.remove(
+                'translate-x-full'
+            );
+
+            setTimeout(
+                () =>
+                    banner.classList.add(
+                        'translate-x-full'
+                    ),
+                6000
+            );
+        }
+
+        function closePushBanner() {
+            document
+                .getElementById(
+                    'pushNotificationBanner'
+                )
+                .classList.add(
+                    'translate-x-full'
+                );
+        }
+    </script>
+</body>
+</html>
