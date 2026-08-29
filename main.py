@@ -1,9 +1,12 @@
 import os
-import sqlite3
+import json
+import uuid
 import datetime
-from contextlib import closing
+import threading
 
-from flask import Flask, request, jsonify, g
+import requests
+
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 
@@ -13,27 +16,46 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 
-# ---------------------------------------------------------
-# 環境変数
-# ---------------------------------------------------------
 
-# 例:
+# =========================================================
+# 環境変数
+# =========================================================
+
+# ---------------------------------------------------------
+# CORS
+# ---------------------------------------------------------
+#
+# RenderのEnvironment Variablesに
+#
 # CORS_ORIGINS=https://kuggie-programing.github.io
 #
-# 複数指定する場合:
+# のように設定してください。
+#
+# 複数指定:
+#
 # CORS_ORIGINS=https://example.com,https://example2.com
 #
 # 未設定時は *（開発用）
-CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*").strip()
+# ---------------------------------------------------------
+
+CORS_ORIGINS = os.environ.get(
+    "CORS_ORIGINS",
+    "*"
+).strip()
+
 
 if CORS_ORIGINS == "*":
+
     cors_origins = "*"
+
 else:
+
     cors_origins = [
         origin.strip()
         for origin in CORS_ORIGINS.split(",")
         if origin.strip()
     ]
+
 
 CORS(
     app,
@@ -45,193 +67,218 @@ CORS(
 )
 
 
+# ---------------------------------------------------------
+# OpenWeatherMap
+# ---------------------------------------------------------
+#
+# RenderのEnvironment Variablesに
+#
+# OPENWEATHER_API_KEY
+#
+# を設定する。
+#
+# APIキーをindex.htmlには書かない。
+# ---------------------------------------------------------
+
+OPENWEATHER_API_KEY = os.environ.get(
+    "OPENWEATHER_API_KEY",
+    ""
+).strip()
+
+
 # =========================================================
-# DB
+# 天草
 # =========================================================
 
-# Renderで永続化する場合は、Render Diskなどを使って
-# DB_DIRを指定する。
+AMAKUSA_LAT = 32.4547
+AMAKUSA_LON = 130.1978
+
+
+# =========================================================
+# JSONデータ保存
+# =========================================================
+#
+# SQL / SQLiteは使用しない。
+#
+# このmain.pyと同じ場所に
+#
+# data.json
+#
+# を作って保存する。
+#
+# Renderで再起動すると消えて困る場合は、
+# Render Diskなどの永続ストレージを使って
+# DATA_FILEを変更してください。
 #
 # 例:
-# DB_DIR=/var/data
 #
-# 未設定の場合は、このmain.pyと同じフォルダ。
-DB_DIR = os.environ.get(
-    "DB_DIR",
-    os.path.dirname(os.path.abspath(__file__))
-)
+# DATA_FILE=/var/data/data.json
+#
+# =========================================================
 
-os.makedirs(DB_DIR, exist_ok=True)
-
-DB_PATH = os.path.join(
-    DB_DIR,
-    "app.db"
-)
-
-
-def get_db():
-    if "db" not in g:
-        g.db = sqlite3.connect(
-            DB_PATH,
-            timeout=30
-        )
-
-        g.db.row_factory = sqlite3.Row
-
-        # SQLiteの同時アクセスを少し安定させる
-        g.db.execute("PRAGMA busy_timeout = 30000")
-        g.db.execute("PRAGMA foreign_keys = ON")
-
-    return g.db
-
-
-@app.teardown_appcontext
-def close_db(exception=None):
-    db = g.pop("db", None)
-
-    if db is not None:
-        db.close()
-
-
-def init_db():
-    db = sqlite3.connect(
-        DB_PATH,
-        timeout=30
+DATA_FILE = os.environ.get(
+    "DATA_FILE",
+    os.path.join(
+        os.path.dirname(
+            os.path.abspath(__file__)
+        ),
+        "data.json"
     )
+)
 
-    try:
-        db.execute("PRAGMA busy_timeout = 30000")
-        db.execute("PRAGMA foreign_keys = ON")
 
-        db.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS groups (
-                group_code TEXT PRIMARY KEY,
-                password TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            );
+# JSONファイルへの同時アクセス対策
+data_lock = threading.RLock()
 
-            CREATE TABLE IF NOT EXISTS members (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                group_code TEXT NOT NULL,
-                name TEXT NOT NULL,
-                created_at TEXT NOT NULL,
 
-                UNIQUE(group_code, name),
+# =========================================================
+# 初期データ
+# =========================================================
 
-                FOREIGN KEY(group_code)
-                    REFERENCES groups(group_code)
-                    ON DELETE CASCADE
-            );
+DEFAULT_DATA = {
+    "groups": {}
+}
 
-            CREATE TABLE IF NOT EXISTS safety_status (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                group_code TEXT NOT NULL,
-                name TEXT NOT NULL,
-                status TEXT NOT NULL,
-                created_at TEXT NOT NULL,
 
-                FOREIGN KEY(group_code)
-                    REFERENCES groups(group_code)
-                    ON DELETE CASCADE
-            );
+# =========================================================
+# データ読み込み
+# =========================================================
 
-            CREATE TABLE IF NOT EXISTS hazard_posts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                group_code TEXT NOT NULL,
-                author TEXT NOT NULL,
-                image TEXT NOT NULL,
-                text TEXT NOT NULL,
+def load_data():
 
-                latitude REAL,
-                longitude REAL,
+    with data_lock:
 
-                -- GPSの精度（メートル）
-                accuracy REAL,
+        if not os.path.exists(DATA_FILE):
 
-                created_at TEXT NOT NULL,
+            return {
+                "groups": {}
+            }
 
-                FOREIGN KEY(group_code)
-                    REFERENCES groups(group_code)
-                    ON DELETE CASCADE
-            );
 
-            CREATE INDEX IF NOT EXISTS idx_members_group
-                ON members(group_code);
+        try:
 
-            CREATE INDEX IF NOT EXISTS idx_safety_group
-                ON safety_status(group_code);
+            with open(
+                DATA_FILE,
+                "r",
+                encoding="utf-8"
+            ) as f:
 
-            CREATE INDEX IF NOT EXISTS idx_hazard_group
-                ON hazard_posts(group_code);
+                data = json.load(f)
 
-            CREATE INDEX IF NOT EXISTS idx_hazard_created
-                ON hazard_posts(created_at);
-            """
+
+            if not isinstance(data, dict):
+
+                return {
+                    "groups": {}
+                }
+
+
+            if not isinstance(
+                data.get("groups"),
+                dict
+            ):
+
+                data["groups"] = {}
+
+
+            return data
+
+
+        except (
+            json.JSONDecodeError,
+            OSError,
+            TypeError
+        ) as e:
+
+            app.logger.exception(
+                "data.jsonの読み込みに失敗しました: %s",
+                e
+            )
+
+            # 壊れたデータを勝手に上書きせず、
+            # 空データとして起動する。
+            return {
+                "groups": {}
+            }
+
+
+# =========================================================
+# データ保存
+# =========================================================
+
+def save_data(data):
+
+    with data_lock:
+
+        directory = os.path.dirname(
+            os.path.abspath(DATA_FILE)
         )
 
-        # -------------------------------------------------
-        # 既存DBへの簡易マイグレーション
-        # -------------------------------------------------
-        #
-        # 以前のDBではlat / lonだったため、
-        # latitude / longitude / accuracyを追加する。
-        #
 
-        columns = {
-            row["name"]
-            for row in db.execute(
-                "PRAGMA table_info(hazard_posts)"
-            ).fetchall()
-        }
+        os.makedirs(
+            directory,
+            exist_ok=True
+        )
 
-        if "latitude" not in columns:
-            db.execute(
-                """
-                ALTER TABLE hazard_posts
-                ADD COLUMN latitude REAL
-                """
+
+        # 直接書き込まず一時ファイルへ書き、
+        # 完了後に置き換える。
+        temp_file = (
+            DATA_FILE
+            + ".tmp"
+            + uuid.uuid4().hex
+        )
+
+
+        try:
+
+            with open(
+                temp_file,
+                "w",
+                encoding="utf-8"
+            ) as f:
+
+                json.dump(
+                    data,
+                    f,
+                    ensure_ascii=False,
+                    indent=2
+                )
+
+
+                f.flush()
+
+
+            os.replace(
+                temp_file,
+                DATA_FILE
             )
 
-        if "longitude" not in columns:
-            db.execute(
-                """
-                ALTER TABLE hazard_posts
-                ADD COLUMN longitude REAL
-                """
-            )
 
-        if "accuracy" not in columns:
-            db.execute(
-                """
-                ALTER TABLE hazard_posts
-                ADD COLUMN accuracy REAL
-                """
-            )
+        finally:
 
-        # 旧lat/lonから新しい列へ移行
-        if "lat" in columns:
-            db.execute(
-                """
-                UPDATE hazard_posts
-                SET latitude = lat
-                WHERE latitude IS NULL
-                """
-            )
+            if os.path.exists(
+                temp_file
+            ):
 
-        if "lon" in columns:
-            db.execute(
-                """
-                UPDATE hazard_posts
-                SET longitude = lon
-                WHERE longitude IS NULL
-                """
-            )
+                try:
 
-        db.commit()
+                    os.remove(
+                        temp_file
+                    )
 
-    finally:
-        db.close()
+                except OSError:
+
+                    pass
+
+
+# =========================================================
+# データ取得
+# =========================================================
+
+def get_data():
+
+    return load_data()
 
 
 # =========================================================
@@ -239,59 +286,516 @@ def init_db():
 # =========================================================
 
 def now_iso():
+
     return datetime.datetime.now(
         datetime.timezone.utc
     ).isoformat()
 
 
-def bad_request(msg, code=400):
+def bad_request(
+    msg,
+    code=400
+):
+
     return jsonify({
         "ok": False,
         "error": msg
     }), code
 
 
-def group_exists(db, group_code):
-    return (
-        db.execute(
-            """
-            SELECT 1
-            FROM groups
-            WHERE group_code = ?
-            """,
-            (group_code,)
-        ).fetchone()
-        is not None
+def group_exists(
+    data,
+    group_code
+):
+
+    return group_code in data["groups"]
+
+
+def get_group(
+    data,
+    group_code
+):
+
+    return data["groups"].get(
+        group_code
     )
 
 
-def get_members_from_db(db, group_code):
-    rows = db.execute(
-        """
-        SELECT name
-        FROM members
-        WHERE group_code = ?
-        ORDER BY id
-        """,
-        (group_code,)
-    ).fetchall()
+def ensure_group_structure(
+    group
+):
 
-    return [
-        row["name"]
-        for row in rows
-    ]
+    if not isinstance(
+        group.get("members"),
+        list
+    ):
+
+        group["members"] = []
+
+
+    if not isinstance(
+        group.get("safety_status"),
+        list
+    ):
+
+        group["safety_status"] = []
+
+
+    if not isinstance(
+        group.get("hazard_posts"),
+        list
+    ):
+
+        group["hazard_posts"] = []
 
 
 # =========================================================
 # ヘルスチェック
 # =========================================================
 
-@app.route("/api/health", methods=["GET"])
+@app.route(
+    "/api/health",
+    methods=["GET"]
+)
 def health():
+
     return jsonify({
-        "ok": True,
-        "status": "ok"
+
+        "ok":
+            True,
+
+        "status":
+            "ok",
+
+        "weather_api_configured":
+            bool(OPENWEATHER_API_KEY)
+
     })
+
+
+# =========================================================
+# 天気取得
+# =========================================================
+#
+# GET /api/weather
+#
+# ブラウザ
+#     ↓
+# Render /api/weather
+#     ↓
+# OpenWeatherMap
+#
+# APIキーはサーバー側だけに置く。
+# =========================================================
+
+@app.route(
+    "/api/weather",
+    methods=["GET"]
+)
+def get_weather():
+
+    # -----------------------------------------------------
+    # APIキー確認
+    # -----------------------------------------------------
+
+    if not OPENWEATHER_API_KEY:
+
+        app.logger.error(
+            "OPENWEATHER_API_KEYが設定されていません。"
+        )
+
+        return bad_request(
+            "OpenWeatherMap APIキーがサーバーに設定されていません。",
+            500
+        )
+
+
+    try:
+
+        # -------------------------------------------------
+        # OpenWeatherMap Current Weather API
+        # -------------------------------------------------
+
+        url = (
+            "https://api.openweathermap.org/data/2.5/weather"
+        )
+
+
+        params = {
+
+            "lat":
+                AMAKUSA_LAT,
+
+            "lon":
+                AMAKUSA_LON,
+
+            "appid":
+                OPENWEATHER_API_KEY,
+
+            "units":
+                "metric",
+
+            "lang":
+                "ja"
+
+        }
+
+
+        response = requests.get(
+            url,
+            params=params,
+            timeout=10
+        )
+
+
+        # -------------------------------------------------
+        # OpenWeatherMapエラー
+        # -------------------------------------------------
+
+        if not response.ok:
+
+            app.logger.error(
+                "OpenWeatherMap HTTP %s: %s",
+                response.status_code,
+                response.text
+            )
+
+
+            if response.status_code == 401:
+
+                return bad_request(
+                    "OpenWeatherMap APIキーが無効です。",
+                    502
+                )
+
+
+            if response.status_code == 429:
+
+                return bad_request(
+                    "OpenWeatherMapのAPI利用制限に達しました。",
+                    502
+                )
+
+
+            return bad_request(
+                "OpenWeatherMapから天気情報を取得できませんでした。",
+                502
+            )
+
+
+        data = response.json()
+
+
+        # -------------------------------------------------
+        # データ
+        # -------------------------------------------------
+
+        weather_list = (
+            data.get("weather")
+            or []
+        )
+
+
+        weather = (
+            weather_list[0]
+            if weather_list
+            else {}
+        )
+
+
+        main = (
+            data.get("main")
+            or {}
+        )
+
+
+        wind = (
+            data.get("wind")
+            or {}
+        )
+
+
+        clouds = (
+            data.get("clouds")
+            or {}
+        )
+
+
+        rain = (
+            data.get("rain")
+            or {}
+        )
+
+
+        sys_data = (
+            data.get("sys")
+            or {}
+        )
+
+
+        # -------------------------------------------------
+        # 天気
+        # -------------------------------------------------
+
+        description = str(
+            weather.get(
+                "description",
+                "天候不明"
+            )
+        )
+
+
+        weather_main = str(
+            weather.get(
+                "main",
+                ""
+            )
+        )
+
+
+        weather_id = weather.get(
+            "id"
+        )
+
+
+        icon = str(
+            weather.get(
+                "icon",
+                ""
+            )
+        )
+
+
+        # -------------------------------------------------
+        # 気温
+        # -------------------------------------------------
+
+        temperature = main.get(
+            "temp"
+        )
+
+
+        feels_like = main.get(
+            "feels_like"
+        )
+
+
+        temp_min = main.get(
+            "temp_min"
+        )
+
+
+        temp_max = main.get(
+            "temp_max"
+        )
+
+
+        humidity = main.get(
+            "humidity"
+        )
+
+
+        pressure = main.get(
+            "pressure"
+        )
+
+
+        # -------------------------------------------------
+        # 風
+        # -------------------------------------------------
+
+        wind_speed = wind.get(
+            "speed",
+            0
+        )
+
+
+        wind_deg = wind.get(
+            "deg"
+        )
+
+
+        wind_gust = wind.get(
+            "gust"
+        )
+
+
+        # -------------------------------------------------
+        # 雲
+        # -------------------------------------------------
+
+        cloud_percent = clouds.get(
+            "all"
+        )
+
+
+        # -------------------------------------------------
+        # 降水
+        # -------------------------------------------------
+
+        rain_1h = rain.get(
+            "1h",
+            0
+        )
+
+
+        rain_3h = rain.get(
+            "3h",
+            0
+        )
+
+
+        # -------------------------------------------------
+        # 時刻
+        # -------------------------------------------------
+
+        timestamp = data.get(
+            "dt"
+        )
+
+
+        timezone_offset = data.get(
+            "timezone",
+            0
+        )
+
+
+        # -------------------------------------------------
+        # 返却
+        # -------------------------------------------------
+
+        return jsonify({
+
+            "ok":
+                True,
+
+            "source":
+                "OpenWeatherMap",
+
+            "city":
+                data.get(
+                    "name",
+                    "天草"
+                ),
+
+            "country":
+                sys_data.get(
+                    "country",
+                    "JP"
+                ),
+
+            "latitude":
+                AMAKUSA_LAT,
+
+            "longitude":
+                AMAKUSA_LON,
+
+            "weather":
+                description,
+
+            "description":
+                description,
+
+            "weather_main":
+                weather_main,
+
+            "weather_id":
+                weather_id,
+
+            "icon":
+                icon,
+
+            "temperature":
+                temperature,
+
+            "feels_like":
+                feels_like,
+
+            "temp_min":
+                temp_min,
+
+            "temp_max":
+                temp_max,
+
+            "humidity":
+                humidity,
+
+            "pressure":
+                pressure,
+
+            "wind_speed":
+                wind_speed,
+
+            "wind_deg":
+                wind_deg,
+
+            "wind_gust":
+                wind_gust,
+
+            "cloud_percent":
+                cloud_percent,
+
+            "rain_1h":
+                rain_1h,
+
+            "rain_3h":
+                rain_3h,
+
+            "timestamp":
+                timestamp,
+
+            "timezone_offset":
+                timezone_offset
+
+        })
+
+
+    except requests.Timeout:
+
+        app.logger.exception(
+            "OpenWeatherMap接続タイムアウト"
+        )
+
+        return bad_request(
+            "天気サーバーへの接続がタイムアウトしました。",
+            504
+        )
+
+
+    except requests.RequestException:
+
+        app.logger.exception(
+            "OpenWeatherMap通信エラー"
+        )
+
+        return bad_request(
+            "OpenWeatherMapとの通信に失敗しました。",
+            502
+        )
+
+
+    except ValueError:
+
+        app.logger.exception(
+            "OpenWeatherMap JSON解析エラー"
+        )
+
+        return bad_request(
+            "天気サーバーから正しいデータを取得できませんでした。",
+            502
+        )
+
+
+    except Exception as e:
+
+        app.logger.exception(
+            "天気取得エラー"
+        )
+
+        return bad_request(
+            f"サーバーエラー: {str(e)}",
+            500
+        )
 
 
 # =========================================================
@@ -305,92 +809,111 @@ def health():
 def register_group():
 
     try:
+
         data = request.get_json(
             silent=True
         ) or {}
 
+
         group_code = str(
-            data.get("group_code", "")
+            data.get(
+                "group_code",
+                ""
+            )
         ).strip()
+
 
         password = str(
-            data.get("password", "")
+            data.get(
+                "password",
+                ""
+            )
         ).strip()
+
 
         name = str(
-            data.get("name", "")
+            data.get(
+                "name",
+                ""
+            )
         ).strip()
 
-        if not group_code or not password or not name:
+
+        if (
+            not group_code
+            or not password
+            or not name
+        ):
+
             return bad_request(
                 "グループコード・パスワード・名前は必須です。"
             )
 
-        db = get_db()
 
-        existing = db.execute(
-            """
-            SELECT 1
-            FROM groups
-            WHERE group_code = ?
-            """,
-            (group_code,)
-        ).fetchone()
+        with data_lock:
 
-        if existing:
-            return bad_request(
-                "そのグループコードは既に使われています。"
-                "ログインを使ってください。",
-                409
+            db = load_data()
+
+
+            if group_exists(
+                db,
+                group_code
+            ):
+
+                return bad_request(
+                    "そのグループコードは既に使われています。"
+                    "ログインを使ってください。",
+                    409
+                )
+
+
+            created_at = now_iso()
+
+
+            db["groups"][group_code] = {
+
+                "password":
+                    password,
+
+                "created_at":
+                    created_at,
+
+                "members": [
+
+                    name
+
+                ],
+
+                "safety_status": [],
+
+                "hazard_posts": []
+
+            }
+
+
+            save_data(
+                db
             )
 
-        created_at = now_iso()
 
-        db.execute(
-            """
-            INSERT INTO groups
-                (group_code, password, created_at)
-            VALUES (?, ?, ?)
-            """,
-            (
-                group_code,
-                password,
-                created_at
+            members = list(
+                db["groups"][group_code]["members"]
             )
-        )
 
-        db.execute(
-            """
-            INSERT INTO members
-                (group_code, name, created_at)
-            VALUES (?, ?, ?)
-            """,
-            (
-                group_code,
-                name,
-                created_at
-            )
-        )
-
-        db.commit()
-
-        members = get_members_from_db(
-            db,
-            group_code
-        )
 
         return jsonify({
-            "ok": True,
-            "group_code": group_code,
-            "members": members
+
+            "ok":
+                True,
+
+            "group_code":
+                group_code,
+
+            "members":
+                members
+
         })
 
-    except sqlite3.IntegrityError as e:
-
-        return bad_request(
-            f"データベースエラー: {str(e)}",
-            409
-        )
 
     except Exception as e:
 
@@ -415,76 +938,112 @@ def register_group():
 def login_group():
 
     try:
+
         data = request.get_json(
             silent=True
         ) or {}
 
+
         group_code = str(
-            data.get("group_code", "")
+            data.get(
+                "group_code",
+                ""
+            )
         ).strip()
+
 
         password = str(
-            data.get("password", "")
+            data.get(
+                "password",
+                ""
+            )
         ).strip()
+
 
         name = str(
-            data.get("name", "")
+            data.get(
+                "name",
+                ""
+            )
         ).strip()
 
-        if not group_code or not password or not name:
+
+        if (
+            not group_code
+            or not password
+            or not name
+        ):
+
             return bad_request(
                 "グループコード・パスワード・名前は必須です。"
             )
 
-        db = get_db()
 
-        row = db.execute(
-            """
-            SELECT *
-            FROM groups
-            WHERE group_code = ?
-            """,
-            (group_code,)
-        ).fetchone()
+        with data_lock:
 
-        if not row:
-            return bad_request(
-                "そのグループコードは存在しません。"
-                "新規登録してください。",
-                404
+            db = load_data()
+
+
+            group = get_group(
+                db,
+                group_code
             )
 
-        if row["password"] != password:
-            return bad_request(
-                "パスワードが違います。",
-                401
+
+            if group is None:
+
+                return bad_request(
+                    "そのグループコードは存在しません。"
+                    "新規登録してください。",
+                    404
+                )
+
+
+            ensure_group_structure(
+                group
             )
 
-        db.execute(
-            """
-            INSERT OR IGNORE INTO members
-                (group_code, name, created_at)
-            VALUES (?, ?, ?)
-            """,
-            (
-                group_code,
-                name,
-                now_iso()
+
+            if group.get(
+                "password"
+            ) != password:
+
+                return bad_request(
+                    "パスワードが違います。",
+                    401
+                )
+
+
+            if name not in group["members"]:
+
+                group["members"].append(
+                    name
+                )
+
+
+                save_data(
+                    db
+                )
+
+
+            members = list(
+                group["members"]
             )
-        )
 
-        db.commit()
-
-        members = get_members_from_db(
-            db,
-            group_code
-        )
 
         return jsonify({
-            "ok": True,
-            "group_code": group_code,
-            "members": members
+
+            "ok":
+                True,
+
+            "group_code":
+                group_code,
+
+            "members":
+                members
+
         })
+
 
     except Exception as e:
 
@@ -509,26 +1068,46 @@ def login_group():
 def get_members(group_code):
 
     try:
-        db = get_db()
 
-        if not group_exists(
-            db,
-            group_code
-        ):
-            return bad_request(
-                "グループが存在しません。",
-                404
+        with data_lock:
+
+            db = load_data()
+
+
+            group = get_group(
+                db,
+                group_code
             )
 
-        members = get_members_from_db(
-            db,
-            group_code
-        )
+
+            if group is None:
+
+                return bad_request(
+                    "グループが存在しません。",
+                    404
+                )
+
+
+            ensure_group_structure(
+                group
+            )
+
+
+            members = list(
+                group["members"]
+            )
+
 
         return jsonify({
-            "ok": True,
-            "members": members
+
+            "ok":
+                True,
+
+            "members":
+                members
+
         })
+
 
     except Exception as e:
 
@@ -553,54 +1132,78 @@ def get_members(group_code):
 def add_member(group_code):
 
     try:
+
         data = request.get_json(
             silent=True
         ) or {}
 
+
         name = str(
-            data.get("name", "")
+            data.get(
+                "name",
+                ""
+            )
         ).strip()
 
+
         if not name:
+
             return bad_request(
                 "名前は必須です。"
             )
 
-        db = get_db()
 
-        if not group_exists(
-            db,
-            group_code
-        ):
-            return bad_request(
-                "グループが存在しません。",
-                404
+        with data_lock:
+
+            db = load_data()
+
+
+            group = get_group(
+                db,
+                group_code
             )
 
-        db.execute(
-            """
-            INSERT OR IGNORE INTO members
-                (group_code, name, created_at)
-            VALUES (?, ?, ?)
-            """,
-            (
-                group_code,
-                name,
-                now_iso()
+
+            if group is None:
+
+                return bad_request(
+                    "グループが存在しません。",
+                    404
+                )
+
+
+            ensure_group_structure(
+                group
             )
-        )
 
-        db.commit()
 
-        members = get_members_from_db(
-            db,
-            group_code
-        )
+            if name not in group["members"]:
+
+                group["members"].append(
+                    name
+                )
+
+
+                save_data(
+                    db
+                )
+
+
+            members = list(
+                group["members"]
+            )
+
 
         return jsonify({
-            "ok": True,
-            "members": members
+
+            "ok":
+                True,
+
+            "members":
+                members
+
         })
+
 
     except Exception as e:
 
@@ -628,50 +1231,68 @@ def remove_member(
 ):
 
     try:
-        db = get_db()
 
-        if not group_exists(
-            db,
-            group_code
-        ):
-            return bad_request(
-                "グループが存在しません。",
-                404
+        with data_lock:
+
+            db = load_data()
+
+
+            group = get_group(
+                db,
+                group_code
             )
 
-        members = get_members_from_db(
-            db,
-            group_code
-        )
 
-        if len(members) <= 1:
-            return bad_request(
-                "最低1人は残してください。"
+            if group is None:
+
+                return bad_request(
+                    "グループが存在しません。",
+                    404
+                )
+
+
+            ensure_group_structure(
+                group
             )
 
-        db.execute(
-            """
-            DELETE FROM members
-            WHERE group_code = ?
-              AND name = ?
-            """,
-            (
-                group_code,
-                name
+
+            members = group["members"]
+
+
+            if len(members) <= 1:
+
+                return bad_request(
+                    "最低1人は残してください。"
+                )
+
+
+            if name in members:
+
+                members.remove(
+                    name
+                )
+
+
+                save_data(
+                    db
+                )
+
+
+            members = list(
+                members
             )
-        )
 
-        db.commit()
-
-        members = get_members_from_db(
-            db,
-            group_code
-        )
 
         return jsonify({
-            "ok": True,
-            "members": members
+
+            "ok":
+                True,
+
+            "members":
+                members
+
         })
+
 
     except Exception as e:
 
@@ -696,65 +1317,81 @@ def remove_member(
 def get_safety(group_code):
 
     try:
-        db = get_db()
 
-        if not group_exists(
-            db,
-            group_code
-        ):
-            return bad_request(
-                "グループが存在しません。",
-                404
-            )
+        with data_lock:
 
-        rows = db.execute(
-            """
-            SELECT
-                s1.name,
-                s1.status,
-                s1.created_at
+            db = load_data()
 
-            FROM safety_status AS s1
 
-            INNER JOIN (
-                SELECT
-                    name,
-                    MAX(id) AS max_id
-
-                FROM safety_status
-
-                WHERE group_code = ?
-
-                GROUP BY name
-
-            ) AS s2
-
-                ON s1.name = s2.name
-                AND s1.id = s2.max_id
-
-            WHERE s1.group_code = ?
-
-            ORDER BY s1.created_at DESC
-            """,
-            (
-                group_code,
+            group = get_group(
+                db,
                 group_code
             )
-        ).fetchall()
 
-        statuses = [
-            {
-                "name": row["name"],
-                "status": row["status"],
-                "created_at": row["created_at"]
-            }
-            for row in rows
-        ]
+
+            if group is None:
+
+                return bad_request(
+                    "グループが存在しません。",
+                    404
+                )
+
+
+            ensure_group_structure(
+                group
+            )
+
+
+            records = group[
+                "safety_status"
+            ]
+
+
+            # 名前ごとに最新の安否だけを残す
+            latest = {}
+
+
+            for record in records:
+
+                record_name = record.get(
+                    "name"
+                )
+
+
+                if not record_name:
+                    continue
+
+
+                latest[
+                    record_name
+                ] = record
+
+
+            statuses = list(
+                latest.values()
+            )
+
+
+            statuses.sort(
+                key=lambda x:
+                    x.get(
+                        "created_at",
+                        ""
+                    ),
+                reverse=True
+            )
+
 
         return jsonify({
-            "ok": True,
-            "statuses": statuses
+
+            "ok":
+                True,
+
+            "statuses":
+                statuses
+
         })
+
 
     except Exception as e:
 
@@ -779,17 +1416,27 @@ def get_safety(group_code):
 def post_safety(group_code):
 
     try:
+
         data = request.get_json(
             silent=True
         ) or {}
 
+
         name = str(
-            data.get("name", "")
+            data.get(
+                "name",
+                ""
+            )
         ).strip()
 
+
         status = str(
-            data.get("status", "")
+            data.get(
+                "status",
+                ""
+            )
         ).strip()
+
 
         if (
             not name
@@ -799,46 +1446,75 @@ def post_safety(group_code):
                 "sos"
             )
         ):
+
             return bad_request(
                 "名前とステータス"
                 "(safe/messy/sos)は必須です。"
             )
 
-        db = get_db()
 
-        if not group_exists(
-            db,
-            group_code
-        ):
-            return bad_request(
-                "グループが存在しません。",
-                404
+        with data_lock:
+
+            db = load_data()
+
+
+            group = get_group(
+                db,
+                group_code
             )
 
-        db.execute(
-            """
-            INSERT INTO safety_status
-                (
-                    group_code,
-                    name,
-                    status,
-                    created_at
+
+            if group is None:
+
+                return bad_request(
+                    "グループが存在しません。",
+                    404
                 )
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                group_code,
-                name,
-                status,
-                now_iso()
-            )
-        )
 
-        db.commit()
+
+            ensure_group_structure(
+                group
+            )
+
+
+            # 安否情報を追加
+            group[
+                "safety_status"
+            ].append({
+
+                "name":
+                    name,
+
+                "status":
+                    status,
+
+                "created_at":
+                    now_iso()
+
+            })
+
+
+            # データが無限に増えないように
+            # 最新200件まで保持
+            group[
+                "safety_status"
+            ] = group[
+                "safety_status"
+            ][-200:]
+
+
+            save_data(
+                db
+            )
+
 
         return jsonify({
-            "ok": True
+
+            "ok":
+                True
+
         })
+
 
     except Exception as e:
 
@@ -863,58 +1539,63 @@ def post_safety(group_code):
 def get_hazard(group_code):
 
     try:
-        db = get_db()
 
-        if not group_exists(
-            db,
-            group_code
-        ):
-            return bad_request(
-                "グループが存在しません。",
-                404
+        with data_lock:
+
+            db = load_data()
+
+
+            group = get_group(
+                db,
+                group_code
             )
 
-        rows = db.execute(
-            """
-            SELECT
-                author,
-                image,
-                text,
-                latitude,
-                longitude,
-                accuracy,
-                created_at
 
-            FROM hazard_posts
+            if group is None:
 
-            WHERE group_code = ?
+                return bad_request(
+                    "グループが存在しません。",
+                    404
+                )
 
-            ORDER BY id DESC
 
-            LIMIT 50
-            """,
-            (group_code,)
-        ).fetchall()
+            ensure_group_structure(
+                group
+            )
 
-        posts = [
-            {
-                "author": row["author"],
-                "image": row["image"],
-                "text": row["text"],
-                "lat": row["latitude"],
-                "lon": row["longitude"],
-                "latitude": row["latitude"],
-                "longitude": row["longitude"],
-                "accuracy": row["accuracy"],
-                "created_at": row["created_at"]
-            }
-            for row in rows
-        ]
+
+            posts = list(
+                group[
+                    "hazard_posts"
+                ]
+            )
+
+
+            # 新しい順
+            posts.sort(
+                key=lambda x:
+                    x.get(
+                        "created_at",
+                        ""
+                    ),
+                reverse=True
+            )
+
+
+            # 最大50件
+            posts = posts[:50]
+
 
         return jsonify({
-            "ok": True,
-            "posts": posts
+
+            "ok":
+                True,
+
+            "posts":
+                posts
+
         })
+
 
     except Exception as e:
 
@@ -939,149 +1620,279 @@ def get_hazard(group_code):
 def post_hazard(group_code):
 
     try:
+
         data = request.get_json(
             silent=True
         ) or {}
 
+
         author = str(
-            data.get("author", "")
+            data.get(
+                "author",
+                ""
+            )
         ).strip()
+
 
         image = str(
-            data.get("image", "")
+            data.get(
+                "image",
+                ""
+            )
         ).strip()
+
 
         text = str(
-            data.get("text", "")
+            data.get(
+                "text",
+                ""
+            )
         ).strip()
 
+
+        # -------------------------------------------------
         # 新形式
+        # -------------------------------------------------
+
         latitude = data.get(
             "latitude",
-            data.get("lat")
+            data.get(
+                "lat"
+            )
         )
+
 
         longitude = data.get(
             "longitude",
-            data.get("lon")
+            data.get(
+                "lon"
+            )
         )
+
 
         accuracy = data.get(
             "accuracy"
         )
+
 
         if (
             not author
             or not image
             or not text
         ):
+
             return bad_request(
                 "投稿者・画像・内容は必須です。"
             )
 
-        # ---------------------------------------------
-        # 緯度経度を数値として検証
-        # ---------------------------------------------
+
+        # -------------------------------------------------
+        # 画像形式確認
+        # -------------------------------------------------
+
+        if not image.startswith(
+            "data:image/"
+        ):
+
+            return bad_request(
+                "画像データの形式が正しくありません。"
+            )
+
+
+        # -------------------------------------------------
+        # 緯度
+        # -------------------------------------------------
 
         if latitude is not None:
+
             try:
-                latitude = float(latitude)
+
+                latitude = float(
+                    latitude
+                )
+
             except (
                 TypeError,
                 ValueError
             ):
+
                 return bad_request(
                     "緯度の値が正しくありません。"
                 )
 
-            if not -90 <= latitude <= 90:
+
+            if not (
+                -90
+                <= latitude
+                <= 90
+            ):
+
                 return bad_request(
                     "緯度の範囲が正しくありません。"
                 )
 
+
+        # -------------------------------------------------
+        # 経度
+        # -------------------------------------------------
+
         if longitude is not None:
+
             try:
-                longitude = float(longitude)
+
+                longitude = float(
+                    longitude
+                )
+
             except (
                 TypeError,
                 ValueError
             ):
+
                 return bad_request(
                     "経度の値が正しくありません。"
                 )
 
-            if not -180 <= longitude <= 180:
+
+            if not (
+                -180
+                <= longitude
+                <= 180
+            ):
+
                 return bad_request(
                     "経度の範囲が正しくありません。"
                 )
 
-        # ---------------------------------------------
+
+        # -------------------------------------------------
         # GPS精度
-        # ---------------------------------------------
+        # -------------------------------------------------
 
         if accuracy is not None:
+
             try:
-                accuracy = float(accuracy)
+
+                accuracy = float(
+                    accuracy
+                )
+
             except (
                 TypeError,
                 ValueError
             ):
+
                 return bad_request(
                     "位置情報の精度が正しくありません。"
                 )
+
 
             if accuracy < 0:
+
                 return bad_request(
                     "位置情報の精度が正しくありません。"
                 )
 
-        db = get_db()
 
-        if not group_exists(
-            db,
-            group_code
-        ):
-            return bad_request(
-                "グループが存在しません。",
-                404
+        # -------------------------------------------------
+        # グループ確認
+        # -------------------------------------------------
+
+        with data_lock:
+
+            db = load_data()
+
+
+            group = get_group(
+                db,
+                group_code
             )
 
-        db.execute(
-            """
-            INSERT INTO hazard_posts
-                (
-                    group_code,
-                    author,
-                    image,
-                    text,
-                    latitude,
-                    longitude,
-                    accuracy,
-                    created_at
+
+            if group is None:
+
+                return bad_request(
+                    "グループが存在しません。",
+                    404
                 )
 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                group_code,
-                author,
-                image,
-                text,
-                latitude,
-                longitude,
-                accuracy,
-                now_iso()
-            )
-        )
 
-        db.commit()
+            ensure_group_structure(
+                group
+            )
+
+
+            post = {
+
+                "id":
+                    uuid.uuid4().hex,
+
+                "author":
+                    author,
+
+                "image":
+                    image,
+
+                "text":
+                    text,
+
+                "lat":
+                    latitude,
+
+                "lon":
+                    longitude,
+
+                "latitude":
+                    latitude,
+
+                "longitude":
+                    longitude,
+
+                "accuracy":
+                    accuracy,
+
+                "created_at":
+                    now_iso()
+
+            }
+
+
+            group[
+                "hazard_posts"
+            ].append(
+                post
+            )
+
+
+            # 最大100件保存
+            group[
+                "hazard_posts"
+            ] = group[
+                "hazard_posts"
+            ][-100:]
+
+
+            save_data(
+                db
+            )
+
 
         return jsonify({
-            "ok": True,
-            "latitude": latitude,
-            "longitude": longitude,
-            "accuracy": accuracy
+
+            "ok":
+                True,
+
+            "latitude":
+                latitude,
+
+            "longitude":
+                longitude,
+
+            "accuracy":
+                accuracy
+
         })
+
 
     except Exception as e:
 
@@ -1096,15 +1907,85 @@ def post_hazard(group_code):
 
 
 # =========================================================
-# DB初期化
+# エラーハンドラー
 # =========================================================
 
-init_db()
+@app.errorhandler(404)
+def handle_404(error):
+
+    return jsonify({
+
+        "ok":
+            False,
+
+        "error":
+            "指定されたAPIは存在しません。"
+
+    }), 404
+
+
+@app.errorhandler(405)
+def handle_405(error):
+
+    return jsonify({
+
+        "ok":
+            False,
+
+        "error":
+            "このHTTPメソッドには対応していません。"
+
+    }), 405
+
+
+@app.errorhandler(500)
+def handle_500(error):
+
+    app.logger.exception(
+        "内部サーバーエラー"
+    )
+
+    return jsonify({
+
+        "ok":
+            False,
+
+        "error":
+            "サーバー内部でエラーが発生しました。"
+
+    }), 500
+
+
+# =========================================================
+# 起動時データ確認
+# =========================================================
+
+def ensure_data_file():
+
+    with data_lock:
+
+        if not os.path.exists(
+            DATA_FILE
+        ):
+
+            save_data(
+                {
+                    "groups": {}
+                }
+            )
+
+            app.logger.info(
+                "新しいdata.jsonを作成しました: %s",
+                DATA_FILE
+            )
 
 
 # =========================================================
 # Render / ローカル起動
 # =========================================================
+
+ensure_data_file()
+
 
 if __name__ == "__main__":
 
@@ -1114,6 +1995,7 @@ if __name__ == "__main__":
             "5000"
         )
     )
+
 
     app.run(
         host="0.0.0.0",
