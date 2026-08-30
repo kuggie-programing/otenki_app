@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -57,6 +58,7 @@
 
         button:disabled {
             cursor: not-allowed;
+            opacity: .55;
         }
 
         img {
@@ -94,6 +96,37 @@
                     rgba(255,247,237,.96)
                 );
         }
+
+        .friend-card {
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255,255,255,.98),
+                    rgba(245,243,255,.96)
+                );
+        }
+
+        .request-card {
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255,255,255,.98),
+                    rgba(239,246,255,.98)
+                );
+        }
+
+        .modal-backdrop {
+            background: rgba(15, 23, 42, .55);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 9999px;
+            display: inline-block;
+        }
     </style>
 </head>
 
@@ -120,7 +153,7 @@
                 </h1>
 
                 <p class="text-[10px] text-white/80">
-                    天草の天気・防災・家族見守り
+                    天草の天気・防災・家族・友達
                 </p>
             </div>
 
@@ -150,7 +183,7 @@
 
 
 <!-- =====================================================
-     ログイン
+     ログイン / アカウント作成
 ===================================================== -->
 
 <section
@@ -173,7 +206,7 @@
             </h2>
 
             <p class="text-xs text-slate-500 mt-2">
-                グループで天気・安否・危険情報を共有
+                天気・安否・危険情報を大切な人と共有
             </p>
 
         </div>
@@ -181,29 +214,28 @@
         <div class="space-y-3">
 
             <input
-                id="loginGroupCode"
-                type="text"
-                placeholder="グループコード"
-                autocomplete="username"
-                class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300"
-            >
-
-            <input
-                id="loginPassword"
-                type="password"
-                placeholder="パスワード"
-                autocomplete="current-password"
-                class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300"
-            >
-
-            <input
                 id="loginName"
                 type="text"
                 placeholder="表示名"
                 autocomplete="nickname"
+                maxlength="40"
                 class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300"
             >
 
+            <input
+                id="loginSecurityKey"
+                type="password"
+                placeholder="自分のセキュリティキー"
+                autocomplete="current-password"
+                maxlength="200"
+                class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300"
+            >
+
+        </div>
+
+        <div class="mt-3 text-[10px] text-slate-400 leading-relaxed">
+            セキュリティキーは共通パスワードではありません。<br>
+            あなた自身のアカウントを保護するためのキーです。
         </div>
 
         <div
@@ -218,7 +250,7 @@
                 onclick="handleAuth('register')"
                 class="bg-sky-500 hover:bg-sky-600 text-white rounded-2xl py-3 font-black shadow-sm"
             >
-                新規登録
+                アカウント作成
             </button>
 
             <button
@@ -228,6 +260,20 @@
             >
                 ログイン
             </button>
+
+        </div>
+
+        <div class="mt-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+
+            <p class="text-xs font-black text-slate-700">
+                家族・友達との接続について
+            </p>
+
+            <p class="text-[10px] text-slate-500 mt-2 leading-relaxed">
+                グループコードは使用しません。<br>
+                ログイン後に相手の表示名を入力して、
+                「家族・友達リクエスト」を送ります。
+            </p>
 
         </div>
 
@@ -261,10 +307,13 @@
             ></h2>
 
             <p class="text-xs text-slate-500 mt-2">
-                グループの天気・安否・危険情報を確認できます。
+                家族・友達と天気・安否・危険情報を共有できます。
             </p>
 
         </div>
+
+
+        <!-- メニュー -->
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
@@ -285,6 +334,7 @@
                 </p>
             </button>
 
+
             <button
                 onclick="switchScreen('safety')"
                 class="bg-white hover:bg-emerald-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm"
@@ -298,9 +348,10 @@
                 </h3>
 
                 <p class="text-xs text-slate-500 mt-1">
-                    グループメンバーの安否を確認
+                    自分の安否を大切な人へ共有
                 </p>
             </button>
+
 
             <button
                 onclick="switchScreen('hazard')"
@@ -315,12 +366,13 @@
                 </h3>
 
                 <p class="text-xs text-slate-500 mt-1">
-                    危険箇所を写真付きで共有
+                    危険箇所を画像・場所付きで共有
                 </p>
             </button>
 
+
             <button
-                onclick="openAddFamilyModal()"
+                onclick="openFriendModal()"
                 class="bg-white hover:bg-purple-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm"
             >
                 <div class="text-4xl mb-3">
@@ -328,27 +380,116 @@
                 </div>
 
                 <h3 class="font-black text-slate-800">
-                    メンバー管理
+                    家族・友達を追加
                 </h3>
 
                 <p class="text-xs text-slate-500 mt-1">
-                    グループメンバーを追加
+                    表示名を入力してリクエストを送信
                 </p>
             </button>
 
         </div>
 
+
+        <!-- 接続状態 -->
+
         <div
             class="mt-5 bg-white/90 border border-slate-200 rounded-3xl p-5 shadow-sm"
         >
 
-            <h3 class="font-black text-slate-800 mb-3">
-                グループメンバー
-            </h3>
+            <div class="flex justify-between items-center">
+
+                <h3 class="font-black text-slate-800">
+                    接続状態
+                </h3>
+
+                <span
+                    id="globalConnectionStatus"
+                    class="text-[10px] text-slate-400"
+                >
+                    確認中...
+                </span>
+
+            </div>
+
+            <p
+                id="pushPermissionStatus"
+                class="text-[10px] text-slate-400 mt-2"
+            >
+                プッシュ通知を確認中...
+            </p>
+
+            <button
+                onclick="enableRealPushNotifications()"
+                class="mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-4 py-2 text-xs font-bold"
+            >
+                🔔 プッシュ通知を有効にする
+            </button>
+
+        </div>
+
+
+        <!-- フレンド -->
+
+        <div
+            class="mt-5 friend-card border border-white rounded-3xl p-5 shadow-lg"
+        >
+
+            <div class="flex justify-between items-center">
+
+                <div>
+
+                    <h3 class="font-black text-slate-800">
+                        家族・友達
+                    </h3>
+
+                    <p class="text-[10px] text-slate-400 mt-1">
+                        許可した相手とのみ情報を共有します。
+                    </p>
+
+                </div>
+
+                <button
+                    onclick="openFriendModal()"
+                    class="bg-purple-500 hover:bg-purple-600 text-white rounded-xl px-3 py-2 text-xs font-black"
+                >
+                    ＋追加
+                </button>
+
+            </div>
 
             <div
-                id="familyMembersList"
-                class="flex flex-wrap gap-2"
+                id="friendsList"
+                class="space-y-2 mt-4"
+            ></div>
+
+        </div>
+
+
+        <!-- リクエスト -->
+
+        <div
+            class="mt-5 request-card border border-white rounded-3xl p-5 shadow-lg"
+        >
+
+            <div class="flex justify-between items-center">
+
+                <h3 class="font-black text-slate-800">
+                    家族・友達リクエスト
+                </h3>
+
+                <span
+                    id="requestCountBadge"
+                    class="hidden bg-rose-500 text-white text-[10px] font-black rounded-full px-2 py-1"
+                >
+                    0
+                </span>
+
+            </div>
+
+            <div
+                id="friendRequestsList"
+                class="space-y-3 mt-4"
             ></div>
 
         </div>
@@ -415,6 +556,7 @@
                     <p class="text-[10px] text-slate-400">
                         気温
                     </p>
+
                     <p
                         id="weatherTemperature"
                         class="text-xl font-black"
@@ -427,6 +569,7 @@
                     <p class="text-[10px] text-slate-400">
                         体感温度
                     </p>
+
                     <p
                         id="weatherFeelsLike"
                         class="text-xl font-black"
@@ -439,6 +582,7 @@
                     <p class="text-[10px] text-slate-400">
                         湿度
                     </p>
+
                     <p
                         id="weatherHumidity"
                         class="text-xl font-black"
@@ -451,6 +595,7 @@
                     <p class="text-[10px] text-slate-400">
                         風速
                     </p>
+
                     <p
                         id="weatherWind"
                         class="text-xl font-black"
@@ -520,7 +665,7 @@
             </h2>
 
             <p class="text-xs text-slate-500 mt-1">
-                現在の自分の状態をグループへ送信します。
+                現在の自分の状態を、許可した家族・友達へ送信します。
             </p>
 
             <div
@@ -560,7 +705,7 @@
                 <div class="flex justify-between items-center">
 
                     <h3 class="font-black text-slate-800">
-                        グループの安否
+                        家族・友達の安否
                     </h3>
 
                     <span
@@ -617,7 +762,7 @@
                     </h2>
 
                     <p class="text-xs text-slate-500 mt-1">
-                        危険箇所を写真付きでグループ共有できます。
+                        危険箇所を画像・メッセージ・危険箇所の場所付きで共有します。
                     </p>
 
                 </div>
@@ -629,6 +774,13 @@
                     📷 投稿
                 </button>
 
+            </div>
+
+            <div class="mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                <p class="text-[10px] text-amber-900 leading-relaxed">
+                    ※位置情報は投稿した危険箇所の位置です。<br>
+                    あなた自身の現在位置や移動履歴を共有・追跡する機能ではありません。
+                </p>
             </div>
 
             <input
@@ -660,12 +812,12 @@
 
 
 <!-- =====================================================
-     メンバー追加
+     家族・友達追加モーダル
 ===================================================== -->
 
 <div
-    id="addFamilyModal"
-    class="hidden fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center px-5"
+    id="friendModal"
+    class="hidden fixed inset-0 z-[100] modal-backdrop flex items-center justify-center px-5"
 >
 
     <div
@@ -673,34 +825,114 @@
     >
 
         <h2 class="text-xl font-black text-slate-800">
-            メンバーを追加
+            家族・友達を追加
         </h2>
 
-        <p class="text-xs text-slate-500 mt-1">
-            グループに参加する人の表示名を追加します。
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+            相手の表示名を入力して、
+            「家族・友達リクエスト」を送信します。
         </p>
 
         <input
-            id="newMemberName"
+            id="friendDisplayName"
             type="text"
-            placeholder="表示名"
-            class="w-full mt-5 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300"
+            placeholder="例：Aさん母"
+            maxlength="40"
+            class="w-full mt-5 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-300"
         >
+
+        <div
+            id="friendModalError"
+            class="hidden mt-3 text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700"
+        ></div>
 
         <div class="grid grid-cols-2 gap-3 mt-5">
 
             <button
-                onclick="closeAddFamilyModal()"
+                onclick="closeFriendModal()"
                 class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold"
             >
                 キャンセル
             </button>
 
             <button
-                onclick="confirmAddFamilyMember()"
-                class="bg-sky-500 hover:bg-sky-600 text-white rounded-2xl py-3 font-black"
+                id="sendFriendRequestBtn"
+                onclick="sendFriendRequest()"
+                class="bg-purple-500 hover:bg-purple-600 text-white rounded-2xl py-3 font-black"
             >
-                追加
+                リクエスト
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     リクエスト詳細モーダル
+===================================================== -->
+
+<div
+    id="friendRequestModal"
+    class="hidden fixed inset-0 z-[110] modal-backdrop flex items-center justify-center px-5"
+>
+
+    <div
+        class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6"
+    >
+
+        <div class="text-center">
+
+            <div class="text-5xl mb-3">
+                👋
+            </div>
+
+            <h2 class="text-xl font-black text-slate-800">
+                家族・友達リクエスト
+            </h2>
+
+            <p
+                id="requestModalText"
+                class="text-sm text-slate-600 mt-3 leading-relaxed"
+            ></p>
+
+        </div>
+
+        <div class="mt-5 bg-slate-50 rounded-2xl p-4">
+
+            <p class="text-[10px] text-slate-400">
+                許可すると共有される情報
+            </p>
+
+            <ul class="text-xs text-slate-700 mt-2 space-y-1">
+                <li>✓ 安否確認の結果</li>
+                <li>✓ 危険情報の画像</li>
+                <li>✓ 危険箇所の位置</li>
+                <li>✓ 危険情報のメッセージ</li>
+            </ul>
+
+            <p class="text-[10px] text-rose-500 mt-3 font-bold">
+                ✕ 現在位置の追跡・共有は行いません。
+            </p>
+
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-5">
+
+            <button
+                onclick="rejectCurrentFriendRequest()"
+                class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold"
+            >
+                拒否
+            </button>
+
+            <button
+                onclick="acceptCurrentFriendRequest()"
+                class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl py-3 font-black"
+            >
+                許可
             </button>
 
         </div>
@@ -716,7 +948,7 @@
 
 <div
     id="pushNotificationBanner"
-    class="fixed top-20 right-4 z-[200] w-[min(360px,calc(100vw-32px))] translate-x-full transition-transform duration-300"
+    class="fixed top-20 right-4 z-[200] w-[min(380px,calc(100vw-32px))] translate-x-full transition-transform duration-300"
 >
 
     <div
@@ -779,6 +1011,15 @@ const POLL_INTERVAL_MS =
     15000;
 
 
+/*
+ * 後でPython側に実際のVAPID公開鍵を設定する。
+ *
+ * 現段階では空欄でもHTML自体は動作する。
+ */
+const VAPID_PUBLIC_KEY =
+    "";
+
+
 let pollTimers = [];
 
 let jstMonitorStarted =
@@ -788,13 +1029,21 @@ let lastNotifiedKey =
     "";
 
 
+let currentFriendRequest =
+    null;
+
+
 const appState = {
 
     userName: "",
 
-    groupCode: "",
+    securityKey: "",
 
-    familyMembers: [],
+    accountId: "",
+
+    friends: [],
+
+    friendRequests: [],
 
     safetyStatuses: [],
 
@@ -827,7 +1076,8 @@ async function apiRequest(
 
         return {
             ok: false,
-            error: "API_BASE_URLが設定されていません。"
+            error:
+                "API_BASE_URLが設定されていません。"
         };
 
     }
@@ -840,6 +1090,7 @@ async function apiRequest(
             () => controller.abort(),
             timeout
         );
+
 
     try {
 
@@ -861,6 +1112,7 @@ async function apiRequest(
                 }
             );
 
+
         let data = null;
 
         try {
@@ -874,10 +1126,12 @@ async function apiRequest(
 
         }
 
+
         if (!response.ok) {
 
             return {
                 ok: false,
+
                 error:
                     data?.error ||
                     `HTTP ${response.status}`
@@ -885,11 +1139,14 @@ async function apiRequest(
 
         }
 
+
         return {
             ok: true,
+
             data:
                 data || {}
         };
+
 
     } catch (error) {
 
@@ -906,12 +1163,15 @@ async function apiRequest(
 
         }
 
+
         return {
             ok: false,
+
             error:
                 error?.message ||
                 "サーバーへ接続できませんでした。"
         };
+
 
     } finally {
 
@@ -930,10 +1190,42 @@ function saveAppState() {
 
     try {
 
+        /*
+         * セキュリティキーそのものを
+         * localStorageへ保存しない。
+         *
+         * Python側の認証トークン実装後は
+         * そちらへ移行する。
+         */
+
+        const data = {
+
+            userName:
+                appState.userName,
+
+            accountId:
+                appState.accountId,
+
+            friends:
+                appState.friends,
+
+            friendRequests:
+                appState.friendRequests,
+
+            safetyStatuses:
+                appState.safetyStatuses,
+
+            hazardPosts:
+                appState.hazardPosts
+
+        };
+
+
         localStorage.setItem(
             "otenkiAppState",
-            JSON.stringify(appState)
+            JSON.stringify(data)
         );
+
 
     } catch (error) {
 
@@ -956,12 +1248,15 @@ function loadAppState() {
                 "otenkiAppState"
             );
 
+
         if (!raw) {
             return;
         }
 
+
         const data =
             JSON.parse(raw);
+
 
         if (
             data &&
@@ -971,18 +1266,28 @@ function loadAppState() {
             appState.userName =
                 data.userName || "";
 
-            appState.groupCode =
-                data.groupCode || "";
 
-            appState.familyMembers =
-                Array.isArray(data.familyMembers)
-                    ? data.familyMembers
+            appState.accountId =
+                data.accountId || "";
+
+
+            appState.friends =
+                Array.isArray(data.friends)
+                    ? data.friends
                     : [];
+
+
+            appState.friendRequests =
+                Array.isArray(data.friendRequests)
+                    ? data.friendRequests
+                    : [];
+
 
             appState.safetyStatuses =
                 Array.isArray(data.safetyStatuses)
                     ? data.safetyStatuses
                     : [];
+
 
             appState.hazardPosts =
                 Array.isArray(data.hazardPosts)
@@ -990,6 +1295,7 @@ function loadAppState() {
                     : [];
 
         }
+
 
     } catch (error) {
 
@@ -1037,10 +1343,12 @@ function switchScreen(
                 el.classList.add("hidden")
         );
 
+
     const target =
         document.getElementById(
             `screen-${screenId}`
         );
+
 
     if (target) {
 
@@ -1050,10 +1358,12 @@ function switchScreen(
 
     }
 
+
     window.scrollTo(
         0,
         0
     );
+
 
     if (screenId === "weather") {
 
@@ -1061,15 +1371,26 @@ function switchScreen(
 
     }
 
+
     if (screenId === "safety") {
 
         pollSafety();
 
     }
 
+
     if (screenId === "hazard") {
 
         pollHazard();
+
+    }
+
+
+    if (screenId === "dashboard") {
+
+        pollFriends();
+
+        pollFriendRequests();
 
     }
 
@@ -1089,12 +1410,15 @@ function showLoginError(
             "loginErrorMsg"
         );
 
+
     if (!el) {
         return;
     }
 
+
     el.innerText =
         msg;
+
 
     el.classList.remove(
         "hidden"
@@ -1109,6 +1433,7 @@ function hideLoginError() {
         document.getElementById(
             "loginErrorMsg"
         );
+
 
     if (el) {
 
@@ -1133,12 +1458,15 @@ function setLoginButtonsDisabled(
         const button =
             document.getElementById(id);
 
+
         if (!button) {
             return;
         }
 
+
         button.disabled =
             disabled;
+
 
         button.classList.toggle(
             "opacity-50",
@@ -1160,48 +1488,48 @@ async function handleAuth(
 
     hideLoginError();
 
-    const groupCode =
-        document
-            .getElementById("loginGroupCode")
-            ?.value
-            .trim();
 
-    const password =
-        document
-            .getElementById("loginPassword")
-            ?.value
-            .trim();
-
-    const nameInput =
+    const name =
         document
             .getElementById("loginName")
             ?.value
             .trim();
 
+
+    const securityKey =
+        document
+            .getElementById("loginSecurityKey")
+            ?.value
+            .trim();
+
+
     if (
-        !groupCode ||
-        !password ||
-        !nameInput
+        !name ||
+        !securityKey
     ) {
 
         showLoginError(
-            "グループコード・パスワード・表示名はすべて入力してください。"
+            "表示名と自分のセキュリティキーを入力してください。"
         );
 
         return;
 
     }
 
+
     setLoginButtonsDisabled(true);
+
 
     showLoginError(
         "サーバーに接続中です…"
     );
 
+
     const path =
         type === "register"
-            ? "/api/group/register"
-            : "/api/group/login";
+            ? "/api/account/register"
+            : "/api/account/login";
+
 
     const result =
         await apiRequest(
@@ -1211,20 +1539,20 @@ async function handleAuth(
 
                 body:
                     JSON.stringify({
-                        group_code:
-                            groupCode,
 
-                        password:
-                            password,
+                        name,
 
-                        name:
-                            nameInput
+                        security_key:
+                            securityKey
+
                     })
             },
             40000
         );
 
+
     setLoginButtonsDisabled(false);
+
 
     if (!result.ok) {
 
@@ -1237,23 +1565,81 @@ async function handleAuth(
 
     }
 
+
     hideLoginError();
 
+
     appState.userName =
-        nameInput;
+        result.data.name ||
+        name;
 
-    appState.groupCode =
-        groupCode;
 
-    appState.familyMembers =
-        result.data.members || [];
+    appState.accountId =
+        result.data.account_id ||
+        "";
+
+
+    /*
+     * securityKeyはメモリ上だけで保持。
+     * localStorageへ保存しない。
+     */
+
+    appState.securityKey =
+        securityKey;
+
+
+    appState.friends =
+        result.data.friends ||
+        [];
+
+
+    appState.friendRequests =
+        result.data.friend_requests ||
+        [];
+
 
     saveAppState();
+
+
+    updateUserHeader();
+
+
+    renderFriends();
+
+    renderFriendRequests();
+
+
+    switchScreen(
+        "dashboard"
+    );
+
+
+    initJSTBackgroundMonitors();
+
+    startPolling();
+
+
+    /*
+     * Push通知の登録を試行。
+     * HTTPS + Service Worker対応ブラウザで動作。
+     */
+
+    enableRealPushNotifications();
+
+}
+
+
+/* =====================================================
+   ヘッダー
+===================================================== */
+
+function updateUserHeader() {
 
     const welcome =
         document.getElementById(
             "welcomeUserName"
         );
+
 
     if (welcome) {
 
@@ -1262,10 +1648,12 @@ async function handleAuth(
 
     }
 
+
     const label =
         document.getElementById(
             "currentUserLabel"
         );
+
 
     if (label) {
 
@@ -1274,19 +1662,14 @@ async function handleAuth(
 
     }
 
+
     document
-        .getElementById("headerUserArea")
-        ?.classList.remove("hidden");
-
-    renderFamilyMembers();
-
-    switchScreen(
-        "dashboard"
-    );
-
-    initJSTBackgroundMonitors();
-
-    startPolling();
+        .getElementById(
+            "headerUserArea"
+        )
+        ?.classList.remove(
+            "hidden"
+        );
 
 }
 
@@ -1307,19 +1690,45 @@ function handleLogout() {
 
     }
 
+
     stopPolling();
 
-    appState.userName = "";
-    appState.groupCode = "";
-    appState.familyMembers = [];
-    appState.safetyStatuses = [];
-    appState.hazardPosts = [];
 
-    saveAppState();
+    appState.userName =
+        "";
+
+    appState.securityKey =
+        "";
+
+    appState.accountId =
+        "";
+
+    appState.friends =
+        [];
+
+    appState.friendRequests =
+        [];
+
+    appState.safetyStatuses =
+        [];
+
+    appState.hazardPosts =
+        [];
+
+
+    localStorage.removeItem(
+        "otenkiAppState"
+    );
+
 
     document
-        .getElementById("headerUserArea")
-        ?.classList.add("hidden");
+        .getElementById(
+            "headerUserArea"
+        )
+        ?.classList.add(
+            "hidden"
+        );
+
 
     switchScreen(
         "login"
@@ -1329,65 +1738,376 @@ function handleLogout() {
 
 
 /* =====================================================
-   メンバー表示
+   家族・友達追加モーダル
 ===================================================== */
 
-function renderFamilyMembers() {
+function openFriendModal() {
+
+    const modal =
+        document.getElementById(
+            "friendModal"
+        );
+
+
+    if (!modal) {
+        return;
+    }
+
+
+    document
+        .getElementById(
+            "friendDisplayName"
+        ).value =
+        "";
+
+
+    document
+        .getElementById(
+            "friendModalError"
+        )
+        ?.classList.add(
+            "hidden"
+        );
+
+
+    modal.classList.remove(
+        "hidden"
+    );
+
+
+    setTimeout(
+        () =>
+            document
+                .getElementById(
+                    "friendDisplayName"
+                )
+                ?.focus(),
+        100
+    );
+
+}
+
+
+function closeFriendModal() {
+
+    document
+        .getElementById(
+            "friendModal"
+        )
+        ?.classList.add(
+            "hidden"
+        );
+
+}
+
+
+/* =====================================================
+   家族・友達リクエスト送信
+===================================================== */
+
+async function sendFriendRequest() {
+
+    const input =
+        document.getElementById(
+            "friendDisplayName"
+        );
+
+
+    const name =
+        input?.value.trim();
+
+
+    const errorEl =
+        document.getElementById(
+            "friendModalError"
+        );
+
+
+    if (!name) {
+
+        if (errorEl) {
+
+            errorEl.innerText =
+                "相手の表示名を入力してください。";
+
+            errorEl.classList.remove(
+                "hidden"
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    if (!appState.accountId) {
+
+        if (errorEl) {
+
+            errorEl.innerText =
+                "ログインしてください。";
+
+            errorEl.classList.remove(
+                "hidden"
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    const button =
+        document.getElementById(
+            "sendFriendRequestBtn"
+        );
+
+
+    if (button) {
+
+        button.disabled =
+            true;
+
+        button.innerText =
+            "送信中...";
+
+    }
+
+
+    /*
+     * 相手の表示名を指定して
+     * 家族・友達リクエストを送る。
+     *
+     * グループコードは使用しない。
+     */
+
+    const result =
+        await apiRequest(
+            "/api/friends/requests",
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify({
+
+                        requester_id:
+                            appState.accountId,
+
+                        requester_name:
+                            appState.userName,
+
+                        target_name:
+                            name
+
+                    })
+            },
+            20000
+        );
+
+
+    if (button) {
+
+        button.disabled =
+            false;
+
+        button.innerText =
+            "リクエスト";
+
+    }
+
+
+    if (!result.ok) {
+
+        if (errorEl) {
+
+            errorEl.innerText =
+                result.error ||
+                "リクエストの送信に失敗しました。";
+
+            errorEl.classList.remove(
+                "hidden"
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    closeFriendModal();
+
+
+    triggerPushNotification(
+        "家族・友達リクエスト",
+        `${name}さんへリクエストを送信しました。`
+    );
+
+
+    alert(
+        `${name}さんへ家族・友達リクエストを送信しました。`
+    );
+
+
+    pollFriendRequests();
+
+}
+
+
+/* =====================================================
+   フレンド取得
+===================================================== */
+
+async function pollFriends() {
+
+    if (!appState.accountId) {
+        return;
+    }
+
+
+    const result =
+        await apiRequest(
+            `/api/friends/${encodeURIComponent(appState.accountId)}`,
+            {
+                method: "GET"
+            },
+            10000
+        );
+
+
+    if (!result.ok) {
+
+        return;
+
+    }
+
+
+    appState.friends =
+        result.data.friends ||
+        [];
+
+
+    saveAppState();
+
+    renderFriends();
+
+}
+
+
+/* =====================================================
+   フレンド表示
+===================================================== */
+
+function renderFriends() {
 
     const container =
         document.getElementById(
-            "familyMembersList"
+            "friendsList"
         );
+
 
     if (!container) {
         return;
     }
 
+
     container.innerHTML =
         "";
 
-    appState.familyMembers.forEach(
-        member => {
 
-            const tag =
-                document.createElement(
-                    "span"
-                );
+    if (
+        !appState.friends ||
+        appState.friends.length === 0
+    ) {
 
-            tag.className =
-                "inline-flex items-center text-xs bg-white text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 font-semibold shadow-sm";
+        container.innerHTML = `
+            <div class="text-center py-8 bg-white/60 rounded-2xl border border-dashed border-slate-300">
+                <div class="text-3xl mb-2">👥</div>
+                <p class="text-xs text-slate-400">
+                    まだ家族・友達が登録されていません。
+                </p>
+                <button
+                    onclick="openFriendModal()"
+                    class="mt-3 bg-purple-500 text-white rounded-xl px-4 py-2 text-xs font-black"
+                >
+                    家族・友達を追加
+                </button>
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    appState.friends.forEach(
+        friend => {
 
             const name =
-                typeof member === "string"
-                    ? member
-                    : member.name || "";
+                typeof friend === "string"
+                    ? friend
+                    : friend.name || "";
 
-            tag.innerHTML =
-                `🛡️ ${escapeHtml(name)}`;
 
-            const removeButton =
+            const status =
+                typeof friend === "object"
+                    ? friend.status || "connected"
+                    : "connected";
+
+
+            const row =
                 document.createElement(
-                    "button"
+                    "div"
                 );
 
-            removeButton.className =
-                "ml-2 text-slate-400 hover:text-rose-500 font-extrabold";
 
-            removeButton.innerText =
-                "×";
+            row.className =
+                "bg-white border border-slate-200 rounded-2xl p-3 flex items-center justify-between";
 
-            removeButton.addEventListener(
-                "click",
-                () =>
-                    removeFamilyMember(name)
-            );
 
-            tag.appendChild(
-                removeButton
-            );
+            const statusText =
+                status === "connected"
+                    ? "接続中"
+                    : status;
+
+
+            row.innerHTML = `
+
+                <div class="flex items-center gap-3">
+
+                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-xl">
+                        👤
+                    </div>
+
+                    <div>
+
+                        <p class="text-xs font-black text-slate-800">
+                            ${escapeHtml(name)}
+                        </p>
+
+                        <p class="text-[10px] text-emerald-600 mt-1">
+                            <span class="status-dot bg-emerald-500"></span>
+                            ${escapeHtml(statusText)}
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <button
+                    class="text-[10px] text-slate-400 hover:text-rose-500 font-bold"
+                    onclick="removeFriend('${escapeJs(name)}')"
+                >
+                    接続解除
+                </button>
+
+            `;
+
 
             container.appendChild(
-                tag
+                row
             );
 
         }
@@ -1397,143 +2117,16 @@ function renderFamilyMembers() {
 
 
 /* =====================================================
-   HTMLエスケープ
+   フレンド削除
 ===================================================== */
 
-function escapeHtml(
-    value
-) {
-
-    return String(value)
-        .replace(
-            /[&<>'"]/g,
-            ch =>
-                ({
-                    "&": "&amp;",
-                    "<": "&lt;",
-                    ">": "&gt;",
-                    "'": "&#39;",
-                    '"': "&quot;"
-                }[ch])
-        );
-
-}
-
-
-/* =====================================================
-   メンバー追加
-===================================================== */
-
-function openAddFamilyModal() {
-
-    document
-        .getElementById("addFamilyModal")
-        ?.classList.remove("hidden");
-
-}
-
-
-function closeAddFamilyModal() {
-
-    document
-        .getElementById("addFamilyModal")
-        ?.classList.add("hidden");
-
-}
-
-
-async function confirmAddFamilyMember() {
-
-    const input =
-        document.getElementById(
-            "newMemberName"
-        );
-
-    const name =
-        input?.value.trim();
-
-    if (!name) {
-
-        alert(
-            "名前を入力してください。"
-        );
-
-        return;
-
-    }
-
-    if (!appState.groupCode) {
-
-        alert(
-            "グループにログインしてください。"
-        );
-
-        return;
-
-    }
-
-    const result =
-        await apiRequest(
-            `/api/members/${encodeURIComponent(appState.groupCode)}`,
-            {
-                method: "POST",
-
-                body:
-                    JSON.stringify({
-                        name
-                    })
-            }
-        );
-
-    if (!result.ok) {
-
-        alert(
-            `メンバー追加に失敗しました：${result.error}`
-        );
-
-        return;
-
-    }
-
-    appState.familyMembers =
-        result.data.members || [];
-
-    saveAppState();
-
-    renderFamilyMembers();
-
-    if (input) {
-        input.value = "";
-    }
-
-    closeAddFamilyModal();
-
-}
-
-
-/* =====================================================
-   メンバー削除
-===================================================== */
-
-async function removeFamilyMember(
+async function removeFriend(
     name
 ) {
 
     if (
-        appState.familyMembers.length <= 1
-    ) {
-
-        alert(
-            "最低1人は残してください"
-        );
-
-        return;
-
-    }
-
-    if (
         !confirm(
-            `${name}さんを削除しますか？`
+            `${name}さんとの家族・友達接続を解除しますか？`
         )
     ) {
 
@@ -1541,30 +2134,523 @@ async function removeFamilyMember(
 
     }
 
+
     const result =
         await apiRequest(
-            `/api/members/${encodeURIComponent(appState.groupCode)}/${encodeURIComponent(name)}`,
+            `/api/friends/${encodeURIComponent(appState.accountId)}/${encodeURIComponent(name)}`,
             {
                 method: "DELETE"
             }
         );
 
+
     if (!result.ok) {
 
         alert(
-            `メンバー削除に失敗しました：${result.error}`
+            `接続解除に失敗しました：${result.error}`
         );
 
         return;
 
     }
 
-    appState.familyMembers =
-        result.data.members || [];
+
+    appState.friends =
+        result.data.friends ||
+        [];
+
 
     saveAppState();
 
-    renderFamilyMembers();
+    renderFriends();
+
+}
+
+
+/* =====================================================
+   リクエスト取得
+===================================================== */
+
+async function pollFriendRequests() {
+
+    if (!appState.accountId) {
+        return;
+    }
+
+
+    const result =
+        await apiRequest(
+            `/api/friends/requests/${encodeURIComponent(appState.accountId)}`,
+            {
+                method: "GET"
+            },
+            10000
+        );
+
+
+    if (!result.ok) {
+
+        return;
+
+    }
+
+
+    const newRequests =
+        result.data.requests ||
+        [];
+
+
+    /*
+     * 新しいリクエストが来た場合、
+     * 画面通知を出す。
+     */
+
+    const oldIds =
+        new Set(
+            appState.friendRequests.map(
+                r =>
+                    String(
+                        r.id || ""
+                    )
+            )
+        );
+
+
+    newRequests.forEach(
+        request => {
+
+            const id =
+                String(
+                    request.id || ""
+                );
+
+
+            if (
+                id &&
+                !oldIds.has(id)
+            ) {
+
+                triggerPushNotification(
+                    "家族・友達リクエスト",
+                    `${request.from_name || "誰か"}さんからリクエストが届きました。`
+                );
+
+            }
+
+        }
+    );
+
+
+    appState.friendRequests =
+        newRequests;
+
+
+    saveAppState();
+
+    renderFriendRequests();
+
+}
+
+
+/* =====================================================
+   リクエスト表示
+===================================================== */
+
+function renderFriendRequests() {
+
+    const container =
+        document.getElementById(
+            "friendRequestsList"
+        );
+
+
+    const badge =
+        document.getElementById(
+            "requestCountBadge"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    container.innerHTML =
+        "";
+
+
+    const requests =
+        appState.friendRequests || [];
+
+
+    if (badge) {
+
+        if (requests.length > 0) {
+
+            badge.innerText =
+                String(requests.length);
+
+            badge.classList.remove(
+                "hidden"
+            );
+
+        } else {
+
+            badge.classList.add(
+                "hidden"
+            );
+
+        }
+
+    }
+
+
+    if (requests.length === 0) {
+
+        container.innerHTML = `
+            <p class="text-[11px] text-slate-400 text-center py-5">
+                新しいリクエストはありません。
+            </p>
+        `;
+
+        return;
+
+    }
+
+
+    requests.forEach(
+        request => {
+
+            const fromName =
+                request.from_name ||
+                request.name ||
+                "不明なユーザー";
+
+
+            const row =
+                document.createElement(
+                    "div"
+                );
+
+
+            row.className =
+                "bg-white border border-slate-200 rounded-2xl p-4";
+
+
+            row.innerHTML = `
+
+                <div class="flex items-center gap-3">
+
+                    <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-xl">
+                        👋
+                    </div>
+
+                    <div class="flex-1">
+
+                        <p class="text-sm font-black text-slate-800">
+                            ${escapeHtml(fromName)}
+                        </p>
+
+                        <p class="text-[10px] text-slate-500 mt-1">
+                            家族・友達になりたいというリクエストです。
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-3">
+
+                    <button
+                        class="bg-slate-100 hover:bg-slate-200 rounded-xl py-2 text-xs font-bold text-slate-700"
+                        onclick="rejectFriendRequest('${escapeJs(request.id)}')"
+                    >
+                        拒否
+                    </button>
+
+                    <button
+                        class="bg-emerald-500 hover:bg-emerald-600 rounded-xl py-2 text-xs font-black text-white"
+                        onclick="acceptFriendRequest('${escapeJs(request.id)}')"
+                    >
+                        許可
+                    </button>
+
+                </div>
+            `;
+
+
+            container.appendChild(
+                row
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   リクエスト詳細
+===================================================== */
+
+function openFriendRequestModal(
+    request
+) {
+
+    currentFriendRequest =
+        request;
+
+
+    const modal =
+        document.getElementById(
+            "friendRequestModal"
+        );
+
+
+    const text =
+        document.getElementById(
+            "requestModalText"
+        );
+
+
+    if (text) {
+
+        text.innerText =
+            `${request.from_name || request.name || "相手"}さんから家族・友達リクエストが届きました。`;
+
+    }
+
+
+    modal?.classList.remove(
+        "hidden"
+    );
+
+}
+
+
+function closeFriendRequestModal() {
+
+    document
+        .getElementById(
+            "friendRequestModal"
+        )
+        ?.classList.add(
+            "hidden"
+        );
+
+
+    currentFriendRequest =
+        null;
+
+}
+
+
+async function acceptCurrentFriendRequest() {
+
+    if (!currentFriendRequest) {
+        return;
+    }
+
+
+    await acceptFriendRequest(
+        currentFriendRequest.id
+    );
+
+
+    closeFriendRequestModal();
+
+}
+
+
+async function rejectCurrentFriendRequest() {
+
+    if (!currentFriendRequest) {
+        return;
+    }
+
+
+    await rejectFriendRequest(
+        currentFriendRequest.id
+    );
+
+
+    closeFriendRequestModal();
+
+}
+
+
+/* =====================================================
+   リクエスト許可
+===================================================== */
+
+async function acceptFriendRequest(
+    requestId
+) {
+
+    const result =
+        await apiRequest(
+            `/api/friends/requests/${encodeURIComponent(requestId)}/accept`,
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify({
+
+                        account_id:
+                            appState.accountId
+
+                    })
+            }
+        );
+
+
+    if (!result.ok) {
+
+        alert(
+            `リクエストの許可に失敗しました：${result.error}`
+        );
+
+        return;
+
+    }
+
+
+    appState.friends =
+        result.data.friends ||
+        appState.friends;
+
+
+    appState.friendRequests =
+        appState.friendRequests.filter(
+            request =>
+                String(request.id) !==
+                String(requestId)
+        );
+
+
+    saveAppState();
+
+    renderFriends();
+
+    renderFriendRequests();
+
+
+    triggerPushNotification(
+        "家族・友達接続完了",
+        "家族・友達として接続されました。"
+    );
+
+}
+
+
+/* =====================================================
+   リクエスト拒否
+===================================================== */
+
+async function rejectFriendRequest(
+    requestId
+) {
+
+    const result =
+        await apiRequest(
+            `/api/friends/requests/${encodeURIComponent(requestId)}/reject`,
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify({
+
+                        account_id:
+                            appState.accountId
+
+                    })
+            }
+        );
+
+
+    if (!result.ok) {
+
+        alert(
+            `リクエストの拒否に失敗しました：${result.error}`
+        );
+
+        return;
+
+    }
+
+
+    appState.friendRequests =
+        appState.friendRequests.filter(
+            request =>
+                String(request.id) !==
+                String(requestId)
+        );
+
+
+    saveAppState();
+
+    renderFriendRequests();
+
+}
+
+
+/* =====================================================
+   リクエストキャンセル
+===================================================== */
+
+async function cancelFriendRequest(
+    requestId
+) {
+
+    if (
+        !confirm(
+            "このリクエストをキャンセルしますか？"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    const result =
+        await apiRequest(
+            `/api/friends/requests/${encodeURIComponent(requestId)}/cancel`,
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify({
+
+                        account_id:
+                            appState.accountId,
+
+                        /*
+                         * 相手からの再リクエストを
+                         * 1週間無効化することを
+                         * Python側で処理する。
+                         */
+
+                        block_days:
+                            7
+
+                    })
+            }
+        );
+
+
+    if (!result.ok) {
+
+        alert(
+            `キャンセルに失敗しました：${result.error}`
+        );
+
+        return;
+
+    }
+
+
+    pollFriendRequests();
 
 }
 
@@ -1577,16 +2663,31 @@ function startPolling() {
 
     stopPolling();
 
-    pollMembers();
+
+    pollFriends();
+
+    pollFriendRequests();
+
     pollSafety();
+
     pollHazard();
+
 
     pollTimers.push(
         setInterval(
-            pollMembers,
+            pollFriends,
             POLL_INTERVAL_MS
         )
     );
+
+
+    pollTimers.push(
+        setInterval(
+            pollFriendRequests,
+            POLL_INTERVAL_MS
+        )
+    );
+
 
     pollTimers.push(
         setInterval(
@@ -1594,6 +2695,7 @@ function startPolling() {
             POLL_INTERVAL_MS
         )
     );
+
 
     pollTimers.push(
         setInterval(
@@ -1612,7 +2714,9 @@ function stopPolling() {
             clearInterval(timer)
     );
 
-    pollTimers = [];
+
+    pollTimers =
+        [];
 
 }
 
@@ -1627,8 +2731,9 @@ function setServerConnStatus(
 
     const elements =
         document.querySelectorAll(
-            "#safetyConnStatus, #hazardSyncStatus"
+            "#safetyConnStatus, #hazardSyncStatus, #globalConnectionStatus"
         );
+
 
     elements.forEach(
         el => {
@@ -1651,48 +2756,69 @@ function setServerConnStatus(
 
 
 /* =====================================================
-   メンバー同期
+   安否取得
 ===================================================== */
 
-async function pollMembers() {
+async function pollSafety() {
 
-    if (!appState.groupCode) {
+    if (!appState.accountId) {
         return;
     }
 
+
+    const statusEl =
+        document.getElementById(
+            "safetyConnStatus"
+        );
+
+
     const result =
         await apiRequest(
-            `/api/members/${encodeURIComponent(appState.groupCode)}`,
+            `/api/safety/${encodeURIComponent(appState.accountId)}`,
             {
                 method: "GET"
             },
             10000
         );
 
+
     setServerConnStatus(
         result.ok
     );
 
+
     if (!result.ok) {
+
+        if (statusEl) {
+
+            statusEl.innerText =
+                "同期エラー（再試行中）";
+
+        }
+
         return;
-    }
-
-    const members =
-        result.data.members || [];
-
-    if (
-        JSON.stringify(members) !==
-        JSON.stringify(appState.familyMembers)
-    ) {
-
-        appState.familyMembers =
-            members;
-
-        saveAppState();
-
-        renderFamilyMembers();
 
     }
+
+
+    if (statusEl) {
+
+        statusEl.innerText =
+            `最終同期: ${getJSTNow().toLocaleTimeString("ja-JP")}`;
+
+    }
+
+
+    appState.safetyStatuses =
+        result.data.statuses || [];
+
+
+    saveAppState();
+
+
+    renderSafetyList(
+        appState.safetyStatuses
+    );
 
 }
 
@@ -1709,40 +2835,59 @@ function safetyStatusLabel(
 
         return {
             emoji: "😊",
-            text: "元気です",
+
+            text:
+                "元気です",
+
             cls:
                 "bg-amber-50 border-amber-200 text-amber-900"
+
         };
 
     }
+
 
     if (status === "messy") {
 
         return {
             emoji: "🏠",
-            text: "被害あり",
+
+            text:
+                "被害あり",
+
             cls:
                 "bg-orange-50 border-orange-200 text-orange-900"
+
         };
 
     }
+
 
     if (status === "sos") {
 
         return {
             emoji: "🆘",
-            text: "緊急SOS",
+
+            text:
+                "緊急SOS",
+
             cls:
                 "bg-rose-100 border-rose-300 text-rose-900"
+
         };
 
     }
 
+
     return {
         emoji: "❔",
-        text: status,
+
+        text:
+            status,
+
         cls:
             "bg-slate-50 border-slate-200 text-slate-700"
+
     };
 
 }
@@ -1761,9 +2906,11 @@ function renderSafetyList(
             "groupSafetyStatusList"
         );
 
+
     if (!container) {
         return;
     }
+
 
     if (
         !statuses ||
@@ -1771,14 +2918,16 @@ function renderSafetyList(
     ) {
 
         container.innerHTML =
-            '<p class="text-[11px] text-slate-400 text-center py-4">まだ誰も安否報告をしていません。</p>';
+            '<p class="text-[11px] text-slate-400 text-center py-4">まだ安否報告を受信していません。</p>';
 
         return;
 
     }
 
+
     container.innerHTML =
         "";
+
 
     statuses.forEach(
         s => {
@@ -1787,6 +2936,7 @@ function renderSafetyList(
                 safetyStatusLabel(
                     s.status
                 );
+
 
             const jstTime =
                 s.created_at
@@ -1801,80 +2951,26 @@ function renderSafetyList(
                     )
                     : "";
 
+
             const row =
                 document.createElement(
                     "div"
                 );
 
+
             row.className =
                 `flex justify-between items-center text-xs font-bold px-3.5 py-2.5 rounded-xl border ${info.cls}`;
 
+
             row.innerHTML =
-                `<span>${info.emoji} ${escapeHtml(s.name)}：${escapeHtml(info.text)}</span><span class="text-[10px] font-medium opacity-70">${escapeHtml(jstTime)}</span>`;
+                `<span>${info.emoji} ${escapeHtml(s.name || "")}さんは${escapeHtml(info.text)}！</span><span class="text-[10px] font-medium opacity-70">${escapeHtml(jstTime)}</span>`;
+
 
             container.appendChild(
                 row
             );
 
         }
-    );
-
-}
-
-
-/* =====================================================
-   安否取得
-===================================================== */
-
-async function pollSafety() {
-
-    if (!appState.groupCode) {
-        return;
-    }
-
-    const statusEl =
-        document.getElementById(
-            "safetyConnStatus"
-        );
-
-    const result =
-        await apiRequest(
-            `/api/safety/${encodeURIComponent(appState.groupCode)}`,
-            {
-                method: "GET"
-            },
-            10000
-        );
-
-    setServerConnStatus(
-        result.ok
-    );
-
-    if (!result.ok) {
-
-        if (statusEl) {
-            statusEl.innerText =
-                "同期エラー（再試行中）";
-        }
-
-        return;
-
-    }
-
-    if (statusEl) {
-
-        statusEl.innerText =
-            `最終同期: ${getJSTNow().toLocaleTimeString("ja-JP")}`;
-
-    }
-
-    appState.safetyStatuses =
-        result.data.statuses || [];
-
-    saveAppState();
-
-    renderSafetyList(
-        appState.safetyStatuses
     );
 
 }
@@ -1888,37 +2984,42 @@ async function sendSafety(
     type
 ) {
 
-    if (!appState.groupCode) {
+    if (!appState.accountId) {
 
         alert(
-            "グループにログインしてください。"
+            "ログインしてください。"
         );
 
         return;
 
     }
 
+
     const msgEl =
         document.getElementById(
             "safetyResultMsg"
         );
 
+
     const result =
         await apiRequest(
-            `/api/safety/${encodeURIComponent(appState.groupCode)}`,
+            `/api/safety/${encodeURIComponent(appState.accountId)}`,
             {
                 method: "POST",
 
                 body:
                     JSON.stringify({
+
                         name:
                             appState.userName,
 
                         status:
                             type
+
                     })
             }
         );
+
 
     if (!result.ok) {
 
@@ -1927,8 +3028,10 @@ async function sendSafety(
             msgEl.innerText =
                 `送信に失敗しました：${result.error}`;
 
+
             msgEl.className =
                 "mt-4 text-xs text-center font-medium p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700";
+
 
             msgEl.classList.remove(
                 "hidden"
@@ -1940,13 +3043,22 @@ async function sendSafety(
 
     }
 
+
     if (msgEl) {
 
+        const info =
+            safetyStatusLabel(
+                type
+            );
+
+
         msgEl.innerText =
-            "安否情報をグループ全員に送信しました！";
+            `${appState.userName}さんは${info.text}！`;
+
 
         msgEl.className =
             "mt-4 text-xs text-center font-medium p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700";
+
 
         msgEl.classList.remove(
             "hidden"
@@ -1954,10 +3066,12 @@ async function sendSafety(
 
     }
 
+
     triggerPushNotification(
         "安否確認送信",
-        "グループメンバーにステータスを通知しました。"
+        `${appState.userName}さんの安否情報を家族・友達へ共有しました。`
     );
+
 
     setTimeout(
         () =>
@@ -1966,6 +3080,7 @@ async function sendSafety(
             ),
         5000
     );
+
 
     pollSafety();
 
@@ -1999,11 +3114,13 @@ function compressImage(
             const reader =
                 new FileReader();
 
+
             reader.onload =
                 event => {
 
                     const img =
                         new Image();
+
 
                     img.onload =
                         () => {
@@ -2011,8 +3128,10 @@ function compressImage(
                             let width =
                                 img.width;
 
+
                             let height =
                                 img.height;
+
 
                             if (
                                 width >
@@ -2026,26 +3145,32 @@ function compressImage(
                                         width
                                     );
 
+
                                 width =
                                     maxWidth;
 
                             }
+
 
                             const canvas =
                                 document.createElement(
                                     "canvas"
                                 );
 
+
                             canvas.width =
                                 width;
 
+
                             canvas.height =
                                 height;
+
 
                             const ctx =
                                 canvas.getContext(
                                     "2d"
                                 );
+
 
                             ctx.drawImage(
                                 img,
@@ -2054,6 +3179,7 @@ function compressImage(
                                 width,
                                 height
                             );
+
 
                             resolve(
                                 canvas.toDataURL(
@@ -2064,16 +3190,20 @@ function compressImage(
 
                         };
 
+
                     img.onerror =
                         reject;
+
 
                     img.src =
                         event.target.result;
 
                 };
 
+
             reader.onerror =
                 reject;
+
 
             reader.readAsDataURL(
                 file
@@ -2089,6 +3219,18 @@ function compressImage(
    GPS
 ===================================================== */
 
+/*
+ * 重要：
+ *
+ * このGPSは「危険情報を投稿する際の
+ * 危険箇所の位置」を記録するためだけに使用。
+ *
+ * 人の現在位置追跡には使用しない。
+ *
+ * バックグラウンド追跡もしない。
+ * 移動履歴も保存しない。
+ */
+
 function getCurrentPosition() {
 
     return new Promise(
@@ -2099,6 +3241,7 @@ function getCurrentPosition() {
             ) {
 
                 resolve({
+
                     latitude:
                         AMAKUSA_LAT,
 
@@ -2110,13 +3253,16 @@ function getCurrentPosition() {
 
                     fallback:
                         true
+
                 });
 
                 return;
 
             }
 
+
             navigator.geolocation.getCurrentPosition(
+
                 position => {
 
                     resolve({
@@ -2136,6 +3282,7 @@ function getCurrentPosition() {
                     });
 
                 },
+
 
                 () => {
 
@@ -2157,7 +3304,9 @@ function getCurrentPosition() {
 
                 },
 
+
                 {
+
                     enableHighAccuracy:
                         true,
 
@@ -2166,7 +3315,9 @@ function getCurrentPosition() {
 
                     maximumAge:
                         30000
+
                 }
+
             );
 
         }
@@ -2186,9 +3337,11 @@ async function handleImageSelected(
     const file =
         e.target.files?.[0];
 
+
     if (!file) {
         return;
     }
+
 
     try {
 
@@ -2198,38 +3351,52 @@ async function handleImageSelected(
                 "ひび割れを発見"
             );
 
+
         if (!text) {
             return;
         }
+
 
         const syncEl =
             document.getElementById(
                 "hazardSyncStatus"
             );
 
+
         if (syncEl) {
 
             syncEl.innerText =
-                "位置情報を取得中...";
+                "危険箇所の位置情報を取得中...";
 
         }
 
+
+        /*
+         * ここで取得するのは
+         * 「危険箇所の位置」。
+         *
+         * 現在位置追跡機能ではない。
+         */
+
         const position =
             await getCurrentPosition();
+
 
         if (syncEl) {
 
             syncEl.innerText =
                 position.fallback
-                    ? "GPS取得失敗のため天草位置を使用・画像処理中..."
-                    : "GPS位置を取得・画像処理中...";
+                    ? "位置取得失敗のため天草位置を使用・画像処理中..."
+                    : "危険箇所の位置を取得・画像処理中...";
 
         }
+
 
         const image =
             await compressImage(
                 file
             );
+
 
         if (syncEl) {
 
@@ -2238,9 +3405,10 @@ async function handleImageSelected(
 
         }
 
+
         const result =
             await apiRequest(
-                `/api/hazard/${encodeURIComponent(appState.groupCode)}`,
+                `/api/hazard/${encodeURIComponent(appState.accountId)}`,
                 {
                     method: "POST",
 
@@ -2256,6 +3424,10 @@ async function handleImageSelected(
                             text:
                                 text,
 
+                            /*
+                             * これは危険箇所の座標。
+                             */
+
                             latitude:
                                 position.latitude,
 
@@ -2270,11 +3442,13 @@ async function handleImageSelected(
                 60000
             );
 
+
         if (!result.ok) {
 
             alert(
                 `投稿の送信に失敗しました：${result.error}`
             );
+
 
             if (syncEl) {
 
@@ -2283,16 +3457,20 @@ async function handleImageSelected(
 
             }
 
+
             return;
 
         }
 
+
         triggerPushNotification(
             "危険情報を投稿しました",
-            "グループメンバーと危険情報を共有しました。"
+            "許可した家族・友達へ危険情報を共有しました。"
         );
 
+
         await pollHazard();
+
 
     } catch (error) {
 
@@ -2301,9 +3479,11 @@ async function handleImageSelected(
             error
         );
 
+
         alert(
             "画像の処理または投稿に失敗しました。"
         );
+
 
     } finally {
 
@@ -2321,27 +3501,31 @@ async function handleImageSelected(
 
 async function pollHazard() {
 
-    if (!appState.groupCode) {
+    if (!appState.accountId) {
         return;
     }
+
 
     const syncEl =
         document.getElementById(
             "hazardSyncStatus"
         );
 
+
     const result =
         await apiRequest(
-            `/api/hazard/${encodeURIComponent(appState.groupCode)}`,
+            `/api/hazard/${encodeURIComponent(appState.accountId)}`,
             {
                 method: "GET"
             },
             10000
         );
 
+
     setServerConnStatus(
         result.ok
     );
+
 
     if (!result.ok) {
 
@@ -2356,6 +3540,7 @@ async function pollHazard() {
 
     }
 
+
     if (syncEl) {
 
         syncEl.innerText =
@@ -2363,10 +3548,13 @@ async function pollHazard() {
 
     }
 
+
     appState.hazardPosts =
         result.data.posts || [];
 
+
     saveAppState();
+
 
     renderHazardPosts();
 
@@ -2384,9 +3572,11 @@ function renderHazardPosts() {
             "hazardPostList"
         );
 
+
     if (!container) {
         return;
     }
+
 
     if (
         !appState.hazardPosts ||
@@ -2394,14 +3584,16 @@ function renderHazardPosts() {
     ) {
 
         container.innerHTML =
-            '<div class="text-center py-12 text-xs text-slate-400 bg-white/60 rounded-2xl border border-dashed border-slate-300">まだ登録された危険情報はありません。<br>カメラで撮影して共有しましょう！</div>';
+            '<div class="text-center py-12 text-xs text-slate-400 bg-white/60 rounded-2xl border border-dashed border-slate-300">まだ登録された危険情報はありません。<br>危険箇所を撮影して共有しましょう！</div>';
 
         return;
 
     }
 
+
     container.innerHTML =
         "";
+
 
     appState.hazardPosts.forEach(
         post => {
@@ -2412,24 +3604,29 @@ function renderHazardPosts() {
                     post.lat
                 );
 
+
             const lon =
                 Number(
                     post.longitude ??
                     post.lon
                 );
 
+
             const hasLocation =
                 Number.isFinite(lat) &&
                 Number.isFinite(lon);
 
+
             /*
-             * 投稿されたGPS座標そのものを
-             * Google Mapsへ渡す。
+             * Google Mapsには
+             * 危険箇所の座標を渡す。
              */
+
             const mapUrl =
                 hasLocation
                     ? `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lon}`)}`
                     : "";
+
 
             const jstTime =
                 post.created_at
@@ -2444,13 +3641,16 @@ function renderHazardPosts() {
                     )
                     : "";
 
+
             const div =
                 document.createElement(
                     "div"
                 );
 
+
             div.className =
                 "bg-white/90 border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2";
+
 
             const safeImage =
                 String(
@@ -2460,6 +3660,7 @@ function renderHazardPosts() {
                 )
                     ? post.image
                     : "";
+
 
             const imageHtml =
                 safeImage
@@ -2477,6 +3678,7 @@ function renderHazardPosts() {
                         </div>
                     `;
 
+
             const mapHtml =
                 mapUrl
                     ? `
@@ -2486,11 +3688,11 @@ function renderHazardPosts() {
                             rel="noopener noreferrer"
                             class="text-xs text-sky-600 font-extrabold underline block"
                         >
-                            📍 マップで確認
+                            📍 危険箇所をマップで確認
                         </a>
 
                         <div class="text-[10px] text-slate-400">
-                            緯度 ${lat.toFixed(6)} / 経度 ${lon.toFixed(6)}
+                            危険箇所：緯度 ${lat.toFixed(6)} / 経度 ${lon.toFixed(6)}
                         </div>
 
                         ${
@@ -2507,9 +3709,10 @@ function renderHazardPosts() {
                     `
                     : `
                         <div class="text-[10px] text-slate-400">
-                            📍 位置情報なし
+                            📍 危険箇所の位置情報なし
                         </div>
                     `;
+
 
             div.innerHTML = `
 
@@ -2533,7 +3736,12 @@ function renderHazardPosts() {
 
                 ${mapHtml}
 
+                <div class="text-[10px] text-slate-400 border-t border-slate-100 pt-2">
+                    この位置は危険箇所の位置です。投稿者の現在位置ではありません。
+                </div>
+
             `;
+
 
             container.appendChild(
                 div
@@ -2556,28 +3764,17 @@ async function fetchRealWeatherWithJST() {
             "liveWeatherDesc"
         );
 
+
     if (!descEl) {
         return;
     }
 
+
     descEl.innerText =
         "JST基準で気象データを取得中...";
 
-    try {
 
-        /*
-         * Open-Meteoは使用しない。
-         *
-         * HTML
-         * ↓
-         * /api/weather
-         * ↓
-         * Renderのmain.py
-         * ↓
-         * OPENWEATHER_API_KEY
-         * ↓
-         * OpenWeatherMap
-         */
+    try {
 
         const result =
             await apiRequest(
@@ -2589,6 +3786,7 @@ async function fetchRealWeatherWithJST() {
                 15000
             );
 
+
         if (!result.ok) {
 
             throw new Error(
@@ -2598,8 +3796,10 @@ async function fetchRealWeatherWithJST() {
 
         }
 
+
         const data =
             result.data;
+
 
         const description =
             String(
@@ -2608,25 +3808,30 @@ async function fetchRealWeatherWithJST() {
                 "天候不明"
             );
 
+
         const temperature =
             Number(
                 data.temperature
             );
+
 
         const feelsLike =
             Number(
                 data.feels_like
             );
 
+
         const humidity =
             Number(
                 data.humidity
             );
 
+
         const windSpeed =
             Number(
                 data.wind_speed
             );
+
 
         descEl.innerText =
             `天草市：${description} / 気温: ${
@@ -2639,25 +3844,30 @@ async function fetchRealWeatherWithJST() {
                     : "--"
             } m/s (JST)`;
 
+
         const temperatureEl =
             document.getElementById(
                 "weatherTemperature"
             );
+
 
         const feelsLikeEl =
             document.getElementById(
                 "weatherFeelsLike"
             );
 
+
         const humidityEl =
             document.getElementById(
                 "weatherHumidity"
             );
 
+
         const windEl =
             document.getElementById(
                 "weatherWind"
             );
+
 
         if (temperatureEl) {
 
@@ -2670,6 +3880,7 @@ async function fetchRealWeatherWithJST() {
 
         }
 
+
         if (feelsLikeEl) {
 
             feelsLikeEl.innerText =
@@ -2680,6 +3891,7 @@ async function fetchRealWeatherWithJST() {
                     : "--";
 
         }
+
 
         if (humidityEl) {
 
@@ -2692,6 +3904,7 @@ async function fetchRealWeatherWithJST() {
 
         }
 
+
         if (windEl) {
 
             windEl.innerText =
@@ -2703,11 +3916,13 @@ async function fetchRealWeatherWithJST() {
 
         }
 
+
         evaluateJSTWeatherAndAdvice(
             description,
             windSpeed,
             []
         );
+
 
     } catch (err) {
 
@@ -2716,13 +3931,16 @@ async function fetchRealWeatherWithJST() {
             err
         );
 
+
         descEl.innerText =
             `天気情報の取得に失敗しました。${err.message || ""}`;
+
 
         const recommendationEl =
             document.getElementById(
                 "lifestyleRecommendation"
             );
+
 
         if (recommendationEl) {
 
@@ -2749,27 +3967,34 @@ function evaluateJSTWeatherAndAdvice(
     const jst =
         getJSTNow();
 
+
     const hour =
         jst.getHours();
+
 
     const hourMinuteStr =
         `${String(hour).padStart(2, "0")}:${String(jst.getMinutes()).padStart(2, "0")}`;
 
+
     const recommendations =
         [];
 
+
     let timeGreeting =
         "";
+
 
     const rainFlag =
         desc.includes("雨") ||
         desc.includes("降水") ||
         desc.includes("雷");
 
+
     if (hour < 12) {
 
         timeGreeting =
             `おはようございます。日本標準時 ${hourMinuteStr}、天草市の気象情報をお届けします。`;
+
 
         if (rainFlag) {
 
@@ -2787,6 +4012,7 @@ function evaluateJSTWeatherAndAdvice(
 
         }
 
+
         if (windSpeed >= 10) {
 
             recommendations.push(
@@ -2795,10 +4021,12 @@ function evaluateJSTWeatherAndAdvice(
 
         }
 
+
     } else {
 
         timeGreeting =
             `こんばんは。日本標準時 ${hourMinuteStr}、天草市の気象情報です。`;
+
 
         if (rainFlag) {
 
@@ -2814,6 +4042,7 @@ function evaluateJSTWeatherAndAdvice(
 
         }
 
+
         if (windSpeed >= 10) {
 
             recommendations.push(
@@ -2823,6 +4052,7 @@ function evaluateJSTWeatherAndAdvice(
         }
 
     }
+
 
     if (
         recommendations.length === 0
@@ -2834,15 +4064,18 @@ function evaluateJSTWeatherAndAdvice(
 
     }
 
+
     const titleEl =
         document.getElementById(
             "jstReportTitle"
         );
 
+
     const recommendationEl =
         document.getElementById(
             "lifestyleRecommendation"
         );
+
 
     if (titleEl) {
 
@@ -2851,12 +4084,15 @@ function evaluateJSTWeatherAndAdvice(
 
     }
 
+
     if (!recommendationEl) {
         return;
     }
 
+
     let htmlOutput =
         `<div class="font-bold text-emerald-900 mb-1">${escapeHtml(timeGreeting)}</div><ul class="list-disc pl-4 space-y-1">`;
+
 
     recommendations.forEach(
         rec => {
@@ -2867,8 +4103,10 @@ function evaluateJSTWeatherAndAdvice(
         }
     );
 
+
     htmlOutput +=
         "</ul>";
+
 
     recommendationEl.innerHTML =
         htmlOutput;
@@ -2886,8 +4124,10 @@ function initJSTBackgroundMonitors() {
         return;
     }
 
+
     jstMonitorStarted =
         true;
+
 
     setInterval(
         () => {
@@ -2896,17 +4136,22 @@ function initJSTBackgroundMonitors() {
                 return;
             }
 
+
             const jst =
                 getJSTNow();
+
 
             const h =
                 jst.getHours();
 
+
             const m =
                 jst.getMinutes();
 
+
             const dateKey =
                 `${jst.toDateString()}-${h}-${m}`;
+
 
             if (
                 h === 6 &&
@@ -2917,10 +4162,12 @@ function initJSTBackgroundMonitors() {
                 lastNotifiedKey =
                     dateKey;
 
+
                 triggerPushNotification(
                     "朝6:00 定時お天気レポート",
-                    "【JST】本日の天気予報と生活アドバイス配信をお届けします。"
+                    "【JST】本日の天気予報と生活アドバイスをお届けします。"
                 );
+
 
             } else if (
                 h === 18 &&
@@ -2930,6 +4177,7 @@ function initJSTBackgroundMonitors() {
 
                 lastNotifiedKey =
                     dateKey;
+
 
                 triggerPushNotification(
                     "夜18:30 翌日お天気レポート",
@@ -2946,7 +4194,7 @@ function initJSTBackgroundMonitors() {
 
 
 /* =====================================================
-   通知
+   通知バナー
 ===================================================== */
 
 function triggerPushNotification(
@@ -2959,33 +4207,44 @@ function triggerPushNotification(
             "pushNotificationBanner"
         );
 
+
     if (!banner) {
         return;
     }
+
 
     const titleEl =
         document.getElementById(
             "pushNotificationTitle"
         );
 
+
     const textEl =
         document.getElementById(
             "pushNotificationText"
         );
 
+
     if (titleEl) {
+
         titleEl.innerText =
             title;
+
     }
 
+
     if (textEl) {
+
         textEl.innerText =
             msg;
+
     }
+
 
     banner.classList.remove(
         "translate-x-full"
     );
+
 
     setTimeout(
         () =>
@@ -2994,6 +4253,57 @@ function triggerPushNotification(
             ),
         6000
     );
+
+
+    /*
+     * Service Workerが利用可能なら、
+     * OSレベルの通知も試行する。
+     *
+     * 実際に他ユーザーへ送るPushは
+     * Python側のWeb Push実装が必要。
+     */
+
+    if (
+        "Notification" in window &&
+        Notification.permission === "granted"
+    ) {
+
+        if (
+            "serviceWorker" in navigator
+        ) {
+
+            navigator.serviceWorker
+                .ready
+                .then(
+                    registration => {
+
+                        registration.showNotification(
+                            title,
+                            {
+                                body:
+                                    msg,
+
+                                icon:
+                                    "/icon-192.png",
+
+                                badge:
+                                    "/icon-192.png"
+                            }
+                        );
+
+                    }
+                )
+                .catch(
+                    error =>
+                        console.warn(
+                            "OS通知エラー:",
+                            error
+                        )
+                );
+
+        }
+
+    }
 
 }
 
@@ -3012,61 +4322,437 @@ function closePushBanner() {
 
 
 /* =====================================================
+   本物のWeb Push購読
+===================================================== */
+
+async function enableRealPushNotifications() {
+
+    const statusEl =
+        document.getElementById(
+            "pushPermissionStatus"
+        );
+
+
+    if (
+        !("Notification" in window)
+    ) {
+
+        if (statusEl) {
+
+            statusEl.innerText =
+                "このブラウザはプッシュ通知に対応していません。";
+
+        }
+
+        return;
+
+    }
+
+
+    if (
+        !("serviceWorker" in navigator)
+    ) {
+
+        if (statusEl) {
+
+            statusEl.innerText =
+                "Service Workerに対応していません。";
+
+        }
+
+        return;
+
+    }
+
+
+    if (
+        !window.isSecureContext
+    ) {
+
+        if (statusEl) {
+
+            statusEl.innerText =
+                "HTTPS環境でプッシュ通知を有効にしてください。";
+
+        }
+
+        return;
+
+    }
+
+
+    try {
+
+        const permission =
+            await Notification.requestPermission();
+
+
+        if (
+            permission !== "granted"
+        ) {
+
+            if (statusEl) {
+
+                statusEl.innerText =
+                    "プッシュ通知が許可されていません。";
+
+            }
+
+            return;
+
+        }
+
+
+        const registration =
+            await navigator.serviceWorker.register(
+                "/sw.js"
+            );
+
+
+        await navigator.serviceWorker.ready;
+
+
+        if (!VAPID_PUBLIC_KEY) {
+
+            if (statusEl) {
+
+                statusEl.innerText =
+                    "通知は許可されています。サーバー側Push設定待ちです。";
+
+            }
+
+            return;
+
+        }
+
+
+        const applicationServerKey =
+            urlBase64ToUint8Array(
+                VAPID_PUBLIC_KEY
+            );
+
+
+        const subscription =
+            await registration.pushManager.subscribe({
+
+                userVisibleOnly:
+                    true,
+
+                applicationServerKey:
+                    applicationServerKey
+
+            });
+
+
+        const result =
+            await apiRequest(
+                "/api/push/subscribe",
+                {
+                    method: "POST",
+
+                    body:
+                        JSON.stringify({
+
+                            account_id:
+                                appState.accountId,
+
+                            subscription:
+                                subscription
+
+                        })
+                },
+                20000
+            );
+
+
+        if (!result.ok) {
+
+            throw new Error(
+                result.error ||
+                "Push購読情報の登録に失敗しました。"
+            );
+
+        }
+
+
+        if (statusEl) {
+
+            statusEl.innerText =
+                "本物のプッシュ通知が有効になっています。";
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Push通知設定エラー:",
+            error
+        );
+
+
+        if (statusEl) {
+
+            statusEl.innerText =
+                `プッシュ通知設定エラー：${error.message || error}`;
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   Base64 → Uint8Array
+===================================================== */
+
+function urlBase64ToUint8Array(
+    base64String
+) {
+
+    const padding =
+        "=".repeat(
+            (4 - base64String.length % 4) % 4
+        );
+
+
+    const base64 =
+        (
+            base64String +
+            padding
+        )
+            .replace(
+                /-/g,
+                "+"
+            )
+            .replace(
+                /_/g,
+                "/"
+            );
+
+
+    const rawData =
+        window.atob(
+            base64
+        );
+
+
+    const outputArray =
+        new Uint8Array(
+            rawData.length
+        );
+
+
+    for (
+        let i = 0;
+        i < rawData.length;
+        ++i
+    ) {
+
+        outputArray[i] =
+            rawData.charCodeAt(i);
+
+    }
+
+
+    return outputArray;
+
+}
+
+
+/* =====================================================
+   HTMLエスケープ
+===================================================== */
+
+function escapeHtml(
+    value
+) {
+
+    return String(value)
+        .replace(
+            /[&<>'"]/g,
+            ch =>
+                ({
+                    "&":
+                        "&amp;",
+
+                    "<":
+                        "&lt;",
+
+                    ">":
+                        "&gt;",
+
+                    "'":
+                        "&#39;",
+
+                    '"':
+                        "&quot;"
+
+                }[ch])
+        );
+
+}
+
+
+/* =====================================================
+   JavaScript文字列エスケープ
+===================================================== */
+
+function escapeJs(
+    value
+) {
+
+    return String(value)
+        .replace(
+            /\\/g,
+            "\\\\"
+        )
+        .replace(
+            /'/g,
+            "\\'"
+        )
+        .replace(
+            /\n/g,
+            "\\n"
+        )
+        .replace(
+            /\r/g,
+            "\\r"
+        );
+
+}
+
+
+/* =====================================================
+   キーボード操作
+===================================================== */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.key ===
+            "Escape"
+        ) {
+
+            closeFriendModal();
+
+            closeFriendRequestModal();
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   モーダル外クリック
+===================================================== */
+
+document.addEventListener(
+    "click",
+    event => {
+
+        const friendModal =
+            document.getElementById(
+                "friendModal"
+            );
+
+
+        if (
+            friendModal &&
+            event.target ===
+            friendModal
+        ) {
+
+            closeFriendModal();
+
+        }
+
+
+        const requestModal =
+            document.getElementById(
+                "friendRequestModal"
+            );
+
+
+        if (
+            requestModal &&
+            event.target ===
+            requestModal
+        ) {
+
+            closeFriendRequestModal();
+
+        }
+
+    }
+);
+
+
+/* =====================================================
    初期化
 ===================================================== */
 
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
+    async () => {
 
         loadAppState();
 
+
         if (
             appState.userName &&
-            appState.groupCode
+            appState.accountId
         ) {
 
-            const welcome =
-                document.getElementById(
-                    "welcomeUserName"
-                );
+            updateUserHeader();
 
-            if (welcome) {
 
-                welcome.innerText =
-                    appState.userName;
+            renderFriends();
 
-            }
+            renderFriendRequests();
 
-            const label =
-                document.getElementById(
-                    "currentUserLabel"
-                );
-
-            if (label) {
-
-                label.innerText =
-                    `ログイン中: ${appState.userName}`;
-
-            }
-
-            document
-                .getElementById(
-                    "headerUserArea"
-                )
-                ?.classList.remove(
-                    "hidden"
-                );
-
-            renderFamilyMembers();
 
             switchScreen(
                 "dashboard"
             );
 
+
             initJSTBackgroundMonitors();
 
+
             startPolling();
+
+
+            /*
+             * Service Workerの登録。
+             */
+
+            if (
+                "serviceWorker" in navigator &&
+                window.isSecureContext
+            ) {
+
+                try {
+
+                    await navigator.serviceWorker.register(
+                        "/sw.js"
+                    );
+
+                } catch (error) {
+
+                    console.warn(
+                        "Service Worker登録失敗:",
+                        error
+                    );
+
+                }
+
+            }
+
 
         } else {
 
@@ -3083,3 +4769,4 @@ document.addEventListener(
 
 </body>
 </html>
+```
