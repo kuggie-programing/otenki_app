@@ -992,6 +992,95 @@ def public_request(
 
 
 # =========================================================
+# ユーザー検索（フレンド追加用）
+# =========================================================
+
+@app.get(
+    "/api/users/search"
+)
+@require_user
+def search_users(
+    user
+):
+
+    query = str(
+        request.args.get(
+            "q",
+            ""
+        )
+    ).strip()
+
+    if not query:
+
+        return jsonify({
+            "ok": True,
+            "users": []
+        })
+
+    if len(query) > MAX_NAME_LENGTH:
+
+        return jsonify({
+            "error":
+                "検索文字が長すぎます。"
+        }), 400
+
+    data = load_data()
+    query_folded = query.casefold()
+    matches = []
+
+    for candidate_id, candidate in data[
+        "users"
+    ].items():
+
+        if candidate_id == user[
+            "id"
+        ]:
+            continue
+
+        name = str(
+            candidate.get(
+                "name",
+                ""
+            )
+        )
+
+        if not name.casefold().startswith(
+            query_folded
+        ):
+            continue
+
+        candidate_public = public_user({
+            **candidate,
+            "id": candidate_id
+        })
+
+        if are_friends(
+            data,
+            user["id"],
+            candidate_id
+        ):
+            candidate_public["relationship"] = "friend"
+        else:
+            candidate_public["relationship"] = "none"
+
+        matches.append(
+            candidate_public
+        )
+
+    matches.sort(
+        key=lambda item: (
+            str(item.get("name", "")).casefold(),
+            str(item.get("id", ""))
+        )
+    )
+
+    return jsonify({
+        "ok": True,
+        "users": matches[:10]
+    })
+
+
+# =========================================================
 # 家族・友達リクエスト送信
 # =========================================================
 
@@ -1007,6 +1096,13 @@ def send_friend_request(
         silent=True
     ) or {}
 
+    target_id = str(
+        body.get(
+            "user_id",
+            ""
+        )
+    ).strip()
+
     target_name = str(
         body.get(
             "name",
@@ -1014,53 +1110,74 @@ def send_friend_request(
         )
     ).strip()
 
-    if not target_name:
-
-        return jsonify({
-            "error":
-                "追加する人の表示名を入力してください。"
-        }), 400
-
-    if len(target_name) > MAX_NAME_LENGTH:
-
-        return jsonify({
-            "error":
-                "表示名が長すぎます。"
-        }), 400
-
     data = load_data()
 
     cleanup_expired_requests(
         data
     )
 
-    target_id = None
+    # 新しい画面ではユーザーIDで相手を指定します。
+    # 旧画面との互換性のため、表示名指定も残します。
+    if target_id:
 
-    for candidate_id, candidate in data[
-        "users"
-    ].items():
-
-        if candidate_id == user[
+        if target_id == user[
             "id"
         ]:
 
-            continue
+            return jsonify({
+                "error":
+                    "自分自身は追加できません。"
+            }), 400
 
-        if (
-            candidate.get("name")
-            ==
-            target_name
+        if not user_exists(
+            data,
+            target_id
         ):
 
-            target_id = candidate_id
-            break
+            return jsonify({
+                "error":
+                    "そのアカウントが見つかりません。もう一度検索してください。"
+            }), 404
 
-    if not target_id:
+    else:
 
-        return jsonify({
-            "error":
-                "その表示名のアカウントが見つかりません。"
-        }), 404
+        if not target_name:
+
+            return jsonify({
+                "error":
+                    "追加する人を検索して選んでください。"
+            }), 400
+
+        if len(target_name) > MAX_NAME_LENGTH:
+
+            return jsonify({
+                "error":
+                    "表示名が長すぎます。"
+            }), 400
+
+        for candidate_id, candidate in data[
+            "users"
+        ].items():
+
+            if candidate_id == user[
+                "id"
+            ]:
+                continue
+
+            if (
+                candidate.get("name")
+                ==
+                target_name
+            ):
+                target_id = candidate_id
+                break
+
+        if not target_id:
+
+            return jsonify({
+                "error":
+                    "その表示名のアカウントが見つかりません。"
+            }), 404
 
     if are_friends(
         data,

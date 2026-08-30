@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>防災アプリ</title>
+    <title>おてんきアプリ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html, body {
@@ -354,14 +354,21 @@
 <!-- 家族・友達追加モーダル -->
 <div id="friendModal" class="hidden fixed inset-0 z-[100] modal-backdrop flex items-center justify-center px-5">
     <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6">
-        <h2 class="text-xl font-black text-slate-800">家族・友達を追加</h2>
-        <p class="text-xs text-slate-500 mt-1 leading-relaxed">相手の表示名を入力して、「家族・友達リクエスト」を送信します。</p>
-        <input id="friendDisplayName" type="text" placeholder="例：Aさん母" maxlength="40" class="w-full mt-5 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-300">
-        <div id="friendModalError" class="hidden mt-3 text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700"></div>
-        <div class="grid grid-cols-2 gap-3 mt-5">
-            <button onclick="closeFriendModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold">キャンセル</button>
-            <button id="sendFriendRequestBtn" onclick="sendFriendRequest()" class="bg-purple-500 hover:bg-purple-600 text-white rounded-2xl py-3 font-black">リクエスト</button>
+        <h2 class="text-xl font-black text-slate-800">家族・友達を検索</h2>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">名前の最初の文字から検索できます。例：R → Rie / Raad / Ran</p>
+
+        <div class="relative mt-5">
+            <input id="friendSearchInput" type="text" placeholder="名前を入力（例：R）" maxlength="100" autocomplete="off"
+                class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-300"
+                oninput="handleFriendSearchInput()">
+            <div id="friendSearchSpinner" class="hidden absolute right-4 top-3 text-xs text-slate-400">検索中...</div>
         </div>
+
+        <div id="friendSearchHint" class="mt-3 text-[11px] text-slate-400">1文字以上入力すると候補が表示されます。</div>
+        <div id="friendSearchResults" class="mt-3 max-h-64 overflow-y-auto space-y-2"></div>
+        <div id="friendModalError" class="hidden mt-3 text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700"></div>
+
+        <button onclick="closeFriendModal()" class="mt-5 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold">閉じる</button>
     </div>
 </div>
 
@@ -801,67 +808,175 @@ function closePushBanner() {
 /* =====================================================
    フレンド・リクエスト関連
 ===================================================== */
+let friendSearchTimer = null;
+let friendSearchSerial = 0;
+
 function openFriendModal() {
     const modal = document.getElementById("friendModal");
     if (!modal) return;
-    document.getElementById("friendDisplayName").value = "";
+
+    const input = document.getElementById("friendSearchInput");
+    if (input) input.value = "";
+
+    document.getElementById("friendSearchResults")?.replaceChildren();
     document.getElementById("friendModalError")?.classList.add("hidden");
+
+    const hint = document.getElementById("friendSearchHint");
+    if (hint) {
+        hint.innerText = "1文字以上入力すると候補が表示されます。";
+        hint.classList.remove("hidden");
+    }
+
     modal.classList.remove("hidden");
-    setTimeout(() => document.getElementById("friendDisplayName")?.focus(), 100);
+    setTimeout(() => input?.focus(), 100);
 }
 
 function closeFriendModal() {
+    if (friendSearchTimer) {
+        clearTimeout(friendSearchTimer);
+        friendSearchTimer = null;
+    }
+    friendSearchSerial += 1;
     document.getElementById("friendModal")?.classList.add("hidden");
 }
 
-async function sendFriendRequest() {
-    const input = document.getElementById("friendDisplayName");
-    const name = input?.value.trim();
+function handleFriendSearchInput() {
+    const input = document.getElementById("friendSearchInput");
+    const query = input?.value.trim() || "";
+    const resultsEl = document.getElementById("friendSearchResults");
     const errorEl = document.getElementById("friendModalError");
+    const hint = document.getElementById("friendSearchHint");
 
-    if (!name) {
-        if (errorEl) {
-            errorEl.innerText = "相手の表示名を入力してください。";
-            errorEl.classList.remove("hidden");
+    if (errorEl) errorEl.classList.add("hidden");
+    if (friendSearchTimer) clearTimeout(friendSearchTimer);
+
+    if (!query) {
+        friendSearchSerial += 1;
+        if (resultsEl) resultsEl.innerHTML = "";
+        if (hint) {
+            hint.innerText = "1文字以上入力すると候補が表示されます。";
+            hint.classList.remove("hidden");
         }
         return;
     }
-    if (!appState.accountId) {
-        if (errorEl) {
-            errorEl.innerText = "ログインしてください。";
-            errorEl.classList.remove("hidden");
-        }
+
+    if (hint) {
+        hint.innerText = "入力した文字から始まるユーザーを検索します。";
+        hint.classList.remove("hidden");
+    }
+
+    friendSearchTimer = setTimeout(() => searchFriendUsers(query), 250);
+}
+
+async function searchFriendUsers(query) {
+    if (!appState.accountId || !appState.securityKey) {
+        showFriendSearchError("ログインしてください。");
         return;
     }
 
-    const button = document.getElementById("sendFriendRequestBtn");
-    if (button) {
-        button.disabled = true;
-        button.innerText = "送信中...";
+    const serial = ++friendSearchSerial;
+    const spinner = document.getElementById("friendSearchSpinner");
+    const resultsEl = document.getElementById("friendSearchResults");
+    const hint = document.getElementById("friendSearchHint");
+
+    spinner?.classList.remove("hidden");
+
+    const result = await apiRequest(`/api/users/search?q=${encodeURIComponent(query)}`, {
+        method: "GET"
+    }, 10000);
+
+    if (serial !== friendSearchSerial) return;
+    spinner?.classList.add("hidden");
+
+    if (!result.ok) {
+        if (resultsEl) resultsEl.innerHTML = "";
+        showFriendSearchError(result.error || "ユーザー検索に失敗しました。");
+        return;
+    }
+
+    const users = Array.isArray(result.data.users) ? result.data.users : [];
+    renderFriendSearchResults(users);
+
+    if (hint) {
+        hint.innerText = users.length
+            ? `${users.length}人見つかりました。追加したい人を選んでください。`
+            : "一致するユーザーが見つかりませんでした。";
+        hint.classList.remove("hidden");
+    }
+}
+
+function renderFriendSearchResults(users) {
+    const container = document.getElementById("friendSearchResults");
+    if (!container) return;
+    container.innerHTML = "";
+
+    users.forEach(user => {
+        const id = String(user.id || "");
+        const name = String(user.name || "");
+        if (!id || !name) return;
+
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "w-full text-left bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 rounded-2xl p-3 flex items-center justify-between gap-3";
+
+        const left = document.createElement("div");
+        left.className = "flex items-center gap-3 min-w-0";
+        left.innerHTML = `
+            <div class="w-10 h-10 shrink-0 rounded-full bg-purple-100 flex items-center justify-center text-xl">👤</div>
+            <div class="min-w-0">
+                <div class="text-sm font-black text-slate-800 truncate">${escapeHtml(name)}</div>
+                <div class="text-[10px] text-slate-400 truncate">ユーザーID: ${escapeHtml(id.slice(0, 12))}</div>
+            </div>
+        `;
+
+        const action = document.createElement("span");
+        action.className = "shrink-0 bg-purple-500 text-white rounded-xl px-3 py-2 text-[11px] font-black";
+        action.innerText = "追加";
+
+        row.appendChild(left);
+        row.appendChild(action);
+        row.addEventListener("click", () => sendFriendRequestToUser(id, name, row));
+        container.appendChild(row);
+    });
+}
+
+function showFriendSearchError(message) {
+    const errorEl = document.getElementById("friendModalError");
+    if (!errorEl) return;
+    errorEl.innerText = message;
+    errorEl.classList.remove("hidden");
+}
+
+async function sendFriendRequestToUser(targetUserId, targetName, rowButton) {
+    if (!targetUserId) return;
+
+    const errorEl = document.getElementById("friendModalError");
+    errorEl?.classList.add("hidden");
+
+    const previousHtml = rowButton?.innerHTML;
+    if (rowButton) {
+        rowButton.disabled = true;
+        rowButton.innerHTML = '<div class="w-full text-center text-xs font-bold text-slate-500 py-2">送信中...</div>';
     }
 
     const result = await apiRequest("/api/friends/request", {
         method: "POST",
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ user_id: targetUserId })
     }, 20000);
 
-    if (button) {
-        button.disabled = false;
-        button.innerText = "リクエスト";
-    }
-
     if (!result.ok) {
-        if (errorEl) {
-            errorEl.innerText = result.error || "リクエストの送信に失敗しました。";
-            errorEl.classList.remove("hidden");
+        if (rowButton) {
+            rowButton.disabled = false;
+            rowButton.innerHTML = previousHtml;
         }
+        showFriendSearchError(result.error || "リクエストの送信に失敗しました。");
         return;
     }
 
     closeFriendModal();
-    triggerPushNotification("家族・友達リクエスト", `${name}さんへリクエストを送信しました。`);
-    alert(`${name}さんへ家族・友達リクエストを送信しました。`);
-    pollFriendRequests();
+    triggerPushNotification("家族・友達リクエスト", `${targetName}さんへリクエストを送信しました。`);
+    alert(`${targetName}さんへ家族・友達リクエストを送信しました。`);
+    await pollFriendRequests();
 }
 
 async function pollFriends() {
