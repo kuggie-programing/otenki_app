@@ -1,126 +1,62 @@
-```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>おてんきアプリ</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <style>
-        html,
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             min-height: 100%;
         }
-
         body {
-            font-family:
-                system-ui,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                sans-serif;
-
-            background:
-                linear-gradient(
-                    180deg,
-                    #eff6ff 0%,
-                    #f8fafc 50%,
-                    #ecfeff 100%
-                );
-
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 50%, #ecfeff 100%);
             color: #0f172a;
         }
-
         .glass-header {
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(14, 165, 233, .95),
-                    rgba(37, 99, 235, .95)
-                );
-
+            background: linear-gradient(135deg, rgba(14, 165, 233, .95), rgba(37, 99, 235, .95));
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
         }
-
         .screen {
             min-height: calc(100vh - 72px);
         }
-
         .hidden {
             display: none !important;
         }
-
         button:disabled {
             cursor: not-allowed;
             opacity: .55;
         }
-
         img {
             max-width: 100%;
         }
-
-        input,
-        button {
+        input, button {
             font: inherit;
         }
-
         .weather-card {
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(255,255,255,.96),
-                    rgba(239,246,255,.96)
-                );
+            background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(239,246,255,.96));
         }
-
         .safe-card {
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(255,255,255,.97),
-                    rgba(240,253,250,.96)
-                );
+            background: linear-gradient(135deg, rgba(255,255,255,.97), rgba(240,253,250,.96));
         }
-
         .danger-card {
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(255,255,255,.97),
-                    rgba(255,247,237,.96)
-                );
+            background: linear-gradient(135deg, rgba(255,255,255,.97), rgba(255,247,237,.96));
         }
-
         .friend-card {
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(255,255,255,.98),
-                    rgba(245,243,255,.96)
-                );
+            background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(245,243,255,.96));
         }
-
         .request-card {
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(255,255,255,.98),
-                    rgba(239,246,255,.98)
-                );
+            background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(239,246,255,.98));
         }
-
         .modal-backdrop {
             background: rgba(15, 23, 42, .55);
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
         }
-
         .status-dot {
             width: 8px;
             height: 8px;
@@ -129,4644 +65,1298 @@
         }
     </style>
 </head>
-
 <body>
 
-<header
-    class="glass-header text-white border-b border-slate-700/20 sticky top-0 z-50 shadow-lg"
->
-    <div
-        class="max-w-4xl mx-auto px-5 py-4 flex justify-between items-center"
-    >
-
+<header class="glass-header text-white border-b border-slate-700/20 sticky top-0 z-50 shadow-lg">
+    <div class="max-w-4xl mx-auto px-5 py-4 flex justify-between items-center">
         <div class="flex items-center space-x-3">
-
-            <span
-                class="text-xl bg-sky-500/40 rounded-xl px-2 py-1"
-            >
-                ☀️
-            </span>
-
+            <span class="text-xl bg-sky-500/40 rounded-xl px-2 py-1">☀️</span>
             <div>
-                <h1 class="font-extrabold text-lg">
-                    おてんきアプリ
-                </h1>
-
-                <p class="text-[10px] text-white/80">
-                    天草の天気・防災・家族・友達
-                </p>
+                <h1 class="font-extrabold text-lg">おてんきアプリ</h1>
+                <p class="text-[10px] text-white/80">天草の天気・防災・家族・友達</p>
             </div>
-
         </div>
-
-        <div
-            id="headerUserArea"
-            class="hidden flex items-center gap-2"
-        >
-
-            <span
-                id="currentUserLabel"
-                class="text-xs font-bold"
-            ></span>
-
-            <button
-                onclick="handleLogout()"
-                class="text-[11px] bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl font-bold"
-            >
-                ログアウト
-            </button>
-
+        <div id="headerUserArea" class="hidden flex items-center gap-2">
+            <span id="currentUserLabel" class="text-xs font-bold"></span>
+            <button onclick="handleLogout()" class="text-[11px] bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl font-bold">ログアウト</button>
         </div>
-
     </div>
 </header>
 
-
-<!-- =====================================================
-     ログイン / アカウント作成
-===================================================== -->
-
-<section
-    id="screen-login"
-    class="screen flex items-center justify-center px-5 py-10"
->
-
-    <div
-        class="w-full max-w-md bg-white/90 backdrop-blur rounded-3xl shadow-xl border border-white p-7"
-    >
-
+<!-- ログイン / アカウント作成 -->
+<section id="screen-login" class="screen flex items-center justify-center px-5 py-10">
+    <div class="w-full max-w-md bg-white/90 backdrop-blur rounded-3xl shadow-xl border border-white p-7">
         <div class="text-center mb-7">
-
-            <div class="text-5xl mb-3">
-                ☀️
-            </div>
-
-            <h2 class="text-2xl font-black text-slate-800">
-                おてんきアプリ
-            </h2>
-
-            <p class="text-xs text-slate-500 mt-2">
-                天気・安否・危険情報を大切な人と共有
-            </p>
-
+            <div class="text-5xl mb-3">☀️</div>
+            <h2 class="text-2xl font-black text-slate-800">おてんきアプリ</h2>
+            <p class="text-xs text-slate-500 mt-2">天気・安否・危険情報を大切な人と共有</p>
         </div>
-
         <div class="space-y-3">
-
-            <input
-                id="loginName"
-                type="text"
-                placeholder="表示名"
-                autocomplete="nickname"
-                maxlength="40"
-                class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300"
-            >
-
-            <input
-                id="loginSecurityKey"
-                type="password"
-                placeholder="自分のセキュリティキー"
-                autocomplete="current-password"
-                maxlength="200"
-                class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300"
-            >
-
+            <input id="loginName" type="text" placeholder="表示名" autocomplete="nickname" maxlength="40" class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300">
+            <input id="loginSecurityKey" type="password" placeholder="自分のセキュリティキー" autocomplete="current-password" maxlength="200" class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300">
         </div>
-
         <div class="mt-3 text-[10px] text-slate-400 leading-relaxed">
-            セキュリティキーは共通パスワードではありません。<br>
-            あなた自身のアカウントを保護するためのキーです。
+            セキュリティキーは共通パスワードではありません。<br>あなた自身のアカウントを保護するためのキーです。
         </div>
-
-        <div
-            id="loginErrorMsg"
-            class="hidden mt-4 text-xs font-bold p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700"
-        ></div>
-
+        <div id="loginErrorMsg" class="hidden mt-4 text-xs font-bold p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700"></div>
         <div class="grid grid-cols-2 gap-3 mt-5">
-
-            <button
-                id="loginRegisterBtn"
-                onclick="handleAuth('register')"
-                class="bg-sky-500 hover:bg-sky-600 text-white rounded-2xl py-3 font-black shadow-sm"
-            >
-                アカウント作成
-            </button>
-
-            <button
-                id="loginLoginBtn"
-                onclick="handleAuth('login')"
-                class="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl py-3 font-black shadow-sm"
-            >
-                ログイン
-            </button>
-
+            <button id="loginRegisterBtn" onclick="handleAuth('register')" class="bg-sky-500 hover:bg-sky-600 text-white rounded-2xl py-3 font-black shadow-sm">アカウント作成</button>
+            <button id="loginLoginBtn" onclick="handleAuth('login')" class="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl py-3 font-black shadow-sm">ログイン</button>
         </div>
-
         <div class="mt-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
-
-            <p class="text-xs font-black text-slate-700">
-                家族・友達との接続について
-            </p>
-
+            <p class="text-xs font-black text-slate-700">家族・友達との接続について</p>
             <p class="text-[10px] text-slate-500 mt-2 leading-relaxed">
-                グループコードは使用しません。<br>
-                ログイン後に相手の表示名を入力して、
-                「家族・友達リクエスト」を送ります。
+                グループコードは使用しません。<br>ログイン後に相手の表示名を入力して、「家族・友達リクエスト」を送ります。
             </p>
-
         </div>
-
     </div>
-
 </section>
 
-
-<!-- =====================================================
-     ダッシュボード
-===================================================== -->
-
-<section
-    id="screen-dashboard"
-    class="screen hidden px-5 py-7"
->
-
+<!-- ダッシュボード -->
+<section id="screen-dashboard" class="screen hidden px-5 py-7">
     <div class="max-w-4xl mx-auto">
-
-        <div
-            class="bg-white/90 rounded-3xl border border-white shadow-lg p-6 mb-5"
-        >
-
-            <p class="text-xs text-slate-500 font-bold">
-                ようこそ
-            </p>
-
-            <h2
-                id="welcomeUserName"
-                class="text-2xl font-black text-slate-800 mt-1"
-            ></h2>
-
-            <p class="text-xs text-slate-500 mt-2">
-                家族・友達と天気・安否・危険情報を共有できます。
-            </p>
-
+        <div class="bg-white/90 rounded-3xl border border-white shadow-lg p-6 mb-5">
+            <p class="text-xs text-slate-500 font-bold">ようこそ</p>
+            <h2 id="welcomeUserName" class="text-2xl font-black text-slate-800 mt-1"></h2>
+            <p class="text-xs text-slate-500 mt-2">家族・友達と天気・安否・危険情報を共有できます。</p>
         </div>
-
 
         <!-- メニュー -->
-
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            <button
-                onclick="switchScreen('weather')"
-                class="bg-white hover:bg-sky-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm"
-            >
-                <div class="text-4xl mb-3">
-                    🌤️
-                </div>
-
-                <h3 class="font-black text-slate-800">
-                    天気情報
-                </h3>
-
-                <p class="text-xs text-slate-500 mt-1">
-                    天草市の最新気象情報
-                </p>
+            <button onclick="switchScreen('weather')" class="bg-white hover:bg-sky-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">🌤️</div>
+                <h3 class="font-black text-slate-800">天気情報</h3>
+                <p class="text-xs text-slate-500 mt-1">天草市の最新気象情報</p>
             </button>
-
-
-            <button
-                onclick="switchScreen('safety')"
-                class="bg-white hover:bg-emerald-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm"
-            >
-                <div class="text-4xl mb-3">
-                    🛡️
-                </div>
-
-                <h3 class="font-black text-slate-800">
-                    安否確認
-                </h3>
-
-                <p class="text-xs text-slate-500 mt-1">
-                    自分の安否を大切な人へ共有
-                </p>
+            <button onclick="switchScreen('safety')" class="bg-white hover:bg-emerald-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">🛡️</div>
+                <h3 class="font-black text-slate-800">安否確認</h3>
+                <p class="text-xs text-slate-500 mt-1">自分の安否を大切な人へ共有</p>
             </button>
-
-
-            <button
-                onclick="switchScreen('hazard')"
-                class="bg-white hover:bg-orange-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm"
-            >
-                <div class="text-4xl mb-3">
-                    ⚠️
-                </div>
-
-                <h3 class="font-black text-slate-800">
-                    危険情報
-                </h3>
-
-                <p class="text-xs text-slate-500 mt-1">
-                    危険箇所を画像・場所付きで共有
-                </p>
+            <button onclick="switchScreen('hazard')" class="bg-white hover:bg-orange-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">⚠️</div>
+                <h3 class="font-black text-slate-800">危険情報</h3>
+                <p class="text-xs text-slate-500 mt-1">危険箇所を画像・場所付きで共有</p>
             </button>
-
-
-            <button
-                onclick="openFriendModal()"
-                class="bg-white hover:bg-purple-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm"
-            >
-                <div class="text-4xl mb-3">
-                    👨‍👩‍👧‍👦
-                </div>
-
-                <h3 class="font-black text-slate-800">
-                    家族・友達を追加
-                </h3>
-
-                <p class="text-xs text-slate-500 mt-1">
-                    表示名を入力してリクエストを送信
-                </p>
+            <button onclick="openFriendModal()" class="bg-white hover:bg-purple-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">👨‍👩‍👧‍👦</div>
+                <h3 class="font-black text-slate-800">家族・友達を追加</h3>
+                <p class="text-xs text-slate-500 mt-1">表示名を入力してリクエストを送信</p>
             </button>
-
         </div>
 
-
-        <!-- 接続状態 -->
-
-        <div
-            class="mt-5 bg-white/90 border border-slate-200 rounded-3xl p-5 shadow-sm"
-        >
-
+        <!-- 接続状態 & プッシュ通知設定 -->
+        <div class="mt-5 bg-white/90 border border-slate-200 rounded-3xl p-5 shadow-sm">
             <div class="flex justify-between items-center">
-
-                <h3 class="font-black text-slate-800">
-                    接続状態
-                </h3>
-
-                <span
-                    id="globalConnectionStatus"
-                    class="text-[10px] text-slate-400"
-                >
-                    確認中...
-                </span>
-
+                <h3 class="font-black text-slate-800">接続状態</h3>
+                <span id="globalConnectionStatus" class="text-[10px] text-slate-400">確認中...</span>
             </div>
-
-            <p
-                id="pushPermissionStatus"
-                class="text-[10px] text-slate-400 mt-2"
-            >
-                プッシュ通知を確認中...
-            </p>
-
-            <button
-                onclick="enableRealPushNotifications()"
-                class="mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-4 py-2 text-xs font-bold"
-            >
-                🔔 プッシュ通知を有効にする
-            </button>
-
+            <p id="pushPermissionStatus" class="text-[10px] text-slate-400 mt-2">プッシュ通知を確認中...</p>
+            <div class="flex gap-2 mt-3">
+                <button id="enablePushButton" class="bg-sky-500 hover:bg-sky-600 text-white rounded-xl px-4 py-2 text-xs font-bold">
+                    🔔 通知を有効にする
+                </button>
+                <button id="disablePushButton" class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-4 py-2 text-xs font-bold">
+                    🔕 通知を無効にする
+                </button>
+            </div>
         </div>
-
 
         <!-- フレンド -->
-
-        <div
-            class="mt-5 friend-card border border-white rounded-3xl p-5 shadow-lg"
-        >
-
+        <div class="mt-5 friend-card border border-white rounded-3xl p-5 shadow-lg">
             <div class="flex justify-between items-center">
-
                 <div>
-
-                    <h3 class="font-black text-slate-800">
-                        家族・友達
-                    </h3>
-
-                    <p class="text-[10px] text-slate-400 mt-1">
-                        許可した相手とのみ情報を共有します。
-                    </p>
-
+                    <h3 class="font-black text-slate-800">家族・友達</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">許可した相手とのみ情報を共有します。</p>
                 </div>
-
-                <button
-                    onclick="openFriendModal()"
-                    class="bg-purple-500 hover:bg-purple-600 text-white rounded-xl px-3 py-2 text-xs font-black"
-                >
-                    ＋追加
-                </button>
-
+                <button onclick="openFriendModal()" class="bg-purple-500 hover:bg-purple-600 text-white rounded-xl px-3 py-2 text-xs font-black">＋追加</button>
             </div>
-
-            <div
-                id="friendsList"
-                class="space-y-2 mt-4"
-            ></div>
-
+            <div id="friendsList" class="space-y-2 mt-4"></div>
         </div>
-
 
         <!-- リクエスト -->
-
-        <div
-            class="mt-5 request-card border border-white rounded-3xl p-5 shadow-lg"
-        >
-
+        <div class="mt-5 request-card border border-white rounded-3xl p-5 shadow-lg">
             <div class="flex justify-between items-center">
-
-                <h3 class="font-black text-slate-800">
-                    家族・友達リクエスト
-                </h3>
-
-                <span
-                    id="requestCountBadge"
-                    class="hidden bg-rose-500 text-white text-[10px] font-black rounded-full px-2 py-1"
-                >
-                    0
-                </span>
-
+                <h3 class="font-black text-slate-800">家族・友達リクエスト</h3>
+                <span id="requestCountBadge" class="hidden bg-rose-500 text-white text-[10px] font-black rounded-full px-2 py-1">0</span>
             </div>
-
-            <div
-                id="friendRequestsList"
-                class="space-y-3 mt-4"
-            ></div>
-
+            <div id="friendRequestsList" class="space-y-3 mt-4"></div>
         </div>
-
     </div>
-
 </section>
 
-
-<!-- =====================================================
-     天気
-===================================================== -->
-
-<section
-    id="screen-weather"
-    class="screen hidden px-5 py-7"
->
-
+<!-- 天気 -->
+<section id="screen-weather" class="screen hidden px-5 py-7">
     <div class="max-w-4xl mx-auto">
-
-        <button
-            onclick="switchScreen('dashboard')"
-            class="mb-4 text-xs font-bold text-sky-600"
-        >
-            ← ダッシュボードへ戻る
-        </button>
-
-        <div
-            class="weather-card rounded-3xl border border-white shadow-lg p-6"
-        >
-
+        <button onclick="switchScreen('dashboard')" class="mb-4 text-xs font-bold text-sky-600">← ダッシュボードへ戻る</button>
+        <div class="weather-card rounded-3xl border border-white shadow-lg p-6">
             <div class="flex justify-between items-start gap-4">
-
                 <div>
-
-                    <p class="text-xs text-slate-500 font-bold">
-                        天草市
-                    </p>
-
-                    <h2 class="text-2xl font-black text-slate-800">
-                        最新の気象情報
-                    </h2>
-
+                    <p class="text-xs text-slate-500 font-bold">天草市</p>
+                    <h2 class="text-2xl font-black text-slate-800">最新の気象情報</h2>
                 </div>
-
-                <span class="text-4xl">
-                    🌤️
-                </span>
-
+                <span class="text-4xl">🌤️</span>
             </div>
-
-            <div
-                id="liveWeatherDesc"
-                class="mt-5 text-sm font-bold text-slate-700"
-            >
-                JST基準で気象データを取得中...
+            <div id="liveWeatherDesc" class="mt-5 text-sm font-bold text-slate-700">JST基準で気象データを取得中...</div>
+            <div class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-white/80 rounded-2xl p-4">
+                    <p class="text-[10px] text-slate-400">気温</p>
+                    <p id="weatherTemperature" class="text-xl font-black">--</p>
+                </div>
+                <div class="bg-white/80 rounded-2xl p-4">
+                    <p class="text-[10px] text-slate-400">体感温度</p>
+                    <p id="weatherFeelsLike" class="text-xl font-black">--</p>
+                </div>
+                <div class="bg-white/80 rounded-2xl p-4">
+                    <p class="text-[10px] text-slate-400">湿度</p>
+                    <p id="weatherHumidity" class="text-xl font-black">--</p>
+                </div>
+                <div class="bg-white/80 rounded-2xl p-4">
+                    <p class="text-[10px] text-slate-400">風速</p>
+                    <p id="weatherWind" class="text-xl font-black">--</p>
+                </div>
             </div>
-
-            <div
-                class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3"
-            >
-
-                <div class="bg-white/80 rounded-2xl p-4">
-                    <p class="text-[10px] text-slate-400">
-                        気温
-                    </p>
-
-                    <p
-                        id="weatherTemperature"
-                        class="text-xl font-black"
-                    >
-                        --
-                    </p>
-                </div>
-
-                <div class="bg-white/80 rounded-2xl p-4">
-                    <p class="text-[10px] text-slate-400">
-                        体感温度
-                    </p>
-
-                    <p
-                        id="weatherFeelsLike"
-                        class="text-xl font-black"
-                    >
-                        --
-                    </p>
-                </div>
-
-                <div class="bg-white/80 rounded-2xl p-4">
-                    <p class="text-[10px] text-slate-400">
-                        湿度
-                    </p>
-
-                    <p
-                        id="weatherHumidity"
-                        class="text-xl font-black"
-                    >
-                        --
-                    </p>
-                </div>
-
-                <div class="bg-white/80 rounded-2xl p-4">
-                    <p class="text-[10px] text-slate-400">
-                        風速
-                    </p>
-
-                    <p
-                        id="weatherWind"
-                        class="text-xl font-black"
-                    >
-                        --
-                    </p>
-                </div>
-
-            </div>
-
             <div class="mt-5">
-
-                <h3
-                    id="jstReportTitle"
-                    class="font-black text-slate-800"
-                >
-                    🌤️ 天草市 JST気象情報
-                </h3>
-
-                <div
-                    id="lifestyleRecommendation"
-                    class="mt-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900"
-                >
-                    天気情報を取得しています...
-                </div>
-
+                <h3 id="jstReportTitle" class="font-black text-slate-800">🌤️ 天草市 JST気象情報</h3>
+                <div id="lifestyleRecommendation" class="mt-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900">天気情報を取得しています...</div>
             </div>
-
-            <button
-                onclick="fetchRealWeatherWithJST()"
-                class="mt-5 w-full bg-sky-500 hover:bg-sky-600 text-white rounded-2xl py-3 font-black"
-            >
-                🔄 天気を更新
-            </button>
-
+            <button onclick="fetchRealWeatherWithJST()" class="mt-5 w-full bg-sky-500 hover:bg-sky-600 text-white rounded-2xl py-3 font-black">🔄 天気を更新</button>
         </div>
-
     </div>
-
 </section>
 
-
-<!-- =====================================================
-     安否
-===================================================== -->
-
-<section
-    id="screen-safety"
-    class="screen hidden px-5 py-7"
->
-
+<!-- 安否 -->
+<section id="screen-safety" class="screen hidden px-5 py-7">
     <div class="max-w-4xl mx-auto">
-
-        <button
-            onclick="switchScreen('dashboard')"
-            class="mb-4 text-xs font-bold text-sky-600"
-        >
-            ← ダッシュボードへ戻る
-        </button>
-
-        <div
-            class="safe-card rounded-3xl border border-white shadow-lg p-6"
-        >
-
-            <h2 class="text-2xl font-black">
-                🛡️ 安否確認
-            </h2>
-
-            <p class="text-xs text-slate-500 mt-1">
-                現在の自分の状態を、許可した家族・友達へ送信します。
-            </p>
-
-            <div
-                class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5"
-            >
-
-                <button
-                    onclick="sendSafety('safe')"
-                    class="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl py-4 font-black"
-                >
-                    😊 元気です
-                </button>
-
-                <button
-                    onclick="sendSafety('messy')"
-                    class="bg-orange-50 border border-orange-200 text-orange-900 rounded-2xl py-4 font-black"
-                >
-                    🏠 被害あり
-                </button>
-
-                <button
-                    onclick="sendSafety('sos')"
-                    class="bg-rose-100 border border-rose-300 text-rose-900 rounded-2xl py-4 font-black"
-                >
-                    🆘 緊急SOS
-                </button>
-
+        <button onclick="switchScreen('dashboard')" class="mb-4 text-xs font-bold text-sky-600">← ダッシュボードへ戻る</button>
+        <div class="safe-card rounded-3xl border border-white shadow-lg p-6">
+            <h2 class="text-2xl font-black">🛡️ 安否確認</h2>
+            <p class="text-xs text-slate-500 mt-1">現在の自分の状態を、許可した家族・友達へ送信します。</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+                <button onclick="sendSafety('safe')" class="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl py-4 font-black">😊 元気です</button>
+                <button onclick="sendSafety('messy')" class="bg-orange-50 border border-orange-200 text-orange-900 rounded-2xl py-4 font-black">🏠 被害あり</button>
+                <button onclick="sendSafety('sos')" class="bg-rose-100 border border-rose-300 text-rose-900 rounded-2xl py-4 font-black">🆘 緊急SOS</button>
             </div>
-
-            <div
-                id="safetyResultMsg"
-                class="hidden mt-4 text-xs text-center font-medium p-3.5 rounded-xl"
-            ></div>
-
+            <div id="safetyResultMsg" class="hidden mt-4 text-xs text-center font-medium p-3.5 rounded-xl"></div>
             <div class="mt-6">
-
                 <div class="flex justify-between items-center">
-
-                    <h3 class="font-black text-slate-800">
-                        家族・友達の安否
-                    </h3>
-
-                    <span
-                        id="safetyConnStatus"
-                        class="text-[10px] text-slate-400"
-                    >
-                        同期中...
-                    </span>
-
+                    <h3 class="font-black text-slate-800">家族・友達の安否</h3>
+                    <span id="safetyConnStatus" class="text-[10px] text-slate-400">同期中...</span>
                 </div>
-
-                <div
-                    id="groupSafetyStatusList"
-                    class="space-y-2 mt-3"
-                ></div>
-
+                <div id="groupSafetyStatusList" class="space-y-2 mt-3"></div>
             </div>
-
         </div>
-
     </div>
-
 </section>
 
-
-<!-- =====================================================
-     危険情報
-===================================================== -->
-
-<section
-    id="screen-hazard"
-    class="screen hidden px-5 py-7"
->
-
+<!-- 危険情報 -->
+<section id="screen-hazard" class="screen hidden px-5 py-7">
     <div class="max-w-4xl mx-auto">
-
-        <button
-            onclick="switchScreen('dashboard')"
-            class="mb-4 text-xs font-bold text-sky-600"
-        >
-            ← ダッシュボードへ戻る
-        </button>
-
-        <div
-            class="danger-card rounded-3xl border border-white shadow-lg p-6"
-        >
-
+        <button onclick="switchScreen('dashboard')" class="mb-4 text-xs font-bold text-sky-600">← ダッシュボードへ戻る</button>
+        <div class="danger-card rounded-3xl border border-white shadow-lg p-6">
             <div class="flex justify-between items-start">
-
                 <div>
-
-                    <h2 class="text-2xl font-black">
-                        ⚠️ 危険情報
-                    </h2>
-
-                    <p class="text-xs text-slate-500 mt-1">
-                        危険箇所を画像・メッセージ・危険箇所の場所付きで共有します。
-                    </p>
-
+                    <h2 class="text-2xl font-black">⚠️ 危険情報</h2>
+                    <p class="text-xs text-slate-500 mt-1">危険箇所を画像・メッセージ・危険箇所の場所付きで共有します。</p>
                 </div>
-
-                <button
-                    onclick="triggerImageUpload()"
-                    class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-2xl font-black text-xs"
-                >
-                    📷 投稿
-                </button>
-
+                <button onclick="triggerImageUpload()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-2xl font-black text-xs">📷 投稿</button>
             </div>
-
             <div class="mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-3">
                 <p class="text-[10px] text-amber-900 leading-relaxed">
-                    ※位置情報は投稿した危険箇所の位置です。<br>
-                    あなた自身の現在位置や移動履歴を共有・追跡する機能ではありません。
+                    ※位置情報は投稿した危険箇所の位置です。<br>あなた自身の現在位置や移動履歴を共有・追跡する機能ではありません。
                 </p>
             </div>
-
-            <input
-                id="hazardImageInput"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                class="hidden"
-                onchange="handleImageSelected(event)"
-            >
-
-            <div
-                id="hazardSyncStatus"
-                class="mt-4 text-[10px] text-slate-400"
-            >
-                同期中...
-            </div>
-
-            <div
-                id="hazardPostList"
-                class="space-y-4 mt-4"
-            ></div>
-
+            <input id="hazardImageInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelected(event)">
+            <div id="hazardSyncStatus" class="mt-4 text-[10px] text-slate-400">同期中...</div>
+            <div id="hazardPostList" class="space-y-4 mt-4"></div>
         </div>
-
     </div>
-
 </section>
 
-
-<!-- =====================================================
-     家族・友達追加モーダル
-===================================================== -->
-
-<div
-    id="friendModal"
-    class="hidden fixed inset-0 z-[100] modal-backdrop flex items-center justify-center px-5"
->
-
-    <div
-        class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6"
-    >
-
-        <h2 class="text-xl font-black text-slate-800">
-            家族・友達を追加
-        </h2>
-
-        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-            相手の表示名を入力して、
-            「家族・友達リクエスト」を送信します。
-        </p>
-
-        <input
-            id="friendDisplayName"
-            type="text"
-            placeholder="例：Aさん母"
-            maxlength="40"
-            class="w-full mt-5 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-300"
-        >
-
-        <div
-            id="friendModalError"
-            class="hidden mt-3 text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700"
-        ></div>
-
+<!-- 家族・友達追加モーダル -->
+<div id="friendModal" class="hidden fixed inset-0 z-[100] modal-backdrop flex items-center justify-center px-5">
+    <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6">
+        <h2 class="text-xl font-black text-slate-800">家族・友達を追加</h2>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">相手の表示名を入力して、「家族・友達リクエスト」を送信します。</p>
+        <input id="friendDisplayName" type="text" placeholder="例：Aさん母" maxlength="40" class="w-full mt-5 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-300">
+        <div id="friendModalError" class="hidden mt-3 text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700"></div>
         <div class="grid grid-cols-2 gap-3 mt-5">
-
-            <button
-                onclick="closeFriendModal()"
-                class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold"
-            >
-                キャンセル
-            </button>
-
-            <button
-                id="sendFriendRequestBtn"
-                onclick="sendFriendRequest()"
-                class="bg-purple-500 hover:bg-purple-600 text-white rounded-2xl py-3 font-black"
-            >
-                リクエスト
-            </button>
-
+            <button onclick="closeFriendModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold">キャンセル</button>
+            <button id="sendFriendRequestBtn" onclick="sendFriendRequest()" class="bg-purple-500 hover:bg-purple-600 text-white rounded-2xl py-3 font-black">リクエスト</button>
         </div>
-
     </div>
-
 </div>
 
-
-<!-- =====================================================
-     リクエスト詳細モーダル
-===================================================== -->
-
-<div
-    id="friendRequestModal"
-    class="hidden fixed inset-0 z-[110] modal-backdrop flex items-center justify-center px-5"
->
-
-    <div
-        class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6"
-    >
-
+<!-- リクエスト詳細モーダル -->
+<div id="friendRequestModal" class="hidden fixed inset-0 z-[110] modal-backdrop flex items-center justify-center px-5">
+    <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6">
         <div class="text-center">
-
-            <div class="text-5xl mb-3">
-                👋
-            </div>
-
-            <h2 class="text-xl font-black text-slate-800">
-                家族・友達リクエスト
-            </h2>
-
-            <p
-                id="requestModalText"
-                class="text-sm text-slate-600 mt-3 leading-relaxed"
-            ></p>
-
+            <div class="text-5xl mb-3">👋</div>
+            <h2 class="text-xl font-black text-slate-800">家族・友達リクエスト</h2>
+            <p id="requestModalText" class="text-sm text-slate-600 mt-3 leading-relaxed"></p>
         </div>
-
         <div class="mt-5 bg-slate-50 rounded-2xl p-4">
-
-            <p class="text-[10px] text-slate-400">
-                許可すると共有される情報
-            </p>
-
+            <p class="text-[10px] text-slate-400">許可すると共有される情報</p>
             <ul class="text-xs text-slate-700 mt-2 space-y-1">
                 <li>✓ 安否確認の結果</li>
                 <li>✓ 危険情報の画像</li>
                 <li>✓ 危険箇所の位置</li>
                 <li>✓ 危険情報のメッセージ</li>
             </ul>
-
-            <p class="text-[10px] text-rose-500 mt-3 font-bold">
-                ✕ 現在位置の追跡・共有は行いません。
-            </p>
-
+            <p class="text-[10px] text-rose-500 mt-3 font-bold">✕ 現在位置の追跡・共有は行いません。</p>
         </div>
-
         <div class="grid grid-cols-2 gap-3 mt-5">
-
-            <button
-                onclick="rejectCurrentFriendRequest()"
-                class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold"
-            >
-                拒否
-            </button>
-
-            <button
-                onclick="acceptCurrentFriendRequest()"
-                class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl py-3 font-black"
-            >
-                許可
-            </button>
-
+            <button onclick="rejectCurrentFriendRequest()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold">拒否</button>
+            <button onclick="acceptCurrentFriendRequest()" class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl py-3 font-black">許可</button>
         </div>
-
     </div>
-
 </div>
 
-
-<!-- =====================================================
-     通知
-===================================================== -->
-
-<div
-    id="pushNotificationBanner"
-    class="fixed top-20 right-4 z-[200] w-[min(380px,calc(100vw-32px))] translate-x-full transition-transform duration-300"
->
-
-    <div
-        class="bg-white rounded-2xl shadow-2xl border border-slate-200 p-4"
-    >
-
+<!-- 通知バナー -->
+<div id="pushNotificationBanner" class="fixed top-20 right-4 z-[200] w-[min(380px,calc(100vw-32px))] translate-x-full transition-transform duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 p-4">
         <div class="flex gap-3">
-
-            <div class="text-2xl">
-                🔔
-            </div>
-
+            <div class="text-2xl">🔔</div>
             <div class="flex-1">
-
-                <p
-                    id="pushNotificationTitle"
-                    class="font-black text-sm text-slate-800"
-                ></p>
-
-                <p
-                    id="pushNotificationText"
-                    class="text-xs text-slate-500 mt-1"
-                ></p>
-
+                <p id="pushNotificationTitle" class="font-black text-sm text-slate-800"></p>
+                <p id="pushNotificationText" class="text-xs text-slate-500 mt-1"></p>
             </div>
-
-            <button
-                onclick="closePushBanner()"
-                class="text-slate-400 font-black"
-            >
-                ×
-            </button>
-
+            <button onclick="closePushBanner()" class="text-slate-400 font-black">×</button>
         </div>
-
     </div>
-
 </div>
-
 
 <script>
-
 /* =====================================================
-   API設定
+   API設定 & グローバル変数
 ===================================================== */
-
-const API_BASE_URL =
-    "https://otenki-app.onrender.com";
-
-
-const AMAKUSA_LAT =
-    32.4547;
-
-
-const AMAKUSA_LON =
-    130.1978;
-
-
-const POLL_INTERVAL_MS =
-    15000;
-
-
-/*
- * 後でPython側に実際のVAPID公開鍵を設定する。
- *
- * 現段階では空欄でもHTML自体は動作する。
- */
-const VAPID_PUBLIC_KEY =
-    "";
-
+const API_BASE_URL = "https://otenki-app.onrender.com";
+const AMAKUSA_LAT = 32.4547;
+const AMAKUSA_LON = 130.1978;
+const POLL_INTERVAL_MS = 15000;
+const VAPID_PUBLIC_KEY = "";
 
 let pollTimers = [];
-
-let jstMonitorStarted =
-    false;
-
-let lastNotifiedKey =
-    "";
-
-
-let currentFriendRequest =
-    null;
-
+let jstMonitorStarted = false;
+let lastNotifiedKey = "";
+let currentFriendRequest = null;
+let pushServiceWorkerRegistration = null;
 
 const appState = {
-
     userName: "",
-
     securityKey: "",
-
     accountId: "",
-
     friends: [],
-
     friendRequests: [],
-
     safetyStatuses: [],
-
     hazardPosts: []
-
 };
 
-
 /* =====================================================
-   API
+   API通信用ラッパー
 ===================================================== */
-
 function isApiConfigured() {
-
-    return Boolean(
-        API_BASE_URL &&
-        API_BASE_URL.startsWith("http")
-    );
-
+    return Boolean(API_BASE_URL && API_BASE_URL.startsWith("http"));
 }
 
-
-async function apiRequest(
-    path,
-    options = {},
-    timeout = 15000
-) {
-
+async function apiRequest(path, options = {}, timeout = 15000) {
     if (!isApiConfigured()) {
-
-        return {
-            ok: false,
-            error:
-                "API_BASE_URLが設定されていません。"
-        };
-
+        return { ok: false, error: "API_BASE_URLが設定されていません。" };
     }
-
-    const controller =
-        new AbortController();
-
-    const timer =
-        setTimeout(
-            () => controller.abort(),
-            timeout
-        );
-
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
 
     try {
-
-        const response =
-            await fetch(
-                `${API_BASE_URL}${path}`,
-                {
-                    ...options,
-
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-
-                        ...(options.headers || {})
-                    },
-
-                    signal:
-                        controller.signal
-                }
-            );
-
+        const response = await fetch(`${API_BASE_URL}${path}`, {
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                ...(options.headers || {})
+            },
+            signal: controller.signal
+        });
 
         let data = null;
-
         try {
-
-            data =
-                await response.json();
-
+            data = await response.json();
         } catch {
-
             data = null;
-
         }
-
 
         if (!response.ok) {
-
-            return {
-                ok: false,
-
-                error:
-                    data?.error ||
-                    `HTTP ${response.status}`
-            };
-
+            return { ok: false, error: data?.error || `HTTP ${response.status}` };
         }
 
-
-        return {
-            ok: true,
-
-            data:
-                data || {}
-        };
-
-
+        return { ok: true, data: data || {} };
     } catch (error) {
-
-        if (
-            error &&
-            error.name === "AbortError"
-        ) {
-
-            return {
-                ok: false,
-                error:
-                    "サーバーへの接続がタイムアウトしました。"
-            };
-
+        if (error && error.name === "AbortError") {
+            return { ok: false, error: "サーバーへの接続がタイムアウトしました。" };
         }
-
-
-        return {
-            ok: false,
-
-            error:
-                error?.message ||
-                "サーバーへ接続できませんでした。"
-        };
-
-
+        return { ok: false, error: error?.message || "サーバーへ接続できませんでした。" };
     } finally {
-
         clearTimeout(timer);
-
     }
-
 }
-
 
 /* =====================================================
    ローカル保存
 ===================================================== */
-
 function saveAppState() {
-
     try {
-
-        /*
-         * セキュリティキーそのものを
-         * localStorageへ保存しない。
-         *
-         * Python側の認証トークン実装後は
-         * そちらへ移行する。
-         */
-
         const data = {
-
-            userName:
-                appState.userName,
-
-            accountId:
-                appState.accountId,
-
-            friends:
-                appState.friends,
-
-            friendRequests:
-                appState.friendRequests,
-
-            safetyStatuses:
-                appState.safetyStatuses,
-
-            hazardPosts:
-                appState.hazardPosts
-
+            userName: appState.userName,
+            accountId: appState.accountId,
+            friends: appState.friends,
+            friendRequests: appState.friendRequests,
+            safetyStatuses: appState.safetyStatuses,
+            hazardPosts: appState.hazardPosts
         };
-
-
-        localStorage.setItem(
-            "otenkiAppState",
-            JSON.stringify(data)
-        );
-
-
+        localStorage.setItem("otenkiAppState", JSON.stringify(data));
     } catch (error) {
-
-        console.error(
-            "状態保存エラー:",
-            error
-        );
-
+        console.error("状態保存エラー:", error);
     }
-
 }
-
 
 function loadAppState() {
-
     try {
-
-        const raw =
-            localStorage.getItem(
-                "otenkiAppState"
-            );
-
-
-        if (!raw) {
-            return;
+        const raw = localStorage.getItem("otenkiAppState");
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data && typeof data === "object") {
+            appState.userName = data.userName || "";
+            appState.accountId = data.accountId || "";
+            appState.friends = Array.isArray(data.friends) ? data.friends : [];
+            appState.friendRequests = Array.isArray(data.friendRequests) ? data.friendRequests : [];
+            appState.safetyStatuses = Array.isArray(data.safetyStatuses) ? data.safetyStatuses : [];
+            appState.hazardPosts = Array.isArray(data.hazardPosts) ? data.hazardPosts : [];
         }
-
-
-        const data =
-            JSON.parse(raw);
-
-
-        if (
-            data &&
-            typeof data === "object"
-        ) {
-
-            appState.userName =
-                data.userName || "";
-
-
-            appState.accountId =
-                data.accountId || "";
-
-
-            appState.friends =
-                Array.isArray(data.friends)
-                    ? data.friends
-                    : [];
-
-
-            appState.friendRequests =
-                Array.isArray(data.friendRequests)
-                    ? data.friendRequests
-                    : [];
-
-
-            appState.safetyStatuses =
-                Array.isArray(data.safetyStatuses)
-                    ? data.safetyStatuses
-                    : [];
-
-
-            appState.hazardPosts =
-                Array.isArray(data.hazardPosts)
-                    ? data.hazardPosts
-                    : [];
-
-        }
-
-
     } catch (error) {
-
-        console.error(
-            "保存データ読み込みエラー:",
-            error
-        );
-
+        console.error("保存データ読み込みエラー:", error);
     }
-
 }
-
-
-/* =====================================================
-   JST
-===================================================== */
 
 function getJSTNow() {
-
-    return new Date(
-        new Date().toLocaleString(
-            "en-US",
-            {
-                timeZone:
-                    "Asia/Tokyo"
-            }
-        )
-    );
-
+    return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
 }
-
 
 /* =====================================================
    画面切替
 ===================================================== */
-
-function switchScreen(
-    screenId
-) {
-
-    document
-        .querySelectorAll(".screen")
-        .forEach(
-            el =>
-                el.classList.add("hidden")
-        );
-
-
-    const target =
-        document.getElementById(
-            `screen-${screenId}`
-        );
-
-
+function switchScreen(screenId) {
+    document.querySelectorAll(".screen").forEach(el => el.classList.add("hidden"));
+    const target = document.getElementById(`screen-${screenId}`);
     if (target) {
-
-        target.classList.remove(
-            "hidden"
-        );
-
+        target.classList.remove("hidden");
     }
+    window.scrollTo(0, 0);
 
-
-    window.scrollTo(
-        0,
-        0
-    );
-
-
-    if (screenId === "weather") {
-
-        fetchRealWeatherWithJST();
-
-    }
-
-
-    if (screenId === "safety") {
-
-        pollSafety();
-
-    }
-
-
-    if (screenId === "hazard") {
-
-        pollHazard();
-
-    }
-
-
+    if (screenId === "weather") fetchRealWeatherWithJST();
+    if (screenId === "safety") pollSafety();
+    if (screenId === "hazard") pollHazard();
     if (screenId === "dashboard") {
-
         pollFriends();
-
         pollFriendRequests();
-
     }
-
 }
-
 
 /* =====================================================
-   ログインエラー
+   ログインエラー制御
 ===================================================== */
-
-function showLoginError(
-    msg
-) {
-
-    const el =
-        document.getElementById(
-            "loginErrorMsg"
-        );
-
-
-    if (!el) {
-        return;
-    }
-
-
-    el.innerText =
-        msg;
-
-
-    el.classList.remove(
-        "hidden"
-    );
-
+function showLoginError(msg) {
+    const el = document.getElementById("loginErrorMsg");
+    if (!el) return;
+    el.innerText = msg;
+    el.classList.remove("hidden");
 }
-
 
 function hideLoginError() {
-
-    const el =
-        document.getElementById(
-            "loginErrorMsg"
-        );
-
-
-    if (el) {
-
-        el.classList.add(
-            "hidden"
-        );
-
-    }
-
+    const el = document.getElementById("loginErrorMsg");
+    if (el) el.classList.add("hidden");
 }
 
-
-function setLoginButtonsDisabled(
-    disabled
-) {
-
-    [
-        "loginRegisterBtn",
-        "loginLoginBtn"
-    ].forEach(id => {
-
-        const button =
-            document.getElementById(id);
-
-
-        if (!button) {
-            return;
-        }
-
-
-        button.disabled =
-            disabled;
-
-
-        button.classList.toggle(
-            "opacity-50",
-            disabled
-        );
-
+function setLoginButtonsDisabled(disabled) {
+    ["loginRegisterBtn", "loginLoginBtn"].forEach(id => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        button.disabled = disabled;
+        button.classList.toggle("opacity-50", disabled);
     });
-
 }
-
 
 /* =====================================================
-   ログイン / 登録
+   認証・ログイン処理
 ===================================================== */
-
-async function handleAuth(
-    type
-) {
-
+async function handleAuth(type) {
     hideLoginError();
+    const name = document.getElementById("loginName")?.value.trim();
+    const securityKey = document.getElementById("loginSecurityKey")?.value.trim();
 
-
-    const name =
-        document
-            .getElementById("loginName")
-            ?.value
-            .trim();
-
-
-    const securityKey =
-        document
-            .getElementById("loginSecurityKey")
-            ?.value
-            .trim();
-
-
-    if (
-        !name ||
-        !securityKey
-    ) {
-
-        showLoginError(
-            "表示名と自分のセキュリティキーを入力してください。"
-        );
-
+    if (!name || !securityKey) {
+        showLoginError("表示名と自分のセキュリティキーを入力してください。");
         return;
-
     }
 
-
     setLoginButtonsDisabled(true);
+    showLoginError("サーバーに接続中です…");
 
-
-    showLoginError(
-        "サーバーに接続中です…"
-    );
-
-
-    const path =
-        type === "register"
-            ? "/api/account/register"
-            : "/api/account/login";
-
-
-    const result =
-        await apiRequest(
-            path,
-            {
-                method: "POST",
-
-                body:
-                    JSON.stringify({
-
-                        name,
-
-                        security_key:
-                            securityKey
-
-                    })
-            },
-            40000
-        );
-
+    const path = type === "register" ? "/api/account/register" : "/api/account/login";
+    const result = await apiRequest(path, {
+        method: "POST",
+        body: JSON.stringify({ name, security_key: securityKey })
+    }, 40000);
 
     setLoginButtonsDisabled(false);
 
-
     if (!result.ok) {
-
-        showLoginError(
-            result.error ||
-            "接続に失敗しました。"
-        );
-
+        showLoginError(result.error || "接続に失敗しました。");
         return;
-
     }
-
 
     hideLoginError();
-
-
-    appState.userName =
-        result.data.name ||
-        name;
-
-
-    appState.accountId =
-        result.data.account_id ||
-        "";
-
-
-    /*
-     * securityKeyはメモリ上だけで保持。
-     * localStorageへ保存しない。
-     */
-
-    appState.securityKey =
-        securityKey;
-
-
-    appState.friends =
-        result.data.friends ||
-        [];
-
-
-    appState.friendRequests =
-        result.data.friend_requests ||
-        [];
-
+    appState.userName = result.data.name || name;
+    appState.accountId = result.data.account_id || "";
+    appState.securityKey = securityKey;
+    appState.friends = result.data.friends || [];
+    appState.friendRequests = result.data.friend_requests || [];
 
     saveAppState();
-
-
     updateUserHeader();
-
-
     renderFriends();
-
     renderFriendRequests();
-
-
-    switchScreen(
-        "dashboard"
-    );
-
-
+    switchScreen("dashboard");
     initJSTBackgroundMonitors();
-
     startPolling();
 
-
-    /*
-     * Push通知の登録を試行。
-     * HTTPS + Service Worker対応ブラウザで動作。
-     */
-
     enableRealPushNotifications();
-
 }
-
-
-/* =====================================================
-   ヘッダー
-===================================================== */
 
 function updateUserHeader() {
+    const welcome = document.getElementById("welcomeUserName");
+    if (welcome) welcome.innerText = appState.userName;
 
-    const welcome =
-        document.getElementById(
-            "welcomeUserName"
-        );
+    const label = document.getElementById("currentUserLabel");
+    if (label) label.innerText = `ログイン中: ${appState.userName}`;
 
-
-    if (welcome) {
-
-        welcome.innerText =
-            appState.userName;
-
-    }
-
-
-    const label =
-        document.getElementById(
-            "currentUserLabel"
-        );
-
-
-    if (label) {
-
-        label.innerText =
-            `ログイン中: ${appState.userName}`;
-
-    }
-
-
-    document
-        .getElementById(
-            "headerUserArea"
-        )
-        ?.classList.remove(
-            "hidden"
-        );
-
+    document.getElementById("headerUserArea")?.classList.remove("hidden");
 }
-
-
-/* =====================================================
-   ログアウト
-===================================================== */
 
 function handleLogout() {
-
-    if (
-        !confirm(
-            "ログアウトしますか？"
-        )
-    ) {
-
-        return;
-
-    }
-
-
+    if (!confirm("ログアウトしますか？")) return;
     stopPolling();
+    appState.userName = "";
+    appState.securityKey = "";
+    appState.accountId = "";
+    appState.friends = [];
+    appState.friendRequests = [];
+    appState.safetyStatuses = [];
+    appState.hazardPosts = [];
 
-
-    appState.userName =
-        "";
-
-    appState.securityKey =
-        "";
-
-    appState.accountId =
-        "";
-
-    appState.friends =
-        [];
-
-    appState.friendRequests =
-        [];
-
-    appState.safetyStatuses =
-        [];
-
-    appState.hazardPosts =
-        [];
-
-
-    localStorage.removeItem(
-        "otenkiAppState"
-    );
-
-
-    document
-        .getElementById(
-            "headerUserArea"
-        )
-        ?.classList.add(
-            "hidden"
-        );
-
-
-    switchScreen(
-        "login"
-    );
-
+    localStorage.removeItem("otenkiAppState");
+    document.getElementById("headerUserArea")?.classList.add("hidden");
+    switchScreen("login");
 }
-
 
 /* =====================================================
-   家族・友達追加モーダル
+   Web Push / 通知関連処理 (main.js 統合)
 ===================================================== */
-
-function openFriendModal() {
-
-    const modal =
-        document.getElementById(
-            "friendModal"
-        );
-
-
-    if (!modal) {
-        return;
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
     }
-
-
-    document
-        .getElementById(
-            "friendDisplayName"
-        ).value =
-        "";
-
-
-    document
-        .getElementById(
-            "friendModalError"
-        )
-        ?.classList.add(
-            "hidden"
-        );
-
-
-    modal.classList.remove(
-        "hidden"
-    );
-
-
-    setTimeout(
-        () =>
-            document
-                .getElementById(
-                    "friendDisplayName"
-                )
-                ?.focus(),
-        100
-    );
-
+    return outputArray;
 }
 
+async function registerPushServiceWorker() {
+    if (!("serviceWorker" in navigator)) {
+        return null;
+    }
+    try {
+        pushServiceWorkerRegistration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        await navigator.serviceWorker.ready;
+        return pushServiceWorkerRegistration;
+    } catch (error) {
+        console.error("Service Worker登録失敗:", error);
+        return null;
+    }
+}
+
+async function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+        alert("このブラウザは通知に対応していません。");
+        return false;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+        console.warn("通知が許可されませんでした。");
+        return false;
+    }
+    return true;
+}
+
+async function subscribeToRealPush() {
+    if (!("PushManager" in window)) return false;
+    if (!VAPID_PUBLIC_KEY) {
+        console.warn("VAPID_PUBLIC_KEYが未設定です。");
+        return false;
+    }
+    try {
+        const registration = await registerPushServiceWorker();
+        if (!registration) return false;
+        const permitted = await requestNotificationPermission();
+        if (!permitted) return false;
+
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+        }
+
+        const result = await apiRequest("/api/push/subscribe", {
+            method: "POST",
+            body: JSON.stringify({ account_id: appState.accountId, subscription: subscription.toJSON() })
+        }, 15000);
+
+        return result.ok;
+    } catch (error) {
+        console.error("Web Push購読エラー:", error);
+        return false;
+    }
+}
+
+async function unsubscribeFromRealPush() {
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (!subscription) return true;
+
+        await apiRequest("/api/push/unsubscribe", {
+            method: "POST",
+            body: JSON.stringify({ endpoint: subscription.endpoint })
+        }, 10000);
+
+        await subscription.unsubscribe();
+        return true;
+    } catch (error) {
+        console.error("Push購読解除エラー:", error);
+        return false;
+    }
+}
+
+async function enableRealPushNotifications() {
+    const success = await subscribeToRealPush();
+    const statusEl = document.getElementById("pushPermissionStatus");
+    if (success) {
+        if (statusEl) statusEl.innerText = "通知：許可済み";
+        triggerPushNotification("通知を有効にしました", "地震や天気などの重要なお知らせを受け取れるようになりました。");
+        return true;
+    }
+    if (statusEl) statusEl.innerText = "通知：未許可";
+    return false;
+}
+
+async function disableRealPushNotifications() {
+    const success = await unsubscribeFromRealPush();
+    const statusEl = document.getElementById("pushPermissionStatus");
+    if (success && statusEl) statusEl.innerText = "通知：無効";
+}
+
+async function updatePushPermissionStatus() {
+    const statusEl = document.getElementById("pushPermissionStatus");
+    if (!statusEl) return;
+    if (!("Notification" in window)) {
+        statusEl.innerText = "通知：非対応";
+        return;
+    }
+    if (Notification.permission === "granted") {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            statusEl.innerText = subscription ? "通知：許可済み" : "通知：未登録";
+        } catch {
+            statusEl.innerText = "通知：許可済み";
+        }
+        return;
+    }
+    if (Notification.permission === "denied") {
+        statusEl.innerText = "通知：ブロック中";
+        return;
+    }
+    statusEl.innerText = "通知：未設定";
+}
+
+function triggerPushNotification(title, msg) {
+    const banner = document.getElementById("pushNotificationBanner");
+    if (!banner) return;
+    const titleEl = document.getElementById("pushNotificationTitle");
+    const textEl = document.getElementById("pushNotificationText");
+    if (titleEl) titleEl.innerText = title;
+    if (textEl) textEl.innerText = msg;
+    banner.classList.remove("translate-x-full");
+    setTimeout(() => banner.classList.add("translate-x-full"), 6000);
+
+    if ("Notification" in window && Notification.permission === "granted" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification(title, { body: msg, icon: "/icon-192.png", badge: "/icon-192.png" });
+        }).catch(err => console.warn("OS通知エラー:", err));
+    }
+}
+
+function closePushBanner() {
+    document.getElementById("pushNotificationBanner")?.classList.add("translate-x-full");
+}
+
+/* =====================================================
+   フレンド・リクエスト関連
+===================================================== */
+function openFriendModal() {
+    const modal = document.getElementById("friendModal");
+    if (!modal) return;
+    document.getElementById("friendDisplayName").value = "";
+    document.getElementById("friendModalError")?.classList.add("hidden");
+    modal.classList.remove("hidden");
+    setTimeout(() => document.getElementById("friendDisplayName")?.focus(), 100);
+}
 
 function closeFriendModal() {
-
-    document
-        .getElementById(
-            "friendModal"
-        )
-        ?.classList.add(
-            "hidden"
-        );
-
+    document.getElementById("friendModal")?.classList.add("hidden");
 }
-
-
-/* =====================================================
-   家族・友達リクエスト送信
-===================================================== */
 
 async function sendFriendRequest() {
-
-    const input =
-        document.getElementById(
-            "friendDisplayName"
-        );
-
-
-    const name =
-        input?.value.trim();
-
-
-    const errorEl =
-        document.getElementById(
-            "friendModalError"
-        );
-
+    const input = document.getElementById("friendDisplayName");
+    const name = input?.value.trim();
+    const errorEl = document.getElementById("friendModalError");
 
     if (!name) {
-
         if (errorEl) {
-
-            errorEl.innerText =
-                "相手の表示名を入力してください。";
-
-            errorEl.classList.remove(
-                "hidden"
-            );
-
+            errorEl.innerText = "相手の表示名を入力してください。";
+            errorEl.classList.remove("hidden");
         }
-
         return;
-
     }
-
-
     if (!appState.accountId) {
-
         if (errorEl) {
-
-            errorEl.innerText =
-                "ログインしてください。";
-
-            errorEl.classList.remove(
-                "hidden"
-            );
-
+            errorEl.innerText = "ログインしてください。";
+            errorEl.classList.remove("hidden");
         }
-
         return;
-
     }
 
+    const button = document.getElementById("sendFriendRequestBtn");
+    if (button) {
+        button.disabled = true;
+        button.innerText = "送信中...";
+    }
 
-    const button =
-        document.getElementById(
-            "sendFriendRequestBtn"
-        );
-
+    const result = await apiRequest("/api/friends/requests", {
+        method: "POST",
+        body: JSON.stringify({ requester_id: appState.accountId, requester_name: appState.userName, target_name: name })
+    }, 20000);
 
     if (button) {
-
-        button.disabled =
-            true;
-
-        button.innerText =
-            "送信中...";
-
+        button.disabled = false;
+        button.innerText = "リクエスト";
     }
-
-
-    /*
-     * 相手の表示名を指定して
-     * 家族・友達リクエストを送る。
-     *
-     * グループコードは使用しない。
-     */
-
-    const result =
-        await apiRequest(
-            "/api/friends/requests",
-            {
-                method: "POST",
-
-                body:
-                    JSON.stringify({
-
-                        requester_id:
-                            appState.accountId,
-
-                        requester_name:
-                            appState.userName,
-
-                        target_name:
-                            name
-
-                    })
-            },
-            20000
-        );
-
-
-    if (button) {
-
-        button.disabled =
-            false;
-
-        button.innerText =
-            "リクエスト";
-
-    }
-
 
     if (!result.ok) {
-
         if (errorEl) {
-
-            errorEl.innerText =
-                result.error ||
-                "リクエストの送信に失敗しました。";
-
-            errorEl.classList.remove(
-                "hidden"
-            );
-
+            errorEl.innerText = result.error || "リクエストの送信に失敗しました。";
+            errorEl.classList.remove("hidden");
         }
-
         return;
-
     }
-
 
     closeFriendModal();
-
-
-    triggerPushNotification(
-        "家族・友達リクエスト",
-        `${name}さんへリクエストを送信しました。`
-    );
-
-
-    alert(
-        `${name}さんへ家族・友達リクエストを送信しました。`
-    );
-
-
+    triggerPushNotification("家族・友達リクエスト", `${name}さんへリクエストを送信しました。`);
+    alert(`${name}さんへ家族・友達リクエストを送信しました。`);
     pollFriendRequests();
-
 }
-
-
-/* =====================================================
-   フレンド取得
-===================================================== */
 
 async function pollFriends() {
-
-    if (!appState.accountId) {
-        return;
-    }
-
-
-    const result =
-        await apiRequest(
-            `/api/friends/${encodeURIComponent(appState.accountId)}`,
-            {
-                method: "GET"
-            },
-            10000
-        );
-
-
-    if (!result.ok) {
-
-        return;
-
-    }
-
-
-    appState.friends =
-        result.data.friends ||
-        [];
-
-
+    if (!appState.accountId) return;
+    const result = await apiRequest(`/api/friends/${encodeURIComponent(appState.accountId)}`, { method: "GET" }, 10000);
+    if (!result.ok) return;
+    appState.friends = result.data.friends || [];
     saveAppState();
-
     renderFriends();
-
 }
 
-
-/* =====================================================
-   フレンド表示
-===================================================== */
-
 function renderFriends() {
+    const container = document.getElementById("friendsList");
+    if (!container) return;
+    container.innerHTML = "";
 
-    const container =
-        document.getElementById(
-            "friendsList"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML =
-        "";
-
-
-    if (
-        !appState.friends ||
-        appState.friends.length === 0
-    ) {
-
+    if (!appState.friends || appState.friends.length === 0) {
         container.innerHTML = `
             <div class="text-center py-8 bg-white/60 rounded-2xl border border-dashed border-slate-300">
                 <div class="text-3xl mb-2">👥</div>
-                <p class="text-xs text-slate-400">
-                    まだ家族・友達が登録されていません。
-                </p>
-                <button
-                    onclick="openFriendModal()"
-                    class="mt-3 bg-purple-500 text-white rounded-xl px-4 py-2 text-xs font-black"
-                >
-                    家族・友達を追加
-                </button>
+                <p class="text-xs text-slate-400">まだ家族・友達が登録されていません。</p>
+                <button onclick="openFriendModal()" class="mt-3 bg-purple-500 text-white rounded-xl px-4 py-2 text-xs font-black">家族・友達を追加</button>
             </div>
         `;
-
         return;
-
     }
 
+    appState.friends.forEach(friend => {
+        const name = typeof friend === "string" ? friend : friend.name || "";
+        const status = typeof friend === "object" ? friend.status || "connected" : "connected";
+        const row = document.createElement("div");
+        row.className = "bg-white border border-slate-200 rounded-2xl p-3 flex items-center justify-between";
+        const statusText = status === "connected" ? "接続中" : status;
 
-    appState.friends.forEach(
-        friend => {
-
-            const name =
-                typeof friend === "string"
-                    ? friend
-                    : friend.name || "";
-
-
-            const status =
-                typeof friend === "object"
-                    ? friend.status || "connected"
-                    : "connected";
-
-
-            const row =
-                document.createElement(
-                    "div"
-                );
-
-
-            row.className =
-                "bg-white border border-slate-200 rounded-2xl p-3 flex items-center justify-between";
-
-
-            const statusText =
-                status === "connected"
-                    ? "接続中"
-                    : status;
-
-
-            row.innerHTML = `
-
-                <div class="flex items-center gap-3">
-
-                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-xl">
-                        👤
-                    </div>
-
-                    <div>
-
-                        <p class="text-xs font-black text-slate-800">
-                            ${escapeHtml(name)}
-                        </p>
-
-                        <p class="text-[10px] text-emerald-600 mt-1">
-                            <span class="status-dot bg-emerald-500"></span>
-                            ${escapeHtml(statusText)}
-                        </p>
-
-                    </div>
-
+        row.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-xl">👤</div>
+                <div>
+                    <p class="text-xs font-black text-slate-800">${escapeHtml(name)}</p>
+                    <p class="text-[10px] text-emerald-600 mt-1"><span class="status-dot bg-emerald-500"></span>${escapeHtml(statusText)}</p>
                 </div>
-
-                <button
-                    class="text-[10px] text-slate-400 hover:text-rose-500 font-bold"
-                    onclick="removeFriend('${escapeJs(name)}')"
-                >
-                    接続解除
-                </button>
-
-            `;
-
-
-            container.appendChild(
-                row
-            );
-
-        }
-    );
-
+            </div>
+            <button class="text-[10px] text-slate-400 hover:text-rose-500 font-bold" onclick="removeFriend('${escapeJs(name)}')">接続解除</button>
+        `;
+        container.appendChild(row);
+    });
 }
 
-
-/* =====================================================
-   フレンド削除
-===================================================== */
-
-async function removeFriend(
-    name
-) {
-
-    if (
-        !confirm(
-            `${name}さんとの家族・友達接続を解除しますか？`
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    const result =
-        await apiRequest(
-            `/api/friends/${encodeURIComponent(appState.accountId)}/${encodeURIComponent(name)}`,
-            {
-                method: "DELETE"
-            }
-        );
-
-
+async function removeFriend(name) {
+    if (!confirm(`${name}さんとの家族・友達接続を解除しますか？`)) return;
+    const result = await apiRequest(`/api/friends/${encodeURIComponent(appState.accountId)}/${encodeURIComponent(name)}`, { method: "DELETE" });
     if (!result.ok) {
-
-        alert(
-            `接続解除に失敗しました：${result.error}`
-        );
-
+        alert(`接続解除に失敗しました：${result.error}`);
         return;
-
     }
-
-
-    appState.friends =
-        result.data.friends ||
-        [];
-
-
+    appState.friends = result.data.friends || [];
     saveAppState();
-
     renderFriends();
-
 }
-
-
-/* =====================================================
-   リクエスト取得
-===================================================== */
 
 async function pollFriendRequests() {
+    if (!appState.accountId) return;
+    const result = await apiRequest(`/api/friends/requests/${encodeURIComponent(appState.accountId)}`, { method: "GET" }, 10000);
+    if (!result.ok) return;
 
-    if (!appState.accountId) {
-        return;
-    }
+    const newRequests = result.data.requests || [];
+    const oldIds = new Set(appState.friendRequests.map(r => String(r.id || "")));
 
-
-    const result =
-        await apiRequest(
-            `/api/friends/requests/${encodeURIComponent(appState.accountId)}`,
-            {
-                method: "GET"
-            },
-            10000
-        );
-
-
-    if (!result.ok) {
-
-        return;
-
-    }
-
-
-    const newRequests =
-        result.data.requests ||
-        [];
-
-
-    /*
-     * 新しいリクエストが来た場合、
-     * 画面通知を出す。
-     */
-
-    const oldIds =
-        new Set(
-            appState.friendRequests.map(
-                r =>
-                    String(
-                        r.id || ""
-                    )
-            )
-        );
-
-
-    newRequests.forEach(
-        request => {
-
-            const id =
-                String(
-                    request.id || ""
-                );
-
-
-            if (
-                id &&
-                !oldIds.has(id)
-            ) {
-
-                triggerPushNotification(
-                    "家族・友達リクエスト",
-                    `${request.from_name || "誰か"}さんからリクエストが届きました。`
-                );
-
-            }
-
+    newRequests.forEach(request => {
+        const id = String(request.id || "");
+        if (id && !oldIds.has(id)) {
+            triggerPushNotification("家族・友達リクエスト", `${request.from_name || "誰か"}さんからリクエストが届きました。`);
         }
-    );
+    });
 
-
-    appState.friendRequests =
-        newRequests;
-
-
+    appState.friendRequests = newRequests;
     saveAppState();
-
     renderFriendRequests();
-
 }
-
-
-/* =====================================================
-   リクエスト表示
-===================================================== */
 
 function renderFriendRequests() {
+    const container = document.getElementById("friendRequestsList");
+    const badge = document.getElementById("requestCountBadge");
+    if (!container) return;
+    container.innerHTML = "";
 
-    const container =
-        document.getElementById(
-            "friendRequestsList"
-        );
-
-
-    const badge =
-        document.getElementById(
-            "requestCountBadge"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML =
-        "";
-
-
-    const requests =
-        appState.friendRequests || [];
-
-
+    const requests = appState.friendRequests || [];
     if (badge) {
-
         if (requests.length > 0) {
-
-            badge.innerText =
-                String(requests.length);
-
-            badge.classList.remove(
-                "hidden"
-            );
-
+            badge.innerText = String(requests.length);
+            badge.classList.remove("hidden");
         } else {
-
-            badge.classList.add(
-                "hidden"
-            );
-
+            badge.classList.add("hidden");
         }
-
     }
-
 
     if (requests.length === 0) {
+        container.innerHTML = `<p class="text-[11px] text-slate-400 text-center py-5">新しいリクエストはありません。</p>`;
+        return;
+    }
 
-        container.innerHTML = `
-            <p class="text-[11px] text-slate-400 text-center py-5">
-                新しいリクエストはありません。
-            </p>
+    requests.forEach(request => {
+        const fromName = request.from_name || request.name || "不明なユーザー";
+        const row = document.createElement("div");
+        row.className = "bg-white border border-slate-200 rounded-2xl p-4";
+        row.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-xl">👋</div>
+                <div class="flex-1">
+                    <p class="text-sm font-black text-slate-800">${escapeHtml(fromName)}</p>
+                    <p class="text-[10px] text-slate-500 mt-1">家族・友達になりたいというリクエストです。</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-3">
+                <button class="bg-slate-100 hover:bg-slate-200 rounded-xl py-2 text-xs font-bold text-slate-700" onclick="rejectFriendRequest('${escapeJs(request.id)}')">拒否</button>
+                <button class="bg-emerald-500 hover:bg-emerald-600 rounded-xl py-2 text-xs font-black text-white" onclick="acceptFriendRequest('${escapeJs(request.id)}')">許可</button>
+            </div>
         `;
-
-        return;
-
-    }
-
-
-    requests.forEach(
-        request => {
-
-            const fromName =
-                request.from_name ||
-                request.name ||
-                "不明なユーザー";
-
-
-            const row =
-                document.createElement(
-                    "div"
-                );
-
-
-            row.className =
-                "bg-white border border-slate-200 rounded-2xl p-4";
-
-
-            row.innerHTML = `
-
-                <div class="flex items-center gap-3">
-
-                    <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-xl">
-                        👋
-                    </div>
-
-                    <div class="flex-1">
-
-                        <p class="text-sm font-black text-slate-800">
-                            ${escapeHtml(fromName)}
-                        </p>
-
-                        <p class="text-[10px] text-slate-500 mt-1">
-                            家族・友達になりたいというリクエストです。
-                        </p>
-
-                    </div>
-
-                </div>
-
-                <div class="grid grid-cols-2 gap-2 mt-3">
-
-                    <button
-                        class="bg-slate-100 hover:bg-slate-200 rounded-xl py-2 text-xs font-bold text-slate-700"
-                        onclick="rejectFriendRequest('${escapeJs(request.id)}')"
-                    >
-                        拒否
-                    </button>
-
-                    <button
-                        class="bg-emerald-500 hover:bg-emerald-600 rounded-xl py-2 text-xs font-black text-white"
-                        onclick="acceptFriendRequest('${escapeJs(request.id)}')"
-                    >
-                        許可
-                    </button>
-
-                </div>
-            `;
-
-
-            container.appendChild(
-                row
-            );
-
-        }
-    );
-
+        container.appendChild(row);
+    });
 }
 
-
-/* =====================================================
-   リクエスト詳細
-===================================================== */
-
-function openFriendRequestModal(
-    request
-) {
-
-    currentFriendRequest =
-        request;
-
-
-    const modal =
-        document.getElementById(
-            "friendRequestModal"
-        );
-
-
-    const text =
-        document.getElementById(
-            "requestModalText"
-        );
-
-
-    if (text) {
-
-        text.innerText =
-            `${request.from_name || request.name || "相手"}さんから家族・友達リクエストが届きました。`;
-
-    }
-
-
-    modal?.classList.remove(
-        "hidden"
-    );
-
-}
-
-
-function closeFriendRequestModal() {
-
-    document
-        .getElementById(
-            "friendRequestModal"
-        )
-        ?.classList.add(
-            "hidden"
-        );
-
-
-    currentFriendRequest =
-        null;
-
-}
-
-
-async function acceptCurrentFriendRequest() {
-
-    if (!currentFriendRequest) {
-        return;
-    }
-
-
-    await acceptFriendRequest(
-        currentFriendRequest.id
-    );
-
-
-    closeFriendRequestModal();
-
-}
-
-
-async function rejectCurrentFriendRequest() {
-
-    if (!currentFriendRequest) {
-        return;
-    }
-
-
-    await rejectFriendRequest(
-        currentFriendRequest.id
-    );
-
-
-    closeFriendRequestModal();
-
-}
-
-
-/* =====================================================
-   リクエスト許可
-===================================================== */
-
-async function acceptFriendRequest(
-    requestId
-) {
-
-    const result =
-        await apiRequest(
-            `/api/friends/requests/${encodeURIComponent(requestId)}/accept`,
-            {
-                method: "POST",
-
-                body:
-                    JSON.stringify({
-
-                        account_id:
-                            appState.accountId
-
-                    })
-            }
-        );
-
-
+async function acceptFriendRequest(requestId) {
+    const result = await apiRequest(`/api/friends/requests/${encodeURIComponent(requestId)}/accept`, {
+        method: "POST",
+        body: JSON.stringify({ account_id: appState.accountId })
+    });
     if (!result.ok) {
-
-        alert(
-            `リクエストの許可に失敗しました：${result.error}`
-        );
-
+        alert(`リクエストの許可に失敗しました：${result.error}`);
         return;
-
     }
-
-
-    appState.friends =
-        result.data.friends ||
-        appState.friends;
-
-
-    appState.friendRequests =
-        appState.friendRequests.filter(
-            request =>
-                String(request.id) !==
-                String(requestId)
-        );
-
-
+    appState.friends = result.data.friends || appState.friends;
+    appState.friendRequests = appState.friendRequests.filter(req => String(req.id) !== String(requestId));
     saveAppState();
-
     renderFriends();
-
     renderFriendRequests();
-
-
-    triggerPushNotification(
-        "家族・友達接続完了",
-        "家族・友達として接続されました。"
-    );
-
+    triggerPushNotification("家族・友達接続完了", "家族・友達として接続されました。");
 }
 
-
-/* =====================================================
-   リクエスト拒否
-===================================================== */
-
-async function rejectFriendRequest(
-    requestId
-) {
-
-    const result =
-        await apiRequest(
-            `/api/friends/requests/${encodeURIComponent(requestId)}/reject`,
-            {
-                method: "POST",
-
-                body:
-                    JSON.stringify({
-
-                        account_id:
-                            appState.accountId
-
-                    })
-            }
-        );
-
-
+async function rejectFriendRequest(requestId) {
+    const result = await apiRequest(`/api/friends/requests/${encodeURIComponent(requestId)}/reject`, {
+        method: "POST",
+        body: JSON.stringify({ account_id: appState.accountId })
+    });
     if (!result.ok) {
-
-        alert(
-            `リクエストの拒否に失敗しました：${result.error}`
-        );
-
+        alert(`リクエストの拒否に失敗しました：${result.error}`);
         return;
-
     }
-
-
-    appState.friendRequests =
-        appState.friendRequests.filter(
-            request =>
-                String(request.id) !==
-                String(requestId)
-        );
-
-
+    appState.friendRequests = appState.friendRequests.filter(req => String(req.id) !== String(requestId));
     saveAppState();
-
     renderFriendRequests();
-
 }
 
-
 /* =====================================================
-   リクエストキャンセル
+   ポーリング & サーバ接続状態
 ===================================================== */
-
-async function cancelFriendRequest(
-    requestId
-) {
-
-    if (
-        !confirm(
-            "このリクエストをキャンセルしますか？"
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    const result =
-        await apiRequest(
-            `/api/friends/requests/${encodeURIComponent(requestId)}/cancel`,
-            {
-                method: "POST",
-
-                body:
-                    JSON.stringify({
-
-                        account_id:
-                            appState.accountId,
-
-                        /*
-                         * 相手からの再リクエストを
-                         * 1週間無効化することを
-                         * Python側で処理する。
-                         */
-
-                        block_days:
-                            7
-
-                    })
-            }
-        );
-
-
-    if (!result.ok) {
-
-        alert(
-            `キャンセルに失敗しました：${result.error}`
-        );
-
-        return;
-
-    }
-
-
-    pollFriendRequests();
-
-}
-
-
-/* =====================================================
-   ポーリング
-===================================================== */
-
 function startPolling() {
-
     stopPolling();
-
-
     pollFriends();
-
     pollFriendRequests();
-
     pollSafety();
-
     pollHazard();
 
-
-    pollTimers.push(
-        setInterval(
-            pollFriends,
-            POLL_INTERVAL_MS
-        )
-    );
-
-
-    pollTimers.push(
-        setInterval(
-            pollFriendRequests,
-            POLL_INTERVAL_MS
-        )
-    );
-
-
-    pollTimers.push(
-        setInterval(
-            pollSafety,
-            POLL_INTERVAL_MS
-        )
-    );
-
-
-    pollTimers.push(
-        setInterval(
-            pollHazard,
-            POLL_INTERVAL_MS
-        )
-    );
-
+    pollTimers.push(setInterval(pollFriends, POLL_INTERVAL_MS));
+    pollTimers.push(setInterval(pollFriendRequests, POLL_INTERVAL_MS));
+    pollTimers.push(setInterval(pollSafety, POLL_INTERVAL_MS));
+    pollTimers.push(setInterval(pollHazard, POLL_INTERVAL_MS));
 }
-
 
 function stopPolling() {
-
-    pollTimers.forEach(
-        timer =>
-            clearInterval(timer)
-    );
-
-
-    pollTimers =
-        [];
-
+    pollTimers.forEach(timer => clearInterval(timer));
+    pollTimers = [];
 }
 
-
-/* =====================================================
-   サーバー接続
-===================================================== */
-
-function setServerConnStatus(
-    ok
-) {
-
-    const elements =
-        document.querySelectorAll(
-            "#safetyConnStatus, #hazardSyncStatus, #globalConnectionStatus"
-        );
-
-
-    elements.forEach(
-        el => {
-
-            if (
-                !el.dataset.customStatus
-            ) {
-
-                el.innerText =
-                    ok
-                        ? "サーバー接続中"
-                        : "サーバー接続エラー";
-
-            }
-
+function setServerConnStatus(ok) {
+    const elements = document.querySelectorAll("#safetyConnStatus, #hazardSyncStatus, #globalConnectionStatus");
+    elements.forEach(el => {
+        if (!el.dataset.customStatus) {
+            el.innerText = ok ? "サーバー接続中" : "サーバー接続エラー";
         }
-    );
-
+    });
 }
 
-
 /* =====================================================
-   安否取得
+   安否確認
 ===================================================== */
-
 async function pollSafety() {
-
-    if (!appState.accountId) {
-        return;
-    }
-
-
-    const statusEl =
-        document.getElementById(
-            "safetyConnStatus"
-        );
-
-
-    const result =
-        await apiRequest(
-            `/api/safety/${encodeURIComponent(appState.accountId)}`,
-            {
-                method: "GET"
-            },
-            10000
-        );
-
-
-    setServerConnStatus(
-        result.ok
-    );
-
+    if (!appState.accountId) return;
+    const statusEl = document.getElementById("safetyConnStatus");
+    const result = await apiRequest(`/api/safety/${encodeURIComponent(appState.accountId)}`, { method: "GET" }, 10000);
+    setServerConnStatus(result.ok);
 
     if (!result.ok) {
-
-        if (statusEl) {
-
-            statusEl.innerText =
-                "同期エラー（再試行中）";
-
-        }
-
+        if (statusEl) statusEl.innerText = "同期エラー（再試行中）";
         return;
-
     }
+    if (statusEl) statusEl.innerText = `最終同期: ${getJSTNow().toLocaleTimeString("ja-JP")}`;
 
-
-    if (statusEl) {
-
-        statusEl.innerText =
-            `最終同期: ${getJSTNow().toLocaleTimeString("ja-JP")}`;
-
-    }
-
-
-    appState.safetyStatuses =
-        result.data.statuses || [];
-
-
+    appState.safetyStatuses = result.data.statuses || [];
     saveAppState();
-
-
-    renderSafetyList(
-        appState.safetyStatuses
-    );
-
+    renderSafetyList(appState.safetyStatuses);
 }
 
-
-/* =====================================================
-   安否ラベル
-===================================================== */
-
-function safetyStatusLabel(
-    status
-) {
-
-    if (status === "safe") {
-
-        return {
-            emoji: "😊",
-
-            text:
-                "元気です",
-
-            cls:
-                "bg-amber-50 border-amber-200 text-amber-900"
-
-        };
-
-    }
-
-
-    if (status === "messy") {
-
-        return {
-            emoji: "🏠",
-
-            text:
-                "被害あり",
-
-            cls:
-                "bg-orange-50 border-orange-200 text-orange-900"
-
-        };
-
-    }
-
-
-    if (status === "sos") {
-
-        return {
-            emoji: "🆘",
-
-            text:
-                "緊急SOS",
-
-            cls:
-                "bg-rose-100 border-rose-300 text-rose-900"
-
-        };
-
-    }
-
-
-    return {
-        emoji: "❔",
-
-        text:
-            status,
-
-        cls:
-            "bg-slate-50 border-slate-200 text-slate-700"
-
-    };
-
+function safetyStatusLabel(status) {
+    if (status === "safe") return { emoji: "😊", text: "元気です", cls: "bg-amber-50 border-amber-200 text-amber-900" };
+    if (status === "messy") return { emoji: "🏠", text: "被害あり", cls: "bg-orange-50 border-orange-200 text-orange-900" };
+    if (status === "sos") return { emoji: "🆘", text: "緊急SOS", cls: "bg-rose-100 border-rose-300 text-rose-900" };
+    return { emoji: "❔", text: status, cls: "bg-slate-50 border-slate-200 text-slate-700" };
 }
 
-
-/* =====================================================
-   安否表示
-===================================================== */
-
-function renderSafetyList(
-    statuses
-) {
-
-    const container =
-        document.getElementById(
-            "groupSafetyStatusList"
-        );
-
-
-    if (!container) {
+function renderSafetyList(statuses) {
+    const container = document.getElementById("groupSafetyStatusList");
+    if (!container) return;
+    if (!statuses || statuses.length === 0) {
+        container.innerHTML = '<p class="text-[11px] text-slate-400 text-center py-4">まだ安否報告を受信していません。</p>';
         return;
     }
-
-
-    if (
-        !statuses ||
-        statuses.length === 0
-    ) {
-
-        container.innerHTML =
-            '<p class="text-[11px] text-slate-400 text-center py-4">まだ安否報告を受信していません。</p>';
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        "";
-
-
-    statuses.forEach(
-        s => {
-
-            const info =
-                safetyStatusLabel(
-                    s.status
-                );
-
-
-            const jstTime =
-                s.created_at
-                    ? new Date(
-                        s.created_at
-                    ).toLocaleString(
-                        "ja-JP",
-                        {
-                            timeZone:
-                                "Asia/Tokyo"
-                        }
-                    )
-                    : "";
-
-
-            const row =
-                document.createElement(
-                    "div"
-                );
-
-
-            row.className =
-                `flex justify-between items-center text-xs font-bold px-3.5 py-2.5 rounded-xl border ${info.cls}`;
-
-
-            row.innerHTML =
-                `<span>${info.emoji} ${escapeHtml(s.name || "")}さんは${escapeHtml(info.text)}！</span><span class="text-[10px] font-medium opacity-70">${escapeHtml(jstTime)}</span>`;
-
-
-            container.appendChild(
-                row
-            );
-
-        }
-    );
-
+    container.innerHTML = "";
+    statuses.forEach(s => {
+        const info = safetyStatusLabel(s.status);
+        const jstTime = s.created_at ? new Date(s.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }) : "";
+        const row = document.createElement("div");
+        row.className = `flex justify-between items-center text-xs font-bold px-3.5 py-2.5 rounded-xl border ${info.cls}`;
+        row.innerHTML = `<span>${info.emoji} ${escapeHtml(s.name || "")}さんは${escapeHtml(info.text)}！</span><span class="text-[10px] font-medium opacity-70">${escapeHtml(jstTime)}</span>`;
+        container.appendChild(row);
+    });
 }
 
-
-/* =====================================================
-   安否送信
-===================================================== */
-
-async function sendSafety(
-    type
-) {
-
+async function sendSafety(type) {
     if (!appState.accountId) {
-
-        alert(
-            "ログインしてください。"
-        );
-
+        alert("ログインしてください。");
         return;
-
     }
-
-
-    const msgEl =
-        document.getElementById(
-            "safetyResultMsg"
-        );
-
-
-    const result =
-        await apiRequest(
-            `/api/safety/${encodeURIComponent(appState.accountId)}`,
-            {
-                method: "POST",
-
-                body:
-                    JSON.stringify({
-
-                        name:
-                            appState.userName,
-
-                        status:
-                            type
-
-                    })
-            }
-        );
-
+    const msgEl = document.getElementById("safetyResultMsg");
+    const result = await apiRequest(`/api/safety/${encodeURIComponent(appState.accountId)}`, {
+        method: "POST",
+        body: JSON.stringify({ name: appState.userName, status: type })
+    });
 
     if (!result.ok) {
-
         if (msgEl) {
-
-            msgEl.innerText =
-                `送信に失敗しました：${result.error}`;
-
-
-            msgEl.className =
-                "mt-4 text-xs text-center font-medium p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700";
-
-
-            msgEl.classList.remove(
-                "hidden"
-            );
-
+            msgEl.innerText = `送信に失敗しました：${result.error}`;
+            msgEl.className = "mt-4 text-xs text-center font-medium p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700";
+            msgEl.classList.remove("hidden");
         }
-
         return;
-
     }
-
 
     if (msgEl) {
-
-        const info =
-            safetyStatusLabel(
-                type
-            );
-
-
-        msgEl.innerText =
-            `${appState.userName}さんは${info.text}！`;
-
-
-        msgEl.className =
-            "mt-4 text-xs text-center font-medium p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700";
-
-
-        msgEl.classList.remove(
-            "hidden"
-        );
-
+        const info = safetyStatusLabel(type);
+        msgEl.innerText = `${appState.userName}さんは${info.text}！`;
+        msgEl.className = "mt-4 text-xs text-center font-medium p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700";
+        msgEl.classList.remove("hidden");
     }
 
-
-    triggerPushNotification(
-        "安否確認送信",
-        `${appState.userName}さんの安否情報を家族・友達へ共有しました。`
-    );
-
-
-    setTimeout(
-        () =>
-            msgEl?.classList.add(
-                "hidden"
-            ),
-        5000
-    );
-
-
+    triggerPushNotification("安否確認送信", `${appState.userName}さんの安否情報を家族・友達へ共有しました。`);
+    setTimeout(() => msgEl?.classList.add("hidden"), 5000);
     pollSafety();
-
 }
 
-
 /* =====================================================
-   危険画像アップロード
+   危険情報投稿
 ===================================================== */
-
 function triggerImageUpload() {
-
-    document
-        .getElementById(
-            "hazardImageInput"
-        )
-        ?.click();
-
+    document.getElementById("hazardImageInput")?.click();
 }
 
-
-function compressImage(
-    file,
-    maxWidth = 1280,
-    quality = 0.78
-) {
-
-    return new Promise(
-        (resolve, reject) => {
-
-            const reader =
-                new FileReader();
-
-
-            reader.onload =
-                event => {
-
-                    const img =
-                        new Image();
-
-
-                    img.onload =
-                        () => {
-
-                            let width =
-                                img.width;
-
-
-                            let height =
-                                img.height;
-
-
-                            if (
-                                width >
-                                maxWidth
-                            ) {
-
-                                height =
-                                    Math.round(
-                                        height *
-                                        maxWidth /
-                                        width
-                                    );
-
-
-                                width =
-                                    maxWidth;
-
-                            }
-
-
-                            const canvas =
-                                document.createElement(
-                                    "canvas"
-                                );
-
-
-                            canvas.width =
-                                width;
-
-
-                            canvas.height =
-                                height;
-
-
-                            const ctx =
-                                canvas.getContext(
-                                    "2d"
-                                );
-
-
-                            ctx.drawImage(
-                                img,
-                                0,
-                                0,
-                                width,
-                                height
-                            );
-
-
-                            resolve(
-                                canvas.toDataURL(
-                                    "image/jpeg",
-                                    quality
-                                )
-                            );
-
-                        };
-
-
-                    img.onerror =
-                        reject;
-
-
-                    img.src =
-                        event.target.result;
-
-                };
-
-
-            reader.onerror =
-                reject;
-
-
-            reader.readAsDataURL(
-                file
-            );
-
-        }
-    );
-
+function compressImage(file, maxWidth = 1280, quality = 0.78) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = event => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth) {
+                    height = Math.round(height * maxWidth / width);
+                    width = maxWidth;
+                }
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL("image/jpeg", quality));
+            };
+            img.onerror = reject;
+            img.src = event.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
-
-
-/* =====================================================
-   GPS
-===================================================== */
-
-/*
- * 重要：
- *
- * このGPSは「危険情報を投稿する際の
- * 危険箇所の位置」を記録するためだけに使用。
- *
- * 人の現在位置追跡には使用しない。
- *
- * バックグラウンド追跡もしない。
- * 移動履歴も保存しない。
- */
 
 function getCurrentPosition() {
-
-    return new Promise(
-        resolve => {
-
-            if (
-                !navigator.geolocation
-            ) {
-
-                resolve({
-
-                    latitude:
-                        AMAKUSA_LAT,
-
-                    longitude:
-                        AMAKUSA_LON,
-
-                    accuracy:
-                        null,
-
-                    fallback:
-                        true
-
-                });
-
-                return;
-
-            }
-
-
-            navigator.geolocation.getCurrentPosition(
-
-                position => {
-
-                    resolve({
-
-                        latitude:
-                            position.coords.latitude,
-
-                        longitude:
-                            position.coords.longitude,
-
-                        accuracy:
-                            position.coords.accuracy,
-
-                        fallback:
-                            false
-
-                    });
-
-                },
-
-
-                () => {
-
-                    resolve({
-
-                        latitude:
-                            AMAKUSA_LAT,
-
-                        longitude:
-                            AMAKUSA_LON,
-
-                        accuracy:
-                            null,
-
-                        fallback:
-                            true
-
-                    });
-
-                },
-
-
-                {
-
-                    enableHighAccuracy:
-                        true,
-
-                    timeout:
-                        10000,
-
-                    maximumAge:
-                        30000
-
-                }
-
-            );
-
+    return new Promise(resolve => {
+        if (!navigator.geolocation) {
+            resolve({ latitude: AMAKUSA_LAT, longitude: AMAKUSA_LON, accuracy: null, fallback: true });
+            return;
         }
-    );
-
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy, fallback: false });
+            },
+            () => {
+                resolve({ latitude: AMAKUSA_LAT, longitude: AMAKUSA_LON, accuracy: null, fallback: true });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+        );
+    });
 }
 
-
-/* =====================================================
-   危険画像選択
-===================================================== */
-
-async function handleImageSelected(
-    e
-) {
-
-    const file =
-        e.target.files?.[0];
-
-
-    if (!file) {
-        return;
-    }
-
+async function handleImageSelected(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     try {
+        const text = prompt("危険な箇所の内容を入力してください", "ひび割れを発見");
+        if (!text) return;
 
-        const text =
-            prompt(
-                "危険な箇所の内容を入力してください",
-                "ひび割れを発見"
-            );
+        const syncEl = document.getElementById("hazardSyncStatus");
+        if (syncEl) syncEl.innerText = "危険箇所の位置情報を取得中...";
 
-
-        if (!text) {
-            return;
-        }
-
-
-        const syncEl =
-            document.getElementById(
-                "hazardSyncStatus"
-            );
-
-
+        const position = await getCurrentPosition();
         if (syncEl) {
-
-            syncEl.innerText =
-                "危険箇所の位置情報を取得中...";
-
+            syncEl.innerText = position.fallback ? "位置取得失敗のため天草位置を使用・画像処理中..." : "危険箇所の位置を取得・画像処理中...";
         }
 
+        const image = await compressImage(file);
+        if (syncEl) syncEl.innerText = "危険情報を投稿中...";
 
-        /*
-         * ここで取得するのは
-         * 「危険箇所の位置」。
-         *
-         * 現在位置追跡機能ではない。
-         */
-
-        const position =
-            await getCurrentPosition();
-
-
-        if (syncEl) {
-
-            syncEl.innerText =
-                position.fallback
-                    ? "位置取得失敗のため天草位置を使用・画像処理中..."
-                    : "危険箇所の位置を取得・画像処理中...";
-
-        }
-
-
-        const image =
-            await compressImage(
-                file
-            );
-
-
-        if (syncEl) {
-
-            syncEl.innerText =
-                "危険情報を投稿中...";
-
-        }
-
-
-        const result =
-            await apiRequest(
-                `/api/hazard/${encodeURIComponent(appState.accountId)}`,
-                {
-                    method: "POST",
-
-                    body:
-                        JSON.stringify({
-
-                            author:
-                                appState.userName,
-
-                            image:
-                                image,
-
-                            text:
-                                text,
-
-                            /*
-                             * これは危険箇所の座標。
-                             */
-
-                            latitude:
-                                position.latitude,
-
-                            longitude:
-                                position.longitude,
-
-                            accuracy:
-                                position.accuracy
-
-                        })
-                },
-                60000
-            );
-
+        const result = await apiRequest(`/api/hazard/${encodeURIComponent(appState.accountId)}`, {
+            method: "POST",
+            body: JSON.stringify({
+                author: appState.userName,
+                image: image,
+                text: text,
+                latitude: position.latitude,
+                longitude: position.longitude,
+                accuracy: position.accuracy
+            })
+        }, 60000);
 
         if (!result.ok) {
-
-            alert(
-                `投稿の送信に失敗しました：${result.error}`
-            );
-
-
-            if (syncEl) {
-
-                syncEl.innerText =
-                    "送信失敗（もう一度お試しください）";
-
-            }
-
-
+            alert(`投稿の送信に失敗しました：${result.error}`);
+            if (syncEl) syncEl.innerText = "送信失敗（もう一度お試しください）";
             return;
-
         }
 
-
-        triggerPushNotification(
-            "危険情報を投稿しました",
-            "許可した家族・友達へ危険情報を共有しました。"
-        );
-
-
+        triggerPushNotification("危険情報を投稿しました", "許可した家族・友達へ危険情報を共有しました。");
         await pollHazard();
-
-
     } catch (error) {
-
-        console.error(
-            "危険情報投稿エラー:",
-            error
-        );
-
-
-        alert(
-            "画像の処理または投稿に失敗しました。"
-        );
-
-
+        console.error("危険情報投稿エラー:", error);
+        alert("画像の処理または投稿に失敗しました。");
     } finally {
-
-        e.target.value =
-            "";
-
+        e.target.value = "";
     }
-
 }
-
-
-/* =====================================================
-   危険情報取得
-===================================================== */
 
 async function pollHazard() {
-
-    if (!appState.accountId) {
-        return;
-    }
-
-
-    const syncEl =
-        document.getElementById(
-            "hazardSyncStatus"
-        );
-
-
-    const result =
-        await apiRequest(
-            `/api/hazard/${encodeURIComponent(appState.accountId)}`,
-            {
-                method: "GET"
-            },
-            10000
-        );
-
-
-    setServerConnStatus(
-        result.ok
-    );
-
+    if (!appState.accountId) return;
+    const syncEl = document.getElementById("hazardSyncStatus");
+    const result = await apiRequest(`/api/hazard/${encodeURIComponent(appState.accountId)}`, { method: "GET" }, 10000);
+    setServerConnStatus(result.ok);
 
     if (!result.ok) {
-
-        if (syncEl) {
-
-            syncEl.innerText =
-                "同期エラー（再試行中）";
-
-        }
-
+        if (syncEl) syncEl.innerText = "同期エラー（再試行中）";
         return;
-
     }
+    if (syncEl) syncEl.innerText = `最終同期: ${getJSTNow().toLocaleTimeString("ja-JP")}`;
 
-
-    if (syncEl) {
-
-        syncEl.innerText =
-            `最終同期: ${getJSTNow().toLocaleTimeString("ja-JP")}`;
-
-    }
-
-
-    appState.hazardPosts =
-        result.data.posts || [];
-
-
+    appState.hazardPosts = result.data.posts || [];
     saveAppState();
-
-
     renderHazardPosts();
-
 }
-
-
-/* =====================================================
-   危険情報表示
-===================================================== */
 
 function renderHazardPosts() {
+    const container = document.getElementById("hazardPostList");
+    if (!container) return;
 
-    const container =
-        document.getElementById(
-            "hazardPostList"
-        );
-
-
-    if (!container) {
+    if (!appState.hazardPosts || appState.hazardPosts.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-xs text-slate-400 bg-white/60 rounded-2xl border border-dashed border-slate-300">まだ登録された危険情報はありません。<br>危険箇所を撮影して共有しましょう！</div>';
         return;
     }
 
+    container.innerHTML = "";
+    appState.hazardPosts.forEach(post => {
+        const lat = Number(post.latitude ?? post.lat);
+        const lon = Number(post.longitude ?? post.lon);
+        const hasLocation = Number.isFinite(lat) && Number.isFinite(lon);
+        const mapUrl = hasLocation ? `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lon}`)}` : "";
+        const jstTime = post.created_at ? new Date(post.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }) : "";
 
-    if (
-        !appState.hazardPosts ||
-        appState.hazardPosts.length === 0
-    ) {
+        const div = document.createElement("div");
+        div.className = "bg-white/90 border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2";
+        const safeImage = String(post.image || "").startsWith("data:image/") ? post.image : "";
 
-        container.innerHTML =
-            '<div class="text-center py-12 text-xs text-slate-400 bg-white/60 rounded-2xl border border-dashed border-slate-300">まだ登録された危険情報はありません。<br>危険箇所を撮影して共有しましょう！</div>';
+        const imageHtml = safeImage ? `
+            <img src="${safeImage}" class="w-full h-40 object-cover rounded-xl" alt="危険箇所の写真" loading="lazy">
+        ` : `
+            <div class="w-full h-40 flex items-center justify-center rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-400">画像を表示できません</div>
+        `;
 
-        return;
+        const mapHtml = mapUrl ? `
+            <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="text-xs text-sky-600 font-extrabold underline block">📍 危険箇所をマップで確認</a>
+            <div class="text-[10px] text-slate-400">危険箇所：緯度 ${lat.toFixed(6)} / 経度 ${lon.toFixed(6)}</div>
+            ${Number.isFinite(Number(post.accuracy)) ? `<div class="text-[10px] text-slate-400">GPS精度 約${Math.round(Number(post.accuracy))}m</div>` : ""}
+        ` : `<div class="text-[10px] text-slate-400">📍 危険箇所の位置情報なし</div>`;
 
-    }
-
-
-    container.innerHTML =
-        "";
-
-
-    appState.hazardPosts.forEach(
-        post => {
-
-            const lat =
-                Number(
-                    post.latitude ??
-                    post.lat
-                );
-
-
-            const lon =
-                Number(
-                    post.longitude ??
-                    post.lon
-                );
-
-
-            const hasLocation =
-                Number.isFinite(lat) &&
-                Number.isFinite(lon);
-
-
-            /*
-             * Google Mapsには
-             * 危険箇所の座標を渡す。
-             */
-
-            const mapUrl =
-                hasLocation
-                    ? `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lon}`)}`
-                    : "";
-
-
-            const jstTime =
-                post.created_at
-                    ? new Date(
-                        post.created_at
-                    ).toLocaleString(
-                        "ja-JP",
-                        {
-                            timeZone:
-                                "Asia/Tokyo"
-                        }
-                    )
-                    : "";
-
-
-            const div =
-                document.createElement(
-                    "div"
-                );
-
-
-            div.className =
-                "bg-white/90 border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2";
-
-
-            const safeImage =
-                String(
-                    post.image || ""
-                ).startsWith(
-                    "data:image/"
-                )
-                    ? post.image
-                    : "";
-
-
-            const imageHtml =
-                safeImage
-                    ? `
-                        <img
-                            src="${safeImage}"
-                            class="w-full h-40 object-cover rounded-xl"
-                            alt="危険箇所の写真"
-                            loading="lazy"
-                        >
-                    `
-                    : `
-                        <div class="w-full h-40 flex items-center justify-center rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-400">
-                            画像を表示できません
-                        </div>
-                    `;
-
-
-            const mapHtml =
-                mapUrl
-                    ? `
-                        <a
-                            href="${mapUrl}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-xs text-sky-600 font-extrabold underline block"
-                        >
-                            📍 危険箇所をマップで確認
-                        </a>
-
-                        <div class="text-[10px] text-slate-400">
-                            危険箇所：緯度 ${lat.toFixed(6)} / 経度 ${lon.toFixed(6)}
-                        </div>
-
-                        ${
-                            Number.isFinite(
-                                Number(post.accuracy)
-                            )
-                                ? `
-                                    <div class="text-[10px] text-slate-400">
-                                        GPS精度 約${Math.round(Number(post.accuracy))}m
-                                    </div>
-                                `
-                                : ""
-                        }
-                    `
-                    : `
-                        <div class="text-[10px] text-slate-400">
-                            📍 危険箇所の位置情報なし
-                        </div>
-                    `;
-
-
-            div.innerHTML = `
-
-                <div class="flex justify-between gap-3 text-xs text-slate-500 font-bold">
-
-                    <span>
-                        👤 ${escapeHtml(post.author || "")}
-                    </span>
-
-                    <span class="text-right">
-                        ${escapeHtml(jstTime)}
-                    </span>
-
-                </div>
-
-                ${imageHtml}
-
-                <p class="text-xs text-slate-800 font-semibold">
-                    ${escapeHtml(post.text || "")}
-                </p>
-
-                ${mapHtml}
-
-                <div class="text-[10px] text-slate-400 border-t border-slate-100 pt-2">
-                    この位置は危険箇所の位置です。投稿者の現在位置ではありません。
-                </div>
-
-            `;
-
-
-            container.appendChild(
-                div
-            );
-
-        }
-    );
-
+        div.innerHTML = `
+            <div class="flex justify-between gap-3 text-xs text-slate-500 font-bold">
+                <span>👤 ${escapeHtml(post.author || "")}</span>
+                <span class="text-right">${escapeHtml(jstTime)}</span>
+            </div>
+            ${imageHtml}
+            <p class="text-xs text-slate-800 font-semibold">${escapeHtml(post.text || "")}</p>
+            ${mapHtml}
+            <div class="text-[10px] text-slate-400 border-t border-slate-100 pt-2">この位置は危険箇所の位置です。投稿者の現在位置ではありません。</div>
+        `;
+        container.appendChild(div);
+    });
 }
 
-
 /* =====================================================
-   OpenWeatherMap
+   天気情報取得
 ===================================================== */
-
 async function fetchRealWeatherWithJST() {
-
-    const descEl =
-        document.getElementById(
-            "liveWeatherDesc"
-        );
-
-
-    if (!descEl) {
-        return;
-    }
-
-
-    descEl.innerText =
-        "JST基準で気象データを取得中...";
-
+    const descEl = document.getElementById("liveWeatherDesc");
+    if (!descEl) return;
+    descEl.innerText = "JST基準で気象データを取得中...";
 
     try {
-
-        const result =
-            await apiRequest(
-                "/api/weather",
-                {
-                    method:
-                        "GET"
-                },
-                15000
-            );
-
-
+        const result = await apiRequest("/api/weather", { method: "GET" }, 15000);
         if (!result.ok) {
-
-            throw new Error(
-                result.error ||
-                "天気情報を取得できませんでした。"
-            );
-
+            throw new Error(result.error || "天気情報を取得できませんでした。");
         }
 
+        const data = result.data;
+        const description = String(data.description || data.weather || "天候不明");
+        const temperature = Number(data.temperature);
+        const feelsLike = Number(data.feels_like);
+        const humidity = Number(data.humidity);
+        const windSpeed = Number(data.wind_speed);
 
-        const data =
-            result.data;
+        descEl.innerText = `天草市：${description} / 気温: ${Number.isFinite(temperature) ? temperature.toFixed(1) : "--"}℃ / 風速: ${Number.isFinite(windSpeed) ? windSpeed.toFixed(1) : "--"} m/s (JST)`;
 
+        const temperatureEl = document.getElementById("weatherTemperature");
+        const feelsLikeEl = document.getElementById("weatherFeelsLike");
+        const humidityEl = document.getElementById("weatherHumidity");
+        const windEl = document.getElementById("weatherWind");
 
-        const description =
-            String(
-                data.description ||
-                data.weather ||
-                "天候不明"
-            );
+        if (temperatureEl) temperatureEl.innerText = Number.isFinite(temperature) ? `${temperature.toFixed(1)}℃` : "--";
+        if (feelsLikeEl) feelsLikeEl.innerText = Number.isFinite(feelsLike) ? `${feelsLike.toFixed(1)}℃` : "--";
+        if (humidityEl) humidityEl.innerText = Number.isFinite(humidity) ? `${humidity}%` : "--";
+        if (windEl) windEl.innerText = Number.isFinite(windSpeed) ? `${windSpeed.toFixed(1)} m/s` : "--";
 
-
-        const temperature =
-            Number(
-                data.temperature
-            );
-
-
-        const feelsLike =
-            Number(
-                data.feels_like
-            );
-
-
-        const humidity =
-            Number(
-                data.humidity
-            );
-
-
-        const windSpeed =
-            Number(
-                data.wind_speed
-            );
-
-
-        descEl.innerText =
-            `天草市：${description} / 気温: ${
-                Number.isFinite(temperature)
-                    ? temperature.toFixed(1)
-                    : "--"
-            }℃ / 風速: ${
-                Number.isFinite(windSpeed)
-                    ? windSpeed.toFixed(1)
-                    : "--"
-            } m/s (JST)`;
-
-
-        const temperatureEl =
-            document.getElementById(
-                "weatherTemperature"
-            );
-
-
-        const feelsLikeEl =
-            document.getElementById(
-                "weatherFeelsLike"
-            );
-
-
-        const humidityEl =
-            document.getElementById(
-                "weatherHumidity"
-            );
-
-
-        const windEl =
-            document.getElementById(
-                "weatherWind"
-            );
-
-
-        if (temperatureEl) {
-
-            temperatureEl.innerText =
-                Number.isFinite(
-                    temperature
-                )
-                    ? `${temperature.toFixed(1)}℃`
-                    : "--";
-
-        }
-
-
-        if (feelsLikeEl) {
-
-            feelsLikeEl.innerText =
-                Number.isFinite(
-                    feelsLike
-                )
-                    ? `${feelsLike.toFixed(1)}℃`
-                    : "--";
-
-        }
-
-
-        if (humidityEl) {
-
-            humidityEl.innerText =
-                Number.isFinite(
-                    humidity
-                )
-                    ? `${humidity}%`
-                    : "--";
-
-        }
-
-
-        if (windEl) {
-
-            windEl.innerText =
-                Number.isFinite(
-                    windSpeed
-                )
-                    ? `${windSpeed.toFixed(1)} m/s`
-                    : "--";
-
-        }
-
-
-        evaluateJSTWeatherAndAdvice(
-            description,
-            windSpeed,
-            []
-        );
-
-
+        evaluateJSTWeatherAndAdvice(description, windSpeed, []);
     } catch (err) {
-
-        console.error(
-            "天気取得エラー:",
-            err
-        );
-
-
-        descEl.innerText =
-            `天気情報の取得に失敗しました。${err.message || ""}`;
-
-
-        const recommendationEl =
-            document.getElementById(
-                "lifestyleRecommendation"
-            );
-
-
+        console.error("天気取得エラー:", err);
+        descEl.innerText = `天気情報の取得に失敗しました。${err.message || ""}`;
+        const recommendationEl = document.getElementById("lifestyleRecommendation");
         if (recommendationEl) {
-
-            recommendationEl.innerText =
-                "天気APIに接続できないため、最新の気象情報を取得できませんでした。";
-
+            recommendationEl.innerText = "天気APIに接続できないため、最新の気象情報を取得できませんでした。";
         }
-
     }
-
 }
 
-
-/* =====================================================
-   天気アドバイス
-===================================================== */
-
-function evaluateJSTWeatherAndAdvice(
-    desc,
-    windSpeed,
-    forecastList
-) {
-
-    const jst =
-        getJSTNow();
-
-
-    const hour =
-        jst.getHours();
-
-
-    const hourMinuteStr =
-        `${String(hour).padStart(2, "0")}:${String(jst.getMinutes()).padStart(2, "0")}`;
-
-
-    const recommendations =
-        [];
-
-
-    let timeGreeting =
-        "";
-
-
-    const rainFlag =
-        desc.includes("雨") ||
-        desc.includes("降水") ||
-        desc.includes("雷");
-
+function evaluateJSTWeatherAndAdvice(desc, windSpeed, forecastList) {
+    const jst = getJSTNow();
+    const hour = jst.getHours();
+    const hourMinuteStr = `${String(hour).padStart(2, "0")}:${String(jst.getMinutes()).padStart(2, "0")}`;
+    const recommendations = [];
+    let timeGreeting = "";
+    const rainFlag = desc.includes("雨") || desc.includes("降水") || desc.includes("雷");
 
     if (hour < 12) {
-
-        timeGreeting =
-            `おはようございます。日本標準時 ${hourMinuteStr}、天草市の気象情報をお届けします。`;
-
-
+        timeGreeting = `おはようございます。日本標準時 ${hourMinuteStr}、天草市の気象情報をお届けします。`;
         if (rainFlag) {
-
-            recommendations.push(
-                windSpeed >= 7
-                    ? "現在、雨と強い風が予想されます。傘だけでなくレインコートなどの雨具をおすすめします。"
-                    : "現在雨が降っている可能性があります。外出の際は傘をお持ちください。"
-            );
-
+            recommendations.push(windSpeed >= 7 ? "現在、雨と強い風が予想されます。傘だけでなくレインコートなどの雨具をおすすめします。" : "現在雨が降っている可能性があります。外出の際は傘をお持ちください。");
         } else {
-
-            recommendations.push(
-                "現在の天候を確認しながら、安全にお過ごしください。"
-            );
-
+            recommendations.push("現在の天候を確認しながら、安全にお過ごしください。");
         }
-
-
-        if (windSpeed >= 10) {
-
-            recommendations.push(
-                "風が非常に強いため、飛来物や転倒などに十分注意してください。"
-            );
-
-        }
-
-
+        if (windSpeed >= 10) recommendations.push("風が非常に強いため、飛来物や転倒などに十分注意してください。");
     } else {
-
-        timeGreeting =
-            `こんばんは。日本標準時 ${hourMinuteStr}、天草市の気象情報です。`;
-
-
+        timeGreeting = `こんばんは。日本標準時 ${hourMinuteStr}、天草市の気象情報です。`;
         if (rainFlag) {
-
-            recommendations.push(
-                "雨が予想されるため、夜間の外出時は足元や視界に注意してください。"
-            );
-
+            recommendations.push("雨が予想されるため、夜間の外出時は足元や視界に注意してください。");
         } else {
-
-            recommendations.push(
-                "現在の天候を確認しつつ、夜間は戸締まりをしっかり行ってお休みください。"
-            );
-
+            recommendations.push("現在の天候を確認しつつ、夜間は戸締まりをしっかり行ってお休みください。");
         }
-
-
-        if (windSpeed >= 10) {
-
-            recommendations.push(
-                "風が強いため、ベランダなどの飛ばされやすい物を確認してください。"
-            );
-
-        }
-
+        if (windSpeed >= 10) recommendations.push("風が強いため、ベランダなどの飛ばされやすい物を確認してください。");
     }
 
+    if (recommendations.length === 0) recommendations.push("最新の気象情報を確認し、安全にお過ごしください。");
 
-    if (
-        recommendations.length === 0
-    ) {
+    const titleEl = document.getElementById("jstReportTitle");
+    const recommendationEl = document.getElementById("lifestyleRecommendation");
 
-        recommendations.push(
-            "最新の気象情報を確認し、安全にお過ごしください。"
-        );
+    if (titleEl) titleEl.innerText = `🌤️ 天草市 JST気象情報 (${hourMinuteStr})`;
+    if (!recommendationEl) return;
 
-    }
-
-
-    const titleEl =
-        document.getElementById(
-            "jstReportTitle"
-        );
-
-
-    const recommendationEl =
-        document.getElementById(
-            "lifestyleRecommendation"
-        );
-
-
-    if (titleEl) {
-
-        titleEl.innerText =
-            `🌤️ 天草市 JST気象情報 (${hourMinuteStr})`;
-
-    }
-
-
-    if (!recommendationEl) {
-        return;
-    }
-
-
-    let htmlOutput =
-        `<div class="font-bold text-emerald-900 mb-1">${escapeHtml(timeGreeting)}</div><ul class="list-disc pl-4 space-y-1">`;
-
-
-    recommendations.forEach(
-        rec => {
-
-            htmlOutput +=
-                `<li>${escapeHtml(rec)}</li>`;
-
-        }
-    );
-
-
-    htmlOutput +=
-        "</ul>";
-
-
-    recommendationEl.innerHTML =
-        htmlOutput;
-
+    let htmlOutput = `<div class="font-bold text-emerald-900 mb-1">${escapeHtml(timeGreeting)}</div><ul class="list-disc pl-4 space-y-1">`;
+    recommendations.forEach(rec => { htmlOutput += `<li>${escapeHtml(rec)}</li>`; });
+    htmlOutput += "</ul>";
+    recommendationEl.innerHTML = htmlOutput;
 }
-
-
-/* =====================================================
-   JST定時監視
-===================================================== */
 
 function initJSTBackgroundMonitors() {
+    if (jstMonitorStarted) return;
+    jstMonitorStarted = true;
 
-    if (jstMonitorStarted) {
-        return;
-    }
+    setInterval(() => {
+        if (!appState.userName) return;
+        const jst = getJSTNow();
+        const h = jst.getHours();
+        const m = jst.getMinutes();
+        const dateKey = `${jst.toDateString()}-${h}-${m}`;
 
-
-    jstMonitorStarted =
-        true;
-
-
-    setInterval(
-        () => {
-
-            if (!appState.userName) {
-                return;
-            }
-
-
-            const jst =
-                getJSTNow();
-
-
-            const h =
-                jst.getHours();
-
-
-            const m =
-                jst.getMinutes();
-
-
-            const dateKey =
-                `${jst.toDateString()}-${h}-${m}`;
-
-
-            if (
-                h === 6 &&
-                m === 0 &&
-                lastNotifiedKey !== dateKey
-            ) {
-
-                lastNotifiedKey =
-                    dateKey;
-
-
-                triggerPushNotification(
-                    "朝6:00 定時お天気レポート",
-                    "【JST】本日の天気予報と生活アドバイスをお届けします。"
-                );
-
-
-            } else if (
-                h === 18 &&
-                m === 30 &&
-                lastNotifiedKey !== dateKey
-            ) {
-
-                lastNotifiedKey =
-                    dateKey;
-
-
-                triggerPushNotification(
-                    "夜18:30 翌日お天気レポート",
-                    "【JST】明日の天気予報と夜間見守りのお知らせをお届けします。"
-                );
-
-            }
-
-        },
-        30000
-    );
-
+        if (h === 6 && m === 0 && lastNotifiedKey !== dateKey) {
+            lastNotifiedKey = dateKey;
+            triggerPushNotification("朝6:00 定時お天気レポート", "【JST】本日の天気予報と生活アドバイスをお届けします。");
+        } else if (h === 18 && m === 30 && lastNotifiedKey !== dateKey) {
+            lastNotifiedKey = dateKey;
+            triggerPushNotification("夜18:30 翌日お天気レポート", "【JST】明日の天気予報と夜間見守りのお知らせをお届けします。");
+        }
+    }, 30000);
 }
 
-
 /* =====================================================
-   通知バナー
+   文字列エスケープ
 ===================================================== */
-
-function triggerPushNotification(
-    title,
-    msg
-) {
-
-    const banner =
-        document.getElementById(
-            "pushNotificationBanner"
-        );
-
-
-    if (!banner) {
-        return;
-    }
-
-
-    const titleEl =
-        document.getElementById(
-            "pushNotificationTitle"
-        );
-
-
-    const textEl =
-        document.getElementById(
-            "pushNotificationText"
-        );
-
-
-    if (titleEl) {
-
-        titleEl.innerText =
-            title;
-
-    }
-
-
-    if (textEl) {
-
-        textEl.innerText =
-            msg;
-
-    }
-
-
-    banner.classList.remove(
-        "translate-x-full"
-    );
-
-
-    setTimeout(
-        () =>
-            banner.classList.add(
-                "translate-x-full"
-            ),
-        6000
-    );
-
-
-    /*
-     * Service Workerが利用可能なら、
-     * OSレベルの通知も試行する。
-     *
-     * 実際に他ユーザーへ送るPushは
-     * Python側のWeb Push実装が必要。
-     */
-
-    if (
-        "Notification" in window &&
-        Notification.permission === "granted"
-    ) {
-
-        if (
-            "serviceWorker" in navigator
-        ) {
-
-            navigator.serviceWorker
-                .ready
-                .then(
-                    registration => {
-
-                        registration.showNotification(
-                            title,
-                            {
-                                body:
-                                    msg,
-
-                                icon:
-                                    "/icon-192.png",
-
-                                badge:
-                                    "/icon-192.png"
-                            }
-                        );
-
-                    }
-                )
-                .catch(
-                    error =>
-                        console.warn(
-                            "OS通知エラー:",
-                            error
-                        )
-                );
-
-        }
-
-    }
-
+function escapeHtml(value) {
+    return String(value).replace(/[&<>'"]/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+    }[ch]));
 }
 
-
-function closePushBanner() {
-
-    document
-        .getElementById(
-            "pushNotificationBanner"
-        )
-        ?.classList.add(
-            "translate-x-full"
-        );
-
+function escapeJs(value) {
+    return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 }
 
-
 /* =====================================================
-   本物のWeb Push購読
+   イベントリスナー・初期化
 ===================================================== */
-
-async function enableRealPushNotifications() {
-
-    const statusEl =
-        document.getElementById(
-            "pushPermissionStatus"
-        );
-
-
-    if (
-        !("Notification" in window)
-    ) {
-
-        if (statusEl) {
-
-            statusEl.innerText =
-                "このブラウザはプッシュ通知に対応していません。";
-
-        }
-
-        return;
-
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        closeFriendModal();
+        closeFriendRequestModal();
     }
+});
 
+document.addEventListener("click", event => {
+    const friendModal = document.getElementById("friendModal");
+    if (friendModal && event.target === friendModal) closeFriendModal();
 
-    if (
-        !("serviceWorker" in navigator)
-    ) {
+    const requestModal = document.getElementById("friendRequestModal");
+    if (requestModal && event.target === requestModal) closeFriendRequestModal();
 
-        if (statusEl) {
+    const enableButton = event.target.closest("#enablePushButton");
+    if (enableButton) enableRealPushNotifications();
 
-            statusEl.innerText =
-                "Service Workerに対応していません。";
+    const disableButton = event.target.closest("#disablePushButton");
+    if (disableButton) disableRealPushNotifications();
+});
 
-        }
+document.addEventListener("DOMContentLoaded", async () => {
+    loadAppState();
+    await registerPushServiceWorker();
+    await updatePushPermissionStatus();
 
-        return;
-
+    if (appState.userName && appState.accountId) {
+        updateUserHeader();
+        renderFriends();
+        renderFriendRequests();
+        switchScreen("dashboard");
+        initJSTBackgroundMonitors();
+        startPolling();
+    } else {
+        switchScreen("login");
     }
-
-
-    if (
-        !window.isSecureContext
-    ) {
-
-        if (statusEl) {
-
-            statusEl.innerText =
-                "HTTPS環境でプッシュ通知を有効にしてください。";
-
-        }
-
-        return;
-
-    }
-
-
-    try {
-
-        const permission =
-            await Notification.requestPermission();
-
-
-        if (
-            permission !== "granted"
-        ) {
-
-            if (statusEl) {
-
-                statusEl.innerText =
-                    "プッシュ通知が許可されていません。";
-
-            }
-
-            return;
-
-        }
-
-
-        const registration =
-            await navigator.serviceWorker.register(
-                "/sw.js"
-            );
-
-
-        await navigator.serviceWorker.ready;
-
-
-        if (!VAPID_PUBLIC_KEY) {
-
-            if (statusEl) {
-
-                statusEl.innerText =
-                    "通知は許可されています。サーバー側Push設定待ちです。";
-
-            }
-
-            return;
-
-        }
-
-
-        const applicationServerKey =
-            urlBase64ToUint8Array(
-                VAPID_PUBLIC_KEY
-            );
-
-
-        const subscription =
-            await registration.pushManager.subscribe({
-
-                userVisibleOnly:
-                    true,
-
-                applicationServerKey:
-                    applicationServerKey
-
-            });
-
-
-        const result =
-            await apiRequest(
-                "/api/push/subscribe",
-                {
-                    method: "POST",
-
-                    body:
-                        JSON.stringify({
-
-                            account_id:
-                                appState.accountId,
-
-                            subscription:
-                                subscription
-
-                        })
-                },
-                20000
-            );
-
-
-        if (!result.ok) {
-
-            throw new Error(
-                result.error ||
-                "Push購読情報の登録に失敗しました。"
-            );
-
-        }
-
-
-        if (statusEl) {
-
-            statusEl.innerText =
-                "本物のプッシュ通知が有効になっています。";
-
-        }
-
-
-    } catch (error) {
-
-        console.error(
-            "Push通知設定エラー:",
-            error
-        );
-
-
-        if (statusEl) {
-
-            statusEl.innerText =
-                `プッシュ通知設定エラー：${error.message || error}`;
-
-        }
-
-    }
-
-}
-
-
-/* =====================================================
-   Base64 → Uint8Array
-===================================================== */
-
-function urlBase64ToUint8Array(
-    base64String
-) {
-
-    const padding =
-        "=".repeat(
-            (4 - base64String.length % 4) % 4
-        );
-
-
-    const base64 =
-        (
-            base64String +
-            padding
-        )
-            .replace(
-                /-/g,
-                "+"
-            )
-            .replace(
-                /_/g,
-                "/"
-            );
-
-
-    const rawData =
-        window.atob(
-            base64
-        );
-
-
-    const outputArray =
-        new Uint8Array(
-            rawData.length
-        );
-
-
-    for (
-        let i = 0;
-        i < rawData.length;
-        ++i
-    ) {
-
-        outputArray[i] =
-            rawData.charCodeAt(i);
-
-    }
-
-
-    return outputArray;
-
-}
-
-
-/* =====================================================
-   HTMLエスケープ
-===================================================== */
-
-function escapeHtml(
-    value
-) {
-
-    return String(value)
-        .replace(
-            /[&<>'"]/g,
-            ch =>
-                ({
-                    "&":
-                        "&amp;",
-
-                    "<":
-                        "&lt;",
-
-                    ">":
-                        "&gt;",
-
-                    "'":
-                        "&#39;",
-
-                    '"':
-                        "&quot;"
-
-                }[ch])
-        );
-
-}
-
-
-/* =====================================================
-   JavaScript文字列エスケープ
-===================================================== */
-
-function escapeJs(
-    value
-) {
-
-    return String(value)
-        .replace(
-            /\\/g,
-            "\\\\"
-        )
-        .replace(
-            /'/g,
-            "\\'"
-        )
-        .replace(
-            /\n/g,
-            "\\n"
-        )
-        .replace(
-            /\r/g,
-            "\\r"
-        );
-
-}
-
-
-/* =====================================================
-   キーボード操作
-===================================================== */
-
-document.addEventListener(
-    "keydown",
-    event => {
-
-        if (
-            event.key ===
-            "Escape"
-        ) {
-
-            closeFriendModal();
-
-            closeFriendRequestModal();
-
-        }
-
-    }
-);
-
-
-/* =====================================================
-   モーダル外クリック
-===================================================== */
-
-document.addEventListener(
-    "click",
-    event => {
-
-        const friendModal =
-            document.getElementById(
-                "friendModal"
-            );
-
-
-        if (
-            friendModal &&
-            event.target ===
-            friendModal
-        ) {
-
-            closeFriendModal();
-
-        }
-
-
-        const requestModal =
-            document.getElementById(
-                "friendRequestModal"
-            );
-
-
-        if (
-            requestModal &&
-            event.target ===
-            requestModal
-        ) {
-
-            closeFriendRequestModal();
-
-        }
-
-    }
-);
-
-
-/* =====================================================
-   初期化
-===================================================== */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    async () => {
-
-        loadAppState();
-
-
-        if (
-            appState.userName &&
-            appState.accountId
-        ) {
-
-            updateUserHeader();
-
-
-            renderFriends();
-
-            renderFriendRequests();
-
-
-            switchScreen(
-                "dashboard"
-            );
-
-
-            initJSTBackgroundMonitors();
-
-
-            startPolling();
-
-
-            /*
-             * Service Workerの登録。
-             */
-
-            if (
-                "serviceWorker" in navigator &&
-                window.isSecureContext
-            ) {
-
-                try {
-
-                    await navigator.serviceWorker.register(
-                        "/sw.js"
-                    );
-
-                } catch (error) {
-
-                    console.warn(
-                        "Service Worker登録失敗:",
-                        error
-                    );
-
-                }
-
-            }
-
-
-        } else {
-
-            switchScreen(
-                "login"
-            );
-
-        }
-
-    }
-);
-
+});
 </script>
 
 </body>
 </html>
-```

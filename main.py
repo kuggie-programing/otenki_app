@@ -1,10 +1,12 @@
 import os
 import json
 import uuid
-import base64
 import hashlib
 import secrets
 import threading
+import time
+import xml.etree.ElementTree as ET
+
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 
@@ -58,9 +60,7 @@ DATA_LOCK = threading.RLock()
 FRIEND_REQUEST_BLOCK_DAYS = 7
 
 MAX_IMAGE_LENGTH = 8 * 1024 * 1024
-
 MAX_NAME_LENGTH = 100
-
 MAX_SECURITY_KEY_LENGTH = 256
 
 
@@ -85,6 +85,49 @@ VAPID_CLAIMS_EMAIL = os.environ.get(
 
 
 # =========================================================
+# 地震情報設定
+# =========================================================
+
+JMA_EQVOL_FEED = (
+    "https://www.data.jma.go.jp/"
+    "developer/xml/feed/eqvol.xml"
+)
+
+EARTHQUAKE_CHECK_INTERVAL = 30
+EARTHQUAKE_MIN_INTENSITY = 3
+MAX_EARTHQUAKE_HISTORY = 500
+
+
+# =========================================================
+# 天気予報監視設定
+# =========================================================
+
+# 10分ごとに天気をチェック
+WEATHER_CHECK_INTERVAL = 600
+
+
+# =========================================================
+# XML名前空間
+# =========================================================
+
+ATOM_NS = {
+    "atom":
+        "http://www.w3.org/2005/Atom"
+}
+
+JMA_NS = {
+    "jmx_ib":
+        "http://xml.kishou.go.jp/jmaxml1/informationBasis1/",
+
+    "jmx_eb":
+        "http://xml.kishou.go.jp/jmaxml1/elementBasis1/",
+
+    "jmx_seis":
+        "http://xml.kishou.go.jp/jmaxml1/body/seismology1/"
+}
+
+
+# =========================================================
 # データ初期値
 # =========================================================
 
@@ -94,7 +137,9 @@ DEFAULT_DATA = {
     "friendships": {},
     "safety_statuses": {},
     "hazard_posts": {},
-    "push_subscriptions": {}
+    "push_subscriptions": {},
+    "earthquake_notifications": [],
+    "last_weather_state": {}
 }
 
 
@@ -103,23 +148,28 @@ DEFAULT_DATA = {
 # =========================================================
 
 def now_utc_iso():
+
     return datetime.now(
         timezone.utc
     ).isoformat()
 
 
 def parse_datetime(value):
+
     if not value:
         return None
 
     try:
+
         return datetime.fromisoformat(
             value.replace(
                 "Z",
                 "+00:00"
             )
         )
+
     except Exception:
+
         return None
 
 
@@ -128,17 +178,23 @@ def parse_datetime(value):
 # =========================================================
 
 def ensure_data_file():
+
     directory = os.path.dirname(
-        os.path.abspath(DATA_FILE)
+        os.path.abspath(
+            DATA_FILE
+        )
     )
 
     if directory:
+
         os.makedirs(
             directory,
             exist_ok=True
         )
 
-    if not os.path.exists(DATA_FILE):
+    if not os.path.exists(
+        DATA_FILE
+    ):
 
         save_data(
             DEFAULT_DATA
@@ -146,6 +202,7 @@ def ensure_data_file():
 
 
 def load_data():
+
     with DATA_LOCK:
 
         ensure_data_file()
@@ -164,30 +221,50 @@ def load_data():
 
             data = {}
 
-        if not isinstance(data, dict):
+        if not isinstance(
+            data,
+            dict
+        ):
+
             data = {}
 
         for key, default in DEFAULT_DATA.items():
 
             if key not in data:
 
-                if isinstance(default, dict):
+                if isinstance(
+                    default,
+                    dict
+                ):
+
                     data[key] = {}
 
+                elif isinstance(
+                    default,
+                    list
+                ):
+
+                    data[key] = []
+
                 else:
+
                     data[key] = default
 
         return data
 
 
 def save_data(data):
+
     with DATA_LOCK:
 
         directory = os.path.dirname(
-            os.path.abspath(DATA_FILE)
+            os.path.abspath(
+                DATA_FILE
+            )
         )
 
         if directory:
+
             os.makedirs(
                 directory,
                 exist_ok=True
@@ -233,11 +310,15 @@ def hash_security_key(
 
 
 def generate_user_id():
+
     return uuid.uuid4().hex
 
 
 def generate_security_key():
-    return secrets.token_urlsafe(32)
+
+    return secrets.token_urlsafe(
+        32
+    )
 
 
 # =========================================================
@@ -274,6 +355,7 @@ def find_user_by_security_key(
 ):
 
     if not security_key:
+
         return None
 
     hashed = hash_security_key(
@@ -294,9 +376,13 @@ def find_user_by_security_key(
             hashed
         ):
 
-            result = dict(user)
+            result = dict(
+                user
+            )
 
-            result["id"] = user_id
+            result["id"] = (
+                user_id
+            )
 
             return result
 
@@ -308,7 +394,10 @@ def require_user(
 ):
 
     @wraps(function)
-    def wrapper(*args, **kwargs):
+    def wrapper(
+        *args,
+        **kwargs
+    ):
 
         security_key = (
             get_request_security_key()
@@ -343,11 +432,16 @@ def require_user(
 def public_user(user):
 
     if not user:
+
         return None
 
     return {
-        "id": user.get("id"),
-        "name": user.get("name"),
+        "id":
+            user.get("id"),
+
+        "name":
+            user.get("name"),
+
         "created_at":
             user.get("created_at")
     }
@@ -360,7 +454,9 @@ def get_user(
 
     return data[
         "users"
-    ].get(user_id)
+    ].get(
+        user_id
+    )
 
 
 def user_exists(
@@ -374,7 +470,7 @@ def user_exists(
 
 
 # =========================================================
-# フレンドシップキー
+# フレンドシップ
 # =========================================================
 
 def friendship_key(
@@ -405,10 +501,13 @@ def are_friends(
 
     friendship = data[
         "friendships"
-    ].get(key)
+    ].get(
+        key
+    )
 
     return bool(
-        friendship and
+        friendship
+        and
         friendship.get(
             "status"
         )
@@ -435,6 +534,7 @@ def get_friend_ids(
             !=
             "accepted"
         ):
+
             continue
 
         a = friendship.get(
@@ -446,10 +546,16 @@ def get_friend_ids(
         )
 
         if a == user_id:
-            result.append(b)
+
+            result.append(
+                b
+            )
 
         elif b == user_id:
-            result.append(a)
+
+            result.append(
+                a
+            )
 
     return result
 
@@ -469,10 +575,13 @@ def request_is_blocked(
     )
 
     if not blocked_until:
+
         return False
 
     return (
-        datetime.now(timezone.utc)
+        datetime.now(
+            timezone.utc
+        )
         <
         blocked_until
     )
@@ -484,11 +593,9 @@ def cleanup_expired_requests(
 
     changed = False
 
-    for request_id, record in list(
-        data[
-            "friend_requests"
-        ].items()
-    ):
+    for record in data[
+        "friend_requests"
+    ].values():
 
         blocked_until = parse_datetime(
             record.get(
@@ -527,9 +634,7 @@ def cleanup_expired_requests(
 # ヘルスチェック
 # =========================================================
 
-@app.get(
-    "/"
-)
+@app.get("/")
 def index():
 
     return jsonify({
@@ -541,9 +646,7 @@ def index():
     })
 
 
-@app.get(
-    "/api/health"
-)
+@app.get("/api/health")
 def health():
 
     return jsonify({
@@ -621,12 +724,12 @@ def register_account():
         )
     )
 
-    for user in data[
+    for existing_user in data[
         "users"
     ].values():
 
         if (
-            user.get(
+            existing_user.get(
                 "security_key_hash"
             )
             ==
@@ -641,9 +744,12 @@ def register_account():
     user_id = generate_user_id()
 
     user = {
-        "name": name,
+        "name":
+            name,
+
         "security_key_hash":
             security_hash,
+
         "created_at":
             now_utc_iso()
     }
@@ -657,11 +763,17 @@ def register_account():
     )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "user": {
-            "id": user_id,
-            "name": name
+            "id":
+                user_id,
+
+            "name":
+                name
         },
+
         "security_key":
             security_key
     })
@@ -724,19 +836,22 @@ def login_account():
         if friend:
 
             friends.append(
-                public_user(
-                    {
-                        **friend,
-                        "id":
-                            friend_id
-                    }
-                )
+                public_user({
+                    **friend,
+                    "id":
+                        friend_id
+                })
             )
 
     return jsonify({
-        "ok": True,
-        "user": public_user(user),
-        "friends": friends
+        "ok":
+            True,
+
+        "user":
+            public_user(user),
+
+        "friends":
+            friends
     })
 
 
@@ -769,22 +884,88 @@ def account_me(
         if friend:
 
             friends.append(
-                public_user(
-                    {
-                        **friend,
-                        "id":
-                            friend_id
-                    }
-                )
+                public_user({
+                    **friend,
+                    "id":
+                        friend_id
+                })
             )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "user":
             public_user(user),
+
         "friends":
             friends
     })
+
+
+# =========================================================
+# 家族・友達リクエスト公開情報
+# =========================================================
+
+def public_request(
+    data,
+    record
+):
+
+    from_user = get_user(
+        data,
+        record.get(
+            "from_user_id"
+        )
+    )
+
+    to_user = get_user(
+        data,
+        record.get(
+            "to_user_id"
+        )
+    )
+
+    return {
+        "id":
+            record.get("id"),
+
+        "status":
+            record.get("status"),
+
+        "created_at":
+            record.get("created_at"),
+
+        "updated_at":
+            record.get("updated_at"),
+
+        "blocked_until":
+            record.get(
+                "blocked_until"
+            ),
+
+        "from":
+            public_user({
+                **from_user,
+                "id":
+                    record.get(
+                        "from_user_id"
+                    )
+            })
+            if from_user
+            else None,
+
+        "to":
+            public_user({
+                **to_user,
+                "id":
+                    record.get(
+                        "to_user_id"
+                    )
+            })
+            if to_user
+            else None
+    }
 
 
 # =========================================================
@@ -817,11 +998,7 @@ def send_friend_request(
                 "追加する人の表示名を入力してください。"
         }), 400
 
-    if (
-        len(target_name)
-        >
-        MAX_NAME_LENGTH
-    ):
+    if len(target_name) > MAX_NAME_LENGTH:
 
         return jsonify({
             "error":
@@ -843,6 +1020,7 @@ def send_friend_request(
         if candidate_id == user[
             "id"
         ]:
+
             continue
 
         if (
@@ -872,7 +1050,6 @@ def send_friend_request(
                 "すでに家族・友達として接続されています。"
         }), 409
 
-    # 同じ2人の既存リクエストを確認
     existing = None
 
     for record_id, record in data[
@@ -880,17 +1057,29 @@ def send_friend_request(
     ].items():
 
         if (
-            record.get("from_user_id")
-            == user["id"]
+            record.get(
+                "from_user_id"
+            )
+            ==
+            user["id"]
             and
-            record.get("to_user_id")
-            == target_id
+            record.get(
+                "to_user_id"
+            )
+            ==
+            target_id
         ) or (
-            record.get("from_user_id")
-            == target_id
+            record.get(
+                "from_user_id"
+            )
+            ==
+            target_id
             and
-            record.get("to_user_id")
-            == user["id"]
+            record.get(
+                "to_user_id"
+            )
+            ==
+            user["id"]
         ):
 
             existing = (
@@ -913,11 +1102,9 @@ def send_friend_request(
                     "この相手からのリクエストは現在無効化されています。"
             }), 403
 
-        status = record.get(
+        if record.get(
             "status"
-        )
-
-        if status in (
+        ) in (
             "pending",
             "accepted"
         ):
@@ -968,7 +1155,9 @@ def send_friend_request(
     )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "request":
             public_request(
                 data,
@@ -978,76 +1167,7 @@ def send_friend_request(
 
 
 # =========================================================
-# リクエスト公開情報
-# =========================================================
-
-def public_request(
-    data,
-    record
-):
-
-    from_user = get_user(
-        data,
-        record.get(
-            "from_user_id"
-        )
-    )
-
-    to_user = get_user(
-        data,
-        record.get(
-            "to_user_id"
-        )
-    )
-
-    return {
-        "id":
-            record.get("id"),
-
-        "status":
-            record.get("status"),
-
-        "created_at":
-            record.get("created_at"),
-
-        "updated_at":
-            record.get("updated_at"),
-
-        "blocked_until":
-            record.get(
-                "blocked_until"
-            ),
-
-        "from":
-            public_user(
-                {
-                    **from_user,
-                    "id":
-                        record.get(
-                            "from_user_id"
-                        )
-                }
-            )
-            if from_user
-            else None,
-
-        "to":
-            public_user(
-                {
-                    **to_user,
-                    "id":
-                        record.get(
-                            "to_user_id"
-                        )
-                }
-            )
-            if to_user
-            else None
-    }
-
-
-# =========================================================
-# 受信リクエスト
+# 受信・送信リクエスト一覧
 # =========================================================
 
 @app.get(
@@ -1065,7 +1185,10 @@ def get_friend_requests(
     )
 
     if changed:
-        save_data(data)
+
+        save_data(
+            data
+        )
 
     received = []
     sent = []
@@ -1083,7 +1206,8 @@ def get_friend_requests(
             ) in (
                 "pending",
                 "expired",
-                "cancelled"
+                "cancelled",
+                "rejected"
             ):
 
                 received.append(
@@ -1105,9 +1229,12 @@ def get_friend_requests(
             )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "received":
             received,
+
         "sent":
             sent
     })
@@ -1130,7 +1257,9 @@ def accept_friend_request(
 
     record = data[
         "friend_requests"
-    ].get(request_id)
+    ].get(
+        request_id
+    )
 
     if not record:
 
@@ -1223,17 +1352,18 @@ def accept_friend_request(
         )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "message":
             "家族・友達として接続しました。",
+
         "friend":
-            public_user(
-                {
-                    **other,
-                    "id":
-                        from_user_id
-                }
-            )
+            public_user({
+                **other,
+                "id":
+                    from_user_id
+            })
             if other
             else None
     })
@@ -1256,7 +1386,9 @@ def reject_friend_request(
 
     record = data[
         "friend_requests"
-    ].get(request_id)
+    ].get(
+        request_id
+    )
 
     if not record:
 
@@ -1307,7 +1439,8 @@ def reject_friend_request(
     )
 
     return jsonify({
-        "ok": True
+        "ok":
+            True
     })
 
 
@@ -1328,7 +1461,9 @@ def cancel_friend_request(
 
     record = data[
         "friend_requests"
-    ].get(request_id)
+    ].get(
+        request_id
+    )
 
     if not record:
 
@@ -1394,7 +1529,9 @@ def cancel_friend_request(
     )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "blocked_until":
             blocked_until.isoformat()
     })
@@ -1429,17 +1566,17 @@ def get_friends(
         if friend:
 
             result.append(
-                public_user(
-                    {
-                        **friend,
-                        "id":
-                            friend_id
-                    }
-                )
+                public_user({
+                    **friend,
+                    "id":
+                        friend_id
+                })
             )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "friends":
             result
     })
@@ -1502,7 +1639,8 @@ def remove_friend(
         )
 
     return jsonify({
-        "ok": True
+        "ok":
+            True
     })
 
 
@@ -1575,11 +1713,15 @@ def send_safety(
     label = {
         "safe":
             "元気です",
+
         "messy":
             "被害あり",
+
         "sos":
             "緊急SOS"
-    }[status]
+    }[
+        status
+    ]
 
     for friend_id in get_friend_ids(
         data,
@@ -1594,7 +1736,9 @@ def send_safety(
         )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "status":
             record
     })
@@ -1651,14 +1795,16 @@ def get_safety(
     )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "statuses":
             statuses
     })
 
 
 # =========================================================
-# 危険情報
+# 危険情報投稿
 # =========================================================
 
 @app.post(
@@ -1719,16 +1865,6 @@ def create_hazard(
                     "画像サイズが大きすぎます。"
             }), 400
 
-    # -----------------------------------------------------
-    # 重要
-    #
-    # ここで受け取る latitude / longitude は
-    # 「危険箇所そのもの」の位置。
-    #
-    # ユーザーの現在位置を保存したり、
-    # 定期的に追跡したりする処理は存在しない。
-    # -----------------------------------------------------
-
     latitude = body.get(
         "latitude"
     )
@@ -1744,16 +1880,19 @@ def create_hazard(
     try:
 
         if latitude is not None:
+
             latitude = float(
                 latitude
             )
 
         if longitude is not None:
+
             longitude = float(
                 longitude
             )
 
         if accuracy is not None:
+
             accuracy = float(
                 accuracy
             )
@@ -1770,8 +1909,10 @@ def create_hazard(
         and
         not (
             -90
-            <= latitude
-            <= 90
+            <=
+            latitude
+            <=
+            90
         )
     ):
 
@@ -1785,8 +1926,10 @@ def create_hazard(
         and
         not (
             -180
-            <= longitude
-            <= 180
+            <=
+            longitude
+            <=
+            180
         )
     ):
 
@@ -1849,7 +1992,9 @@ def create_hazard(
         )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "post":
             record
     })
@@ -1906,7 +2051,9 @@ def get_hazards(
     )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
+
         "posts":
             posts
     })
@@ -1939,6 +2086,7 @@ def normalize_push_subscription(
     )
 
     if not endpoint:
+
         return None
 
     if not isinstance(
@@ -1963,6 +2111,7 @@ def normalize_push_subscription(
     ).strip()
 
     if not p256dh or not auth:
+
         return None
 
     return {
@@ -2012,7 +2161,9 @@ def push_subscribe(
 
     data = load_data()
 
-    user_id = user["id"]
+    user_id = user[
+        "id"
+    ]
 
     if user_id not in data[
         "push_subscriptions"
@@ -2035,7 +2186,9 @@ def push_subscribe(
         for x in subscriptions
         if x.get(
             "endpoint"
-        ) != endpoint
+        )
+        !=
+        endpoint
     ]
 
     subscriptions.append(
@@ -2051,7 +2204,8 @@ def push_subscribe(
     )
 
     return jsonify({
-        "ok": True
+        "ok":
+            True
     })
 
 
@@ -2099,7 +2253,9 @@ def push_unsubscribe(
         for x in subscriptions
         if x.get(
             "endpoint"
-        ) != endpoint
+        )
+        !=
+        endpoint
     ]
 
     data[
@@ -2111,7 +2267,8 @@ def push_unsubscribe(
     )
 
     return jsonify({
-        "ok": True
+        "ok":
+            True
     })
 
 
@@ -2123,13 +2280,15 @@ def notify_user(
     data,
     user_id,
     title,
-    message
+    message,
+    extra_data=None
 ):
 
     if not webpush:
 
         print(
-            "pywebpushがインストールされていないためPushを送信できません。"
+            "pywebpushがインストールされていないためPushを送信できません。",
+            flush=True
         )
 
         return
@@ -2137,7 +2296,8 @@ def notify_user(
     if not VAPID_PRIVATE_KEY:
 
         print(
-            "VAPID_PRIVATE_KEYが設定されていないためPushを送信できません。"
+            "VAPID_PRIVATE_KEYが設定されていないためPushを送信できません。",
+            flush=True
         )
 
         return
@@ -2150,19 +2310,31 @@ def notify_user(
     )
 
     if not subscriptions:
+
         return
 
+    payload_data = {
+        "title":
+            title,
+
+        "body":
+            message,
+
+        "timestamp":
+            now_utc_iso()
+    }
+
+    if isinstance(
+        extra_data,
+        dict
+    ):
+
+        payload_data.update(
+            extra_data
+        )
+
     payload = json.dumps(
-        {
-            "title":
-                title,
-
-            "body":
-                message,
-
-            "timestamp":
-                now_utc_iso()
-        },
+        payload_data,
         ensure_ascii=False
     )
 
@@ -2196,7 +2368,8 @@ def notify_user(
 
             print(
                 "Web Push送信エラー:",
-                error
+                error,
+                flush=True
             )
 
             response = getattr(
@@ -2211,7 +2384,6 @@ def notify_user(
                 None
             )
 
-            # 購読が無効になった場合は削除
             if status_code in (
                 404,
                 410
@@ -2227,7 +2399,8 @@ def notify_user(
 
             print(
                 "Web Push送信エラー:",
-                error
+                error,
+                flush=True
             )
 
             valid_subscriptions.append(
@@ -2243,6 +2416,900 @@ def notify_user(
     save_data(
         data
     )
+
+
+def notify_all_users(
+    data,
+    title,
+    message,
+    extra_data=None
+):
+
+    user_ids = list(
+        data[
+            "users"
+        ].keys()
+    )
+
+    for user_id in user_ids:
+
+        notify_user(
+            data,
+            user_id,
+            title,
+            message,
+            extra_data
+        )
+
+
+# =========================================================
+# 地震情報XML
+# =========================================================
+
+def get_xml_text(
+    element,
+    path,
+    namespaces=None
+):
+
+    if element is None:
+
+        return ""
+
+    value = element.findtext(
+        path,
+        default="",
+        namespaces=namespaces
+    )
+
+    return (
+        value or ""
+    ).strip()
+
+
+def parse_intensity(
+    value
+):
+
+    if value is None:
+
+        return None
+
+    value = str(
+        value
+    ).strip()
+
+    intensity_map = {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5-": 5,
+        "5弱": 5,
+        "5+": 5,
+        "5強": 5,
+        "6-": 6,
+        "6弱": 6,
+        "6+": 6,
+        "6強": 6,
+        "7": 7
+    }
+
+    if value in intensity_map:
+
+        return intensity_map[
+            value
+        ]
+
+    try:
+
+        return int(
+            value
+        )
+
+    except Exception:
+
+        return None
+
+
+def parse_jma_earthquake_xml(
+    url
+):
+
+    response = requests.get(
+        url,
+        timeout=15
+    )
+
+    response.raise_for_status()
+
+    root = ET.fromstring(
+        response.content
+    )
+
+    head = root.find(
+        ".//jmx_ib:Head",
+        JMA_NS
+    )
+
+    if head is None:
+
+        return None
+
+    title = get_xml_text(
+        head,
+        "jmx_ib:Title",
+        JMA_NS
+    )
+
+    report_datetime = get_xml_text(
+        head,
+        "jmx_ib:ReportDateTime",
+        JMA_NS
+    )
+
+    info_kind = get_xml_text(
+        head,
+        "jmx_ib:InfoKind",
+        JMA_NS
+    )
+
+    info_type = get_xml_text(
+        head,
+        "jmx_ib:InfoType",
+        JMA_NS
+    )
+
+    headline = get_xml_text(
+        head,
+        "jmx_ib:Headline/jmx_eb:Text",
+        JMA_NS
+    )
+
+    body = root.find(
+        ".//jmx_eb:Body",
+        JMA_NS
+    )
+
+    if body is None:
+
+        return None
+
+    earthquake = body.find(
+        ".//jmx_seis:Earthquake",
+        JMA_NS
+    )
+
+    if earthquake is None:
+
+        earthquake = body.find(
+            ".//Earthquake"
+        )
+
+    if earthquake is None:
+
+        return None
+
+    origin_time = get_xml_text(
+        earthquake,
+        "jmx_seis:OriginTime",
+        JMA_NS
+    )
+
+    hypocenter = earthquake.find(
+        ".//jmx_seis:Hypocenter",
+        JMA_NS
+    )
+
+    if hypocenter is None:
+
+        hypocenter = earthquake.find(
+            ".//Hypocenter"
+        )
+
+    place_name = ""
+
+    latitude = None
+    longitude = None
+    depth = None
+
+    if hypocenter is not None:
+
+        place_name = get_xml_text(
+            hypocenter,
+            ".//jmx_seis:Area/jmx_eb:Name",
+            JMA_NS
+        )
+
+        if not place_name:
+
+            place_name = get_xml_text(
+                hypocenter,
+                ".//jmx_eb:Name",
+                JMA_NS
+            )
+
+        coordinate = get_xml_text(
+            hypocenter,
+            ".//jmx_seis:Area/jmx_eb:Coordinate",
+            JMA_NS
+        )
+
+        if coordinate:
+
+            parts = coordinate.split()
+
+            try:
+
+                if len(parts) >= 2:
+
+                    latitude = parts[0]
+                    longitude = parts[1]
+
+            except Exception:
+
+                pass
+
+        depth_text = get_xml_text(
+            hypocenter,
+            ".//jmx_seis:Area/jmx_eb:Depth",
+            JMA_NS
+        )
+
+        if depth_text:
+
+            depth = depth_text
+
+    magnitude = None
+
+    magnitude_text = get_xml_text(
+        earthquake,
+        ".//jmx_seis:Magnitude",
+        JMA_NS
+    )
+
+    if magnitude_text:
+
+        try:
+
+            magnitude = float(
+                magnitude_text
+            )
+
+        except Exception:
+
+            magnitude = magnitude_text
+
+    max_intensity = None
+
+    for intensity in root.findall(
+        ".//jmx_seis:Intensity",
+        JMA_NS
+    ):
+
+        for child in intensity.iter():
+
+            tag = child.tag.split(
+                "}"
+            )[-1]
+
+            if tag.lower() in (
+                "maxintensity",
+                "maxint"
+            ):
+
+                parsed = parse_intensity(
+                    child.text
+                )
+
+                if parsed is not None:
+
+                    if (
+                        max_intensity is None
+                        or
+                        parsed > max_intensity
+                    ):
+
+                        max_intensity = parsed
+
+    text_pool = " ".join([
+        title,
+        headline,
+        info_kind,
+        info_type
+    ])
+
+    for value in (
+        "7",
+        "6強",
+        "6弱",
+        "5強",
+        "5弱",
+        "4",
+        "3",
+        "2",
+        "1"
+    ):
+
+        if (
+            f"震度{value}"
+            in
+            text_pool
+        ):
+
+            parsed = parse_intensity(
+                value
+            )
+
+            if parsed is not None:
+
+                if (
+                    max_intensity is None
+                    or
+                    parsed > max_intensity
+                ):
+
+                    max_intensity = parsed
+
+    event_id = ""
+
+    event_id_element = root.find(
+        ".//jmx_ib:EventID",
+        JMA_NS
+    )
+
+    if event_id_element is not None:
+
+        event_id = (
+            event_id_element.text
+            or
+            ""
+        ).strip()
+
+    if not event_id:
+
+        event_id = url
+
+    return {
+        "event_id":
+            event_id,
+
+        "title":
+            title,
+
+        "report_datetime":
+            report_datetime,
+
+        "info_kind":
+            info_kind,
+
+        "info_type":
+            info_type,
+
+        "headline":
+            headline,
+
+        "origin_time":
+            origin_time,
+
+        "place_name":
+            place_name,
+
+        "latitude":
+            latitude,
+
+        "longitude":
+            longitude,
+
+        "depth":
+            depth,
+
+        "magnitude":
+            magnitude,
+
+        "max_intensity":
+            max_intensity,
+
+        "url":
+            url
+    }
+
+
+def fetch_jma_earthquake_feed():
+
+    response = requests.get(
+        JMA_EQVOL_FEED,
+        timeout=15,
+        headers={
+            "User-Agent":
+                "OtenkiApp/1.0 earthquake-monitor"
+        }
+    )
+
+    response.raise_for_status()
+
+    return ET.fromstring(
+        response.content
+    )
+
+
+def get_jma_feed_entries():
+
+    root = fetch_jma_earthquake_feed()
+
+    entries = []
+
+    for entry in root.findall(
+        "atom:entry",
+        ATOM_NS
+    ):
+
+        title = get_xml_text(
+            entry,
+            "atom:title",
+            ATOM_NS
+        )
+
+        entry_id = get_xml_text(
+            entry,
+            "atom:id",
+            ATOM_NS
+        )
+
+        link_element = entry.find(
+            "atom:link",
+            ATOM_NS
+        )
+
+        link = ""
+
+        if link_element is not None:
+
+            link = (
+                link_element.get(
+                    "href",
+                    ""
+                )
+                or
+                ""
+            ).strip()
+
+        updated = get_xml_text(
+            entry,
+            "atom:updated",
+            ATOM_NS
+        )
+
+        if not entry_id:
+
+            entry_id = link
+
+        if not link:
+
+            continue
+
+        entries.append({
+            "id":
+                entry_id,
+
+            "title":
+                title,
+
+            "link":
+                link,
+
+            "updated":
+                updated
+        })
+
+    return entries
+
+
+def earthquake_should_notify(
+    earthquake
+):
+
+    if not earthquake:
+
+        return False
+
+    intensity = (
+        earthquake.get(
+            "max_intensity"
+        )
+    )
+
+    if intensity is not None:
+
+        return (
+            intensity
+            >=
+            EARTHQUAKE_MIN_INTENSITY
+        )
+
+    title = (
+        earthquake.get(
+            "title",
+            ""
+        )
+    )
+
+    if title == "震度速報":
+
+        return True
+
+    return False
+
+
+def earthquake_message(
+    earthquake
+):
+
+    place = (
+        earthquake.get(
+            "place_name"
+        )
+        or
+        "震源地不明"
+    )
+
+    magnitude = (
+        earthquake.get(
+            "magnitude"
+        )
+    )
+
+    intensity = (
+        earthquake.get(
+            "max_intensity"
+        )
+    )
+
+    parts = [
+        f"{place}で地震が発生しました。"
+    ]
+
+    if magnitude is not None:
+
+        parts.append(
+            f"M{magnitude}"
+        )
+
+    if intensity is not None:
+
+        parts.append(
+            f"最大震度{intensity}"
+        )
+
+    parts.append(
+        "安全を確認してください。"
+    )
+
+    return " ".join(
+        parts
+    )
+
+
+def process_earthquake_entry(
+    entry
+):
+
+    data = load_data()
+
+    event_id = (
+        entry.get(
+            "id"
+        )
+        or
+        entry.get(
+            "link"
+        )
+    )
+
+    if not event_id:
+
+        return False
+
+    history = data[
+        "earthquake_notifications"
+    ]
+
+    if event_id in history:
+
+        return False
+
+    try:
+
+        earthquake = (
+            parse_jma_earthquake_xml(
+                entry["link"]
+            )
+        )
+
+    except Exception as error:
+
+        print(
+            "地震XML解析エラー:",
+            error,
+            flush=True
+        )
+
+        return False
+
+    if not earthquake:
+
+        return False
+
+    history.append(
+        event_id
+    )
+
+    if len(history) > MAX_EARTHQUAKE_HISTORY:
+
+        del history[
+            :-
+            MAX_EARTHQUAKE_HISTORY
+        ]
+
+    save_data(
+        data
+    )
+
+    if not earthquake_should_notify(
+        earthquake
+    ):
+
+        return False
+
+    message = earthquake_message(
+        earthquake
+    )
+
+    notify_all_users(
+        data,
+        "地震情報",
+        message,
+        {
+            "type":
+                "earthquake",
+
+            "event_id":
+                earthquake.get(
+                    "event_id"
+                ),
+
+            "place_name":
+                earthquake.get(
+                    "place_name"
+                ),
+
+            "magnitude":
+                earthquake.get(
+                    "magnitude"
+                ),
+
+            "max_intensity":
+                earthquake.get(
+                    "max_intensity"
+                )
+        }
+    )
+
+    return True
+
+
+def earthquake_monitor_loop():
+
+    print(
+        "地震情報監視を開始します。",
+        flush=True
+    )
+
+    while True:
+
+        try:
+
+            entries = (
+                get_jma_feed_entries()
+            )
+
+            for entry in entries[
+                :10
+            ]:
+
+                try:
+
+                    process_earthquake_entry(
+                        entry
+                    )
+
+                except Exception as error:
+
+                    print(
+                        "地震エントリー処理エラー:",
+                        error,
+                        flush=True
+                    )
+
+        except Exception as error:
+
+            print(
+                "地震情報取得エラー:",
+                error,
+                flush=True
+            )
+
+        time.sleep(
+            EARTHQUAKE_CHECK_INTERVAL
+        )
+
+
+def start_earthquake_monitor():
+
+    thread = threading.Thread(
+        target=
+            earthquake_monitor_loop,
+
+        name=
+            "earthquake-monitor",
+
+        daemon=True
+    )
+
+    thread.start()
+
+    return thread
+
+
+# =========================================================
+# 天気予報監視・自動通知ループ（新機能）
+# =========================================================
+
+def check_weather_and_notify():
+
+    if not OPENWEATHER_API_KEY:
+        return
+
+    params = {
+        "lat": OPENWEATHER_LAT,
+        "lon": OPENWEATHER_LON,
+        "appid": OPENWEATHER_API_KEY,
+        "units": "metric",
+        "lang": "ja"
+    }
+
+    try:
+        response = requests.get(
+            "https://api.openweathermap.org/data/2.5/weather",
+            params=params,
+            timeout=10
+        )
+        if not response.ok:
+            return
+        
+        weather_data = response.json()
+    except Exception as error:
+        print("天気監視取得エラー:", error, flush=True)
+        return
+
+    weather_list = weather_data.get("weather", [])
+    if not weather_list:
+        return
+
+    current_weather = weather_list[0].get("description", "不明")
+    main_info = weather_data.get("main", {})
+    temp = main_info.get("temp")
+    city = weather_data.get("name", "天草市")
+
+    data = load_data()
+    last_state = data.get("last_weather_state", {})
+
+    last_weather = last_state.get("description", "")
+    
+    # 初回または天候に変化があった場合
+    if last_weather and last_weather != current_weather:
+        message = f"{city}の天気予報が「{current_weather}」に変わりました。（気温: {temp}°C）"
+        
+        # もし雨や雪などの荒天に変わった場合は特別メッセージ
+        if "雨" in current_weather or "雪" in current_weather or "雷" in current_weather:
+            message = f"【お天気警報】{city}で「{current_weather}」が確認されました。傘の準備をしてください！"
+
+        print("天気変更Push通知送信:", message, flush=True)
+        notify_all_users(
+            data,
+            "天気予報の更新",
+            message,
+            {
+                "type": "weather_update",
+                "weather": current_weather,
+                "temperature": temp
+            }
+        )
+
+    # 状態を保存
+    data["last_weather_state"] = {
+        "description": current_weather,
+        "temperature": temp,
+        "updated_at": now_utc_iso()
+    }
+    save_data(data)
+
+
+def weather_monitor_loop():
+
+    print(
+        "天気予報監視を開始します。",
+        flush=True
+    )
+
+    while True:
+
+        try:
+
+            check_weather_and_notify()
+
+        except Exception as error:
+
+            print(
+                "天気監視ループエラー:",
+                error,
+                flush=True
+            )
+
+        time.sleep(
+            WEATHER_CHECK_INTERVAL
+        )
+
+
+def start_weather_monitor():
+
+    thread = threading.Thread(
+        target=
+            weather_monitor_loop,
+
+        name=
+            "weather-monitor",
+
+        daemon=True
+    )
+
+    thread.start()
+
+    return thread
+
+
+# =========================================================
+# 手動地震Pushテスト
+# =========================================================
+
+@app.post(
+    "/api/admin/test-earthquake"
+)
+@require_user
+def test_earthquake_push(
+    user
+):
+
+    data = load_data()
+
+    notify_user(
+        data,
+        user["id"],
+        "地震情報テスト",
+        "これはWeb Pushのテスト通知です。",
+        {
+            "type":
+                "earthquake_test"
+        }
+    )
+
+    return jsonify({
+        "ok":
+            True,
+
+        "message":
+            "テストPush送信処理を実行しました。"
+    })
 
 
 # =========================================================
@@ -2344,7 +3411,8 @@ def get_weather():
     )
 
     return jsonify({
-        "ok": True,
+        "ok":
+            True,
 
         "city":
             weather_data.get(
@@ -2390,6 +3458,31 @@ def get_weather():
 
         "fetched_at":
             now_utc_iso()
+    })
+
+
+# =========================================================
+# VAPID公開鍵
+# =========================================================
+
+@app.get(
+    "/api/push/public-key"
+)
+def get_push_public_key():
+
+    if not VAPID_PUBLIC_KEY:
+
+        return jsonify({
+            "error":
+                "VAPID_PUBLIC_KEYが設定されていません。"
+        }), 500
+
+    return jsonify({
+        "ok":
+            True,
+
+        "public_key":
+            VAPID_PUBLIC_KEY
     })
 
 
@@ -2472,6 +3565,20 @@ if __name__ == "__main__":
     )
 
     print(
+        "VAPID_PUBLIC_KEY:",
+        "設定済み"
+        if VAPID_PUBLIC_KEY
+        else "未設定"
+    )
+
+    print(
+        "VAPID_PRIVATE_KEY:",
+        "設定済み"
+        if VAPID_PRIVATE_KEY
+        else "未設定"
+    )
+
+    print(
         "Web Push:",
         "設定済み"
         if (
@@ -2483,16 +3590,38 @@ if __name__ == "__main__":
     )
 
     print(
+        "地震情報:",
+        "監視開始"
+    )
+
+    print(
+        "天気予報監視:",
+        "監視開始（10分おき）"
+    )
+
+    print(
+        "現在位置追跡:",
+        "実装なし"
+    )
+
+    print(
         "========================================"
     )
 
+    start_earthquake_monitor()
+    start_weather_monitor()
+
     app.run(
         host="0.0.0.0",
+
         port=int(
             os.environ.get(
                 "PORT",
                 5000
             )
         ),
-        debug=False
+
+        debug=False,
+
+        use_reloader=False
     )
