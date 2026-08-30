@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>おてんきアプリ</title>
+    <title>防災アプリ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html, body {
@@ -143,6 +143,11 @@
                 <h3 class="font-black text-slate-800">家族・友達を追加</h3>
                 <p class="text-xs text-slate-500 mt-1">表示名を入力してリクエストを送信</p>
             </button>
+            <button onclick="openQuizScreen()" class="bg-white hover:bg-yellow-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">🧠</div>
+                <h3 class="font-black text-slate-800">防災・天気クイズ</h3>
+                <p class="text-xs text-slate-500 mt-1">クイズで楽しく防災・天気を学ぶ</p>
+            </button>
         </div>
 
         <!-- 接続状態 & プッシュ通知設定 -->
@@ -249,6 +254,29 @@
     </div>
 </section>
 
+<!-- クイズ -->
+<section id="screen-quiz" class="screen hidden px-5 py-7">
+    <div class="max-w-2xl mx-auto">
+        <button onclick="switchScreen('dashboard')" class="mb-4 text-xs font-bold text-sky-600">← ダッシュボードへ戻る</button>
+        <div class="bg-white/95 rounded-3xl border border-white shadow-lg p-6">
+            <div class="flex justify-between items-start gap-3">
+                <div>
+                    <p class="text-xs text-amber-500 font-black">防災・天気</p>
+                    <h2 class="text-2xl font-black text-slate-800">🧠 クイズ</h2>
+                </div>
+                <span id="quizProgress" class="text-xs font-bold text-slate-400">-- / --</span>
+            </div>
+            <div id="quizLoading" class="mt-6 text-sm text-slate-500">問題を読み込んでいます...</div>
+            <div id="quizArea" class="hidden mt-6">
+                <p id="quizQuestion" class="text-base font-black text-slate-800 whitespace-pre-line leading-relaxed"></p>
+                <div id="quizChoices" class="grid gap-3 mt-5"></div>
+                <div id="quizAnswerBox" class="hidden mt-5 rounded-2xl p-4 text-sm whitespace-pre-line"></div>
+                <button id="quizNextBtn" onclick="nextQuizQuestion()" class="hidden mt-4 w-full bg-amber-500 hover:bg-amber-600 text-white rounded-2xl py-3 font-black">次の問題へ →</button>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- 危険情報 -->
 <section id="screen-hazard" class="screen hidden px-5 py-7">
     <div class="max-w-4xl mx-auto">
@@ -259,19 +287,69 @@
                     <h2 class="text-2xl font-black">⚠️ 危険情報</h2>
                     <p class="text-xs text-slate-500 mt-1">危険箇所を画像・メッセージ・危険箇所の場所付きで共有します。</p>
                 </div>
-                <button onclick="triggerImageUpload()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-2xl font-black text-xs">📷 投稿</button>
+                <button onclick="openHazardPostModal()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-2xl font-black text-xs">＋ 投稿</button>
             </div>
             <div class="mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-3">
                 <p class="text-[10px] text-amber-900 leading-relaxed">
-                    ※位置情報は投稿した危険箇所の位置です。<br>あなた自身の現在位置や移動履歴を共有・追跡する機能ではありません。
+                    写真はなくても投稿できます。場所はGPSまたは「○○周辺」の大まかな地域から選べます。<br>現在位置や移動履歴を継続して追跡する機能ではありません。
                 </p>
             </div>
-            <input id="hazardImageInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelected(event)">
+            <input id="hazardImageInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="previewHazardImage(event)">
             <div id="hazardSyncStatus" class="mt-4 text-[10px] text-slate-400">同期中...</div>
             <div id="hazardPostList" class="space-y-4 mt-4"></div>
         </div>
     </div>
 </section>
+
+<!-- 危険情報投稿モーダル -->
+<div id="hazardPostModal" class="hidden fixed inset-0 z-[105] modal-backdrop flex items-center justify-center px-5">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <h2 class="text-xl font-black text-slate-800">⚠️ 危険情報を投稿</h2>
+        <p class="text-xs text-slate-500 mt-1">写真なしでも投稿できます。</p>
+
+        <label class="block text-xs font-black text-slate-700 mt-5">内容</label>
+        <textarea id="hazardTextInput" rows="3" maxlength="2000" placeholder="例：道路に大きなひび割れがあります" class="w-full mt-2 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-300"></textarea>
+
+        <label class="block text-xs font-black text-slate-700 mt-4">写真（任意）</label>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+            <button onclick="triggerImageUpload()" class="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl py-2 text-xs font-bold">📷 写真を選ぶ</button>
+            <button onclick="clearHazardImage()" class="bg-slate-100 border border-slate-200 text-slate-600 rounded-xl py-2 text-xs font-bold">写真なし</button>
+        </div>
+        <div id="hazardImagePreviewWrap" class="hidden mt-3">
+            <img id="hazardImagePreview" class="w-full max-h-44 object-cover rounded-xl" alt="投稿写真のプレビュー">
+        </div>
+
+        <label class="block text-xs font-black text-slate-700 mt-4">場所</label>
+        <select id="hazardLocationMode" onchange="updateHazardLocationMode()" class="w-full mt-2 border border-slate-200 rounded-2xl px-4 py-3 bg-white">
+            <option value="area">大まかな地域から選ぶ</option>
+            <option value="gps">今いる場所のGPSを使う</option>
+            <option value="none">場所を付けない</option>
+        </select>
+
+        <div id="hazardAreaSelectWrap" class="mt-3">
+            <select id="hazardAreaSelect" class="w-full border border-slate-200 rounded-2xl px-4 py-3 bg-white">
+                <option value="本渡周辺">本渡周辺</option>
+                <option value="牛深周辺">牛深周辺</option>
+                <option value="五和周辺">五和周辺</option>
+                <option value="天草町周辺">天草町周辺</option>
+                <option value="河浦周辺">河浦周辺</option>
+                <option value="有明周辺">有明周辺</option>
+                <option value="倉岳周辺">倉岳周辺</option>
+                <option value="栖本周辺">栖本周辺</option>
+                <option value="新和周辺">新和周辺</option>
+                <option value="御所浦周辺">御所浦周辺</option>
+                <option value="その他・天草市内">その他・天草市内</option>
+            </select>
+        </div>
+        <div id="hazardGpsInfo" class="hidden mt-3 text-[10px] text-slate-500">投稿時に位置情報の許可を確認します。</div>
+
+        <div id="hazardPostError" class="hidden mt-4 text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700"></div>
+        <div class="grid grid-cols-2 gap-3 mt-5">
+            <button onclick="closeHazardPostModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold">キャンセル</button>
+            <button id="hazardSubmitBtn" onclick="submitHazardPost()" class="bg-orange-500 hover:bg-orange-600 text-white rounded-2xl py-3 font-black">投稿する</button>
+        </div>
+    </div>
+</div>
 
 <!-- 家族・友達追加モーダル -->
 <div id="friendModal" class="hidden fixed inset-0 z-[100] modal-backdrop flex items-center justify-center px-5">
@@ -341,6 +419,10 @@ let jstMonitorStarted = false;
 let lastNotifiedKey = "";
 let currentFriendRequest = null;
 let pushServiceWorkerRegistration = null;
+let quizQuestions = [];
+let quizIndex = 0;
+let quizAnswered = false;
+let selectedHazardImage = "";
 
 const appState = {
     userName: "",
@@ -453,6 +535,7 @@ function switchScreen(screenId) {
     }
     window.scrollTo(0, 0);
 
+    if (screenId === "quiz") loadQuizIfNeeded();
     if (screenId === "weather") fetchRealWeatherWithJST();
     if (screenId === "safety") pollSafety();
     if (screenId === "hazard") pollHazard();
@@ -1044,8 +1127,45 @@ async function sendSafety(type) {
 /* =====================================================
    危険情報投稿
 ===================================================== */
+function openHazardPostModal() {
+    document.getElementById("hazardPostError")?.classList.add("hidden");
+    document.getElementById("hazardPostModal")?.classList.remove("hidden");
+    updateHazardLocationMode();
+}
+
+function closeHazardPostModal() {
+    document.getElementById("hazardPostModal")?.classList.add("hidden");
+}
+
 function triggerImageUpload() {
     document.getElementById("hazardImageInput")?.click();
+}
+
+function clearHazardImage() {
+    selectedHazardImage = "";
+    const input = document.getElementById("hazardImageInput");
+    if (input) input.value = "";
+    document.getElementById("hazardImagePreviewWrap")?.classList.add("hidden");
+}
+
+async function previewHazardImage(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+        selectedHazardImage = await compressImage(file);
+        const preview = document.getElementById("hazardImagePreview");
+        if (preview) preview.src = selectedHazardImage;
+        document.getElementById("hazardImagePreviewWrap")?.classList.remove("hidden");
+    } catch (error) {
+        selectedHazardImage = "";
+        alert("画像の読み込みに失敗しました。");
+    }
+}
+
+function updateHazardLocationMode() {
+    const mode = document.getElementById("hazardLocationMode")?.value || "area";
+    document.getElementById("hazardAreaSelectWrap")?.classList.toggle("hidden", mode !== "area");
+    document.getElementById("hazardGpsInfo")?.classList.toggle("hidden", mode !== "gps");
 }
 
 function compressImage(file, maxWidth = 1280, quality = 0.78) {
@@ -1078,66 +1198,90 @@ function compressImage(file, maxWidth = 1280, quality = 0.78) {
 function getCurrentPosition() {
     return new Promise(resolve => {
         if (!navigator.geolocation) {
-            resolve({ latitude: AMAKUSA_LAT, longitude: AMAKUSA_LON, accuracy: null, fallback: true });
+            resolve({ latitude: null, longitude: null, accuracy: null, fallback: true });
             return;
         }
         navigator.geolocation.getCurrentPosition(
-            position => {
-                resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy, fallback: false });
-            },
-            () => {
-                resolve({ latitude: AMAKUSA_LAT, longitude: AMAKUSA_LON, accuracy: null, fallback: true });
-            },
+            position => resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+                fallback: false
+            }),
+            () => resolve({ latitude: null, longitude: null, accuracy: null, fallback: true }),
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
         );
     });
 }
 
-async function handleImageSelected(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+async function submitHazardPost() {
+    const text = document.getElementById("hazardTextInput")?.value.trim();
+    const mode = document.getElementById("hazardLocationMode")?.value || "area";
+    const errorEl = document.getElementById("hazardPostError");
+    const button = document.getElementById("hazardSubmitBtn");
 
-    try {
-        const text = prompt("危険な箇所の内容を入力してください", "ひび割れを発見");
-        if (!text) return;
-
-        const syncEl = document.getElementById("hazardSyncStatus");
-        if (syncEl) syncEl.innerText = "危険箇所の位置情報を取得中...";
-
-        const position = await getCurrentPosition();
-        if (syncEl) {
-            syncEl.innerText = position.fallback ? "位置取得失敗のため天草位置を使用・画像処理中..." : "危険箇所の位置を取得・画像処理中...";
+    if (!text) {
+        if (errorEl) {
+            errorEl.innerText = "危険な箇所の内容を入力してください。";
+            errorEl.classList.remove("hidden");
         }
+        return;
+    }
 
-        const image = await compressImage(file);
-        if (syncEl) syncEl.innerText = "危険情報を投稿中...";
+    let latitude = null;
+    let longitude = null;
+    let accuracy = null;
+    let locationLabel = "";
 
-        const result = await apiRequest("/api/hazards", {
-            method: "POST",
-            body: JSON.stringify({
-                author: appState.userName,
-                image: image,
-                text: text,
-                latitude: position.latitude,
-                longitude: position.longitude,
-                accuracy: position.accuracy
-            })
-        }, 60000);
-
-        if (!result.ok) {
-            alert(`投稿の送信に失敗しました：${result.error}`);
-            if (syncEl) syncEl.innerText = "送信失敗（もう一度お試しください）";
+    if (mode === "area") {
+        locationLabel = document.getElementById("hazardAreaSelect")?.value || "天草市内";
+    } else if (mode === "gps") {
+        if (button) { button.disabled = true; button.innerText = "位置取得中..."; }
+        const position = await getCurrentPosition();
+        if (position.fallback || position.latitude == null || position.longitude == null) {
+            if (button) { button.disabled = false; button.innerText = "投稿する"; }
+            if (errorEl) {
+                errorEl.innerText = "位置情報を取得できませんでした。大まかな地域を選ぶ方法も使えます。";
+                errorEl.classList.remove("hidden");
+            }
             return;
         }
-
-        triggerPushNotification("危険情報を投稿しました", "許可した家族・友達へ危険情報を共有しました。");
-        await pollHazard();
-    } catch (error) {
-        console.error("危険情報投稿エラー:", error);
-        alert("画像の処理または投稿に失敗しました。");
-    } finally {
-        e.target.value = "";
+        latitude = position.latitude;
+        longitude = position.longitude;
+        accuracy = position.accuracy;
+        locationLabel = "GPSで指定した場所";
     }
+
+    if (button) { button.disabled = true; button.innerText = "投稿中..."; }
+    if (errorEl) errorEl.classList.add("hidden");
+
+    const result = await apiRequest("/api/hazards", {
+        method: "POST",
+        body: JSON.stringify({
+            image: selectedHazardImage || "",
+            text,
+            latitude,
+            longitude,
+            accuracy,
+            location_label: locationLabel
+        })
+    }, 60000);
+
+    if (button) { button.disabled = false; button.innerText = "投稿する"; }
+
+    if (!result.ok) {
+        if (errorEl) {
+            errorEl.innerText = result.error || "投稿に失敗しました。";
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    document.getElementById("hazardTextInput").value = "";
+    clearHazardImage();
+    closeHazardPostModal();
+    triggerPushNotification("危険情報を投稿しました", "家族・友達へ危険情報を共有しました。");
+    await pollHazard();
 }
 
 async function pollHazard() {
@@ -1180,15 +1324,16 @@ function renderHazardPosts() {
 
         const imageHtml = safeImage ? `
             <img src="${safeImage}" class="w-full h-40 object-cover rounded-xl" alt="危険箇所の写真" loading="lazy">
-        ` : `
-            <div class="w-full h-40 flex items-center justify-center rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-400">画像を表示できません</div>
-        `;
+        ` : `<div class="text-[10px] text-slate-400 bg-slate-50 rounded-xl p-3">📷 写真なしの投稿</div>`;
 
+        const locationLabel = String(post.location_label || "").trim();
         const mapHtml = mapUrl ? `
             <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="text-xs text-sky-600 font-extrabold underline block">📍 危険箇所をマップで確認</a>
-            <div class="text-[10px] text-slate-400">危険箇所：緯度 ${lat.toFixed(6)} / 経度 ${lon.toFixed(6)}</div>
+            <div class="text-[10px] text-slate-400">${escapeHtml(locationLabel || "GPSで指定した場所")}</div>
             ${Number.isFinite(Number(post.accuracy)) ? `<div class="text-[10px] text-slate-400">GPS精度 約${Math.round(Number(post.accuracy))}m</div>` : ""}
-        ` : `<div class="text-[10px] text-slate-400">📍 危険箇所の位置情報なし</div>`;
+        ` : locationLabel
+            ? `<div class="text-xs text-sky-700 font-bold">📍 ${escapeHtml(locationLabel)}</div>`
+            : `<div class="text-[10px] text-slate-400">📍 場所指定なし</div>`;
 
         div.innerHTML = `
             <div class="flex justify-between gap-3 text-xs text-slate-500 font-bold">
@@ -1202,6 +1347,98 @@ function renderHazardPosts() {
         `;
         container.appendChild(div);
     });
+}
+
+/* =====================================================
+   防災・天気クイズ
+===================================================== */
+async function openQuizScreen() {
+    switchScreen("quiz");
+}
+
+async function loadQuizIfNeeded() {
+    if (quizQuestions.length > 0) {
+        renderQuizQuestion();
+        return;
+    }
+
+    const loading = document.getElementById("quizLoading");
+    const area = document.getElementById("quizArea");
+    if (loading) loading.innerText = "問題を読み込んでいます...";
+
+    try {
+        const response = await fetch("/quiz.txt", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        const parsed = Function(`"use strict"; return [${text}];`)();
+        quizQuestions = Array.isArray(parsed) ? parsed.filter(item => item && item.q && item.a) : [];
+        if (quizQuestions.length === 0) throw new Error("問題がありません");
+        quizQuestions.sort(() => Math.random() - 0.5);
+        quizIndex = 0;
+        if (loading) loading.classList.add("hidden");
+        if (area) area.classList.remove("hidden");
+        renderQuizQuestion();
+    } catch (error) {
+        console.error("クイズ読み込みエラー:", error);
+        if (loading) loading.innerText = "クイズを読み込めませんでした。quiz.txt が同じ場所にあるか確認してください。";
+    }
+}
+
+function parseQuizQuestion(item) {
+    const lines = String(item.q || "").split("\n").map(line => line.trim()).filter(Boolean);
+    const questionLines = [];
+    const choices = [];
+    for (const line of lines) {
+        const match = line.match(/^(\d+)\.\s*(.+)$/);
+        if (match) choices.push({ number: match[1], text: match[2] });
+        else questionLines.push(line.replace(/^問題：/, ""));
+    }
+    const answerMatch = String(item.a || "").match(/正解：\s*(\d+)\./);
+    return {
+        question: questionLines.join("\n"),
+        choices,
+        correctNumber: answerMatch ? answerMatch[1] : "",
+        explanation: String(item.a || "")
+    };
+}
+
+function renderQuizQuestion() {
+    if (!quizQuestions.length) return;
+    quizAnswered = false;
+    const item = quizQuestions[quizIndex % quizQuestions.length];
+    const parsed = parseQuizQuestion(item);
+    document.getElementById("quizProgress").innerText = `${quizIndex + 1} / ${quizQuestions.length}`;
+    document.getElementById("quizQuestion").innerText = parsed.question;
+    const choicesEl = document.getElementById("quizChoices");
+    choicesEl.innerHTML = "";
+    parsed.choices.forEach(choice => {
+        const button = document.createElement("button");
+        button.className = "w-full text-left bg-slate-50 hover:bg-amber-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold";
+        button.innerText = `${choice.number}. ${choice.text}`;
+        button.onclick = () => answerQuiz(choice.number, parsed.correctNumber, parsed.explanation, button);
+        choicesEl.appendChild(button);
+    });
+    const answerBox = document.getElementById("quizAnswerBox");
+    answerBox.classList.add("hidden");
+    document.getElementById("quizNextBtn").classList.add("hidden");
+}
+
+function answerQuiz(selected, correct, explanation, clickedButton) {
+    if (quizAnswered) return;
+    quizAnswered = true;
+    const isCorrect = String(selected) === String(correct);
+    const answerBox = document.getElementById("quizAnswerBox");
+    answerBox.innerText = `${isCorrect ? "🎉 正解！" : "😣 おしい！"}\n\n${explanation}`;
+    answerBox.className = `mt-5 rounded-2xl p-4 text-sm whitespace-pre-line border ${isCorrect ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-rose-50 border-rose-200 text-rose-800"}`;
+    document.querySelectorAll("#quizChoices button").forEach(btn => btn.disabled = true);
+    if (clickedButton) clickedButton.classList.add(isCorrect ? "ring-2" : "opacity-70");
+    document.getElementById("quizNextBtn").classList.remove("hidden");
+}
+
+function nextQuizQuestion() {
+    if (!quizQuestions.length) return;
+    quizIndex = (quizIndex + 1) % quizQuestions.length;
+    renderQuizQuestion();
 }
 
 /* =====================================================

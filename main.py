@@ -1900,6 +1900,18 @@ def create_hazard(
         "accuracy"
     )
 
+    location_label = str(
+        body.get(
+            "location_label",
+            ""
+        )
+    ).strip()
+
+    if len(location_label) > 100:
+        return jsonify({
+            "error": "場所名が長すぎます。"
+        }), 400
+
     try:
 
         if latitude is not None:
