@@ -12,7 +12,7 @@ from functools import wraps
 
 import requests
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 try:
@@ -26,7 +26,11 @@ except ImportError:
 # Flask
 # =========================================================
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder=os.path.dirname(os.path.abspath(__file__)),
+    static_url_path=""
+)
 
 CORS(
     app,
@@ -631,20 +635,39 @@ def cleanup_expired_requests(
 
 
 # =========================================================
-# ヘルスチェック
+# フロントエンド配信
 # =========================================================
 
 @app.get("/")
 def index():
 
-    return jsonify({
-        "ok": True,
-        "service":
-            "otenki-app",
-        "message":
-            "おてんきアプリAPIは動作しています。"
-    })
+    return send_from_directory(
+        app.static_folder,
+        "index.html"
+    )
 
+
+@app.get("/main.js")
+def main_js():
+
+    return send_from_directory(
+        app.static_folder,
+        "main.js"
+    )
+
+
+@app.get("/sw.js")
+def service_worker():
+
+    return send_from_directory(
+        app.static_folder,
+        "sw.js"
+    )
+
+
+# =========================================================
+# ヘルスチェック
+# =========================================================
 
 @app.get("/api/health")
 def health():
