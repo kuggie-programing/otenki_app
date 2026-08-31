@@ -1823,17 +1823,29 @@ function setPlaceKind(kind) {
     renderHazardCategoryOptions();
 }
 
-function openHazardPostModal(kind = "danger") {
+function openHazardPostModal(kind) {
+    const selectedKind = kind === "help" ? "help" : "danger";
+
     document.getElementById("hazardPostError")?.classList.add("hidden");
+
     const textInput = document.getElementById("hazardTextInput");
     const nameInput = document.getElementById("hazardPlaceName");
+
     if (textInput) textInput.value = "";
     if (nameInput) nameInput.value = "";
+
     clearHazardImage();
-    setPlaceKind(kind);
+
+    // 助けの場所を押した場合は、ここで必ず help を保持する
+    selectedPlaceKind = selectedKind;
+    setPlaceKind(selectedKind);
+
     document.getElementById("hazardPostModal")?.classList.remove("hidden");
     updateHazardLocationMode();
-    setTimeout(() => document.getElementById("hazardPlaceName")?.focus(), 100);
+
+    setTimeout(() => {
+        document.getElementById("hazardPlaceName")?.focus();
+    }, 100);
 }
 
 function closeHazardPostModal() {
