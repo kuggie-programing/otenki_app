@@ -1,0 +1,3919 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天草 お天気防災アプリ</title>
+    <meta name="theme-color" content="#0284c7">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="description" content="毎日の天気から、家族の防災ルールと地域の安全を考えるフェーズフリー防災アプリ">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+        }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 50%, #ecfeff 100%);
+            color: #0f172a;
+        }
+        .glass-header {
+            background: linear-gradient(135deg, rgba(14, 165, 233, .95), rgba(37, 99, 235, .95));
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .screen {
+            min-height: calc(100vh - 72px);
+        }
+        .hidden {
+            display: none !important;
+        }
+        button:disabled {
+            cursor: not-allowed;
+            opacity: .55;
+        }
+        img {
+            max-width: 100%;
+        }
+        input, button, textarea, select {
+            font: inherit;
+        }
+        button, .tap-card {
+            touch-action: manipulation;
+        }
+        .choice-selected {
+            border-color: #0284c7 !important;
+            background: #e0f2fe !important;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, .18);
+        }
+        .rule-choice-selected {
+            border-color: #7c3aed !important;
+            background: #f5f3ff !important;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, .14);
+        }
+        .safe-area-bottom {
+            padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        }
+        .offline-soft-pattern {
+            background-image: radial-gradient(circle at 20% 20%, rgba(14,165,233,.08) 0, rgba(14,165,233,.08) 2px, transparent 2px);
+            background-size: 18px 18px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                transition-duration: .01ms !important;
+                animation-duration: .01ms !important;
+            }
+        }
+        .weather-card {
+            background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(239,246,255,.96));
+        }
+        .safe-card {
+            background: linear-gradient(135deg, rgba(255,255,255,.97), rgba(240,253,250,.96));
+        }
+        .danger-card {
+            background: linear-gradient(135deg, rgba(255,255,255,.97), rgba(255,247,237,.96));
+        }
+        .friend-card {
+            background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(245,243,255,.96));
+        }
+        .request-card {
+            background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(239,246,255,.98));
+        }
+        .modal-backdrop {
+            background: rgba(15, 23, 42, .55);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+<header class="glass-header text-white border-b border-slate-700/20 sticky top-0 z-50 shadow-lg">
+    <div class="max-w-4xl mx-auto px-5 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <span class="text-xl bg-sky-500/40 rounded-xl px-2 py-1">☀️</span>
+            <div>
+                <h1 class="font-extrabold text-lg">防災アプリ</h1>
+                <p class="text-[10px] text-white/80">天草の天気・防災・家族・友達</p>
+            </div>
+        </div>
+        <div id="headerUserArea" class="hidden flex items-center gap-2">
+            <span id="currentUserLabel" class="text-xs font-bold"></span>
+            <button onclick="handleLogout()" class="text-[11px] bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl font-bold">ログアウト</button>
+        </div>
+    </div>
+</header>
+
+<!-- ログイン / アカウント作成 -->
+<section id="screen-login" class="screen flex items-center justify-center px-5 py-10">
+    <div class="w-full max-w-md bg-white/90 backdrop-blur rounded-3xl shadow-xl border border-white p-7">
+        <div class="text-center mb-7">
+            <div class="text-5xl mb-3">⚠️</div>
+            <h2 class="text-2xl font-black text-slate-800">防災アプリ</h2>
+            <p class="text-xs text-slate-500 mt-2">天気・安否・まちの安全情報を大切な人と共有</p>
+        </div>
+        <div class="space-y-3">
+            <input id="loginName" type="text" placeholder="表示名" autocomplete="nickname" maxlength="40" class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300">
+            <input id="loginSecurityKey" type="password" placeholder="自分のセキュリティキー" autocomplete="current-password" maxlength="200" class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-sky-300">
+        </div>
+        <div class="mt-3 text-[10px] text-slate-400 leading-relaxed">
+            セキュリティキーは共通パスワードではありません。<br>あなた自身のアカウントを保護するためのキーです。
+        </div>
+        <div id="loginErrorMsg" class="hidden mt-4 text-xs font-bold p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700"></div>
+        <div class="grid grid-cols-2 gap-3 mt-5">
+            <button id="loginRegisterBtn" onclick="handleAuth('register')" class="bg-sky-500 hover:bg-sky-600 text-white rounded-2xl py-3 font-black shadow-sm">アカウント作成</button>
+            <button id="loginLoginBtn" onclick="handleAuth('login')" class="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl py-3 font-black shadow-sm">ログイン</button>
+        </div>
+        <button id="openSavedOfflineBtn" onclick="openLastSavedOfflineInfo()" class="hidden mt-3 w-full bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 text-cyan-900 rounded-2xl py-3 font-black">📴 保存した安心メモを見る</button>
+        <p id="offlineLoginHint" class="hidden mt-2 text-[10px] text-center text-cyan-700">通信がなくても、この端末に保存した家族ルール・集合場所を確認できます。</p>
+        <div class="mt-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <p class="text-xs font-black text-slate-700">家族・友達との接続について</p>
+            <p class="text-[10px] text-slate-500 mt-2 leading-relaxed">
+                グループコードは使用しません。<br>ログイン後に相手の表示名を入力して、「家族・友達リクエスト」を送ります。
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ダッシュボード -->
+<section id="screen-dashboard" class="screen hidden px-5 py-7">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white/90 rounded-3xl border border-white shadow-lg p-6 mb-5">
+            <p class="text-xs text-slate-500 font-bold">ようこそ</p>
+            <h2 id="welcomeUserName" class="text-2xl font-black text-slate-800 mt-1"></h2>
+            <p class="text-xs text-slate-500 mt-2">家族・友達と天気・安否・まちの安全情報を共有できます。</p>
+        </div>
+
+        <!-- メニュー -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button onclick="switchScreen('weather')" class="bg-white hover:bg-sky-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">🌤️</div>
+                <h3 class="font-black text-slate-800">今日の天気・準備</h3>
+                <p class="text-xs text-slate-500 mt-1">天気を見て、自分で持ち物を考える</p>
+            </button>
+            <button onclick="switchScreen('safety')" class="bg-white hover:bg-emerald-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">🛡️</div>
+                <h3 class="font-black text-slate-800">安否確認</h3>
+                <p class="text-xs text-slate-500 mt-1">自分の安否を大切な人へ共有</p>
+            </button>
+            <button onclick="switchScreen('hazard')" class="bg-white hover:bg-orange-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">🗺️</div>
+                <h3 class="font-black text-slate-800">まちの安全情報</h3>
+                <p class="text-xs text-slate-500 mt-1">危ない場所と、助けを求められる場所</p>
+            </button>
+            <button onclick="switchScreen('family-rules')" class="bg-white hover:bg-violet-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">🏠</div>
+                <h3 class="font-black text-slate-800">わたしの行動ルール</h3>
+                <p class="text-xs text-slate-500 mt-1">場面を選んで、家族のルールを作る</p>
+            </button>
+            <button onclick="switchScreen('offline-kit')" class="bg-white hover:bg-cyan-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">📴</div>
+                <h3 class="font-black text-slate-800">オフライン安心メモ</h3>
+                <p class="text-xs text-slate-500 mt-1">集合場所・連絡先・家族ルールを保存</p>
+            </button>
+            <button onclick="openFriendModal()" class="bg-white hover:bg-purple-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
+                <div class="text-4xl mb-3">👨‍👩‍👧‍👦</div>
+                <h3 class="font-black text-slate-800">家族・友達を追加</h3>
+                <p class="text-xs text-slate-500 mt-1">表示名を入力してリクエストを送信</p>
+            </button>
+            <button onclick="openQuizScreen()" class="bg-white hover:bg-yellow-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm sm:col-span-2">
+                <div class="text-4xl mb-3">🧠</div>
+                <h3 class="font-black text-slate-800">考える防災・天気クイズ</h3>
+                <p class="text-xs text-slate-500 mt-1">正解を覚えるだけでなく、状況に合わせて考える練習</p>
+            </button>
+        </div>
+
+        <!-- 接続状態 & プッシュ通知設定 -->
+        <div class="mt-5 bg-white/90 border border-slate-200 rounded-3xl p-5 shadow-sm">
+            <div class="flex justify-between items-center">
+                <h3 class="font-black text-slate-800">接続状態</h3>
+                <span id="globalConnectionStatus" class="text-[10px] text-slate-400">確認中...</span>
+            </div>
+            <p id="networkStatusText" class="text-[10px] text-slate-500 mt-2">ネットワークを確認中...</p>
+            <p id="pushPermissionStatus" class="text-[10px] text-slate-400 mt-1">プッシュ通知を確認中...</p>
+            <div class="flex flex-wrap gap-2 mt-3">
+                <button id="enablePushButton" class="bg-sky-500 hover:bg-sky-600 text-white rounded-xl px-4 py-2 text-xs font-bold">
+                    🔔 通知を有効にする
+                </button>
+                <button id="disablePushButton" class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-4 py-2 text-xs font-bold">
+                    🔕 通知を無効にする
+                </button>
+                <button id="installAppButton" onclick="installPwaApp()" class="hidden bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl px-4 py-2 text-xs font-bold">
+                    📲 ホーム画面に追加
+                </button>
+            </div>
+        </div>
+
+        <!-- フレンド -->
+        <div class="mt-5 friend-card border border-white rounded-3xl p-5 shadow-lg">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-black text-slate-800">家族・友達</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">許可した相手とのみ情報を共有します。</p>
+                </div>
+                <button onclick="openFriendModal()" class="bg-purple-500 hover:bg-purple-600 text-white rounded-xl px-3 py-2 text-xs font-black">＋追加</button>
+            </div>
+            <div id="friendsList" class="space-y-2 mt-4"></div>
+        </div>
+
+        <!-- リクエスト -->
+        <div class="mt-5 request-card border border-white rounded-3xl p-5 shadow-lg">
+            <div class="flex justify-between items-center">
+                <h3 class="font-black text-slate-800">家族・友達リクエスト</h3>
+                <span id="requestCountBadge" class="hidden bg-rose-500 text-white text-[10px] font-black rounded-full px-2 py-1">0</span>
+            </div>
+            <div id="friendRequestsList" class="space-y-3 mt-4"></div>
+        </div>
+    </div>
+</section>
+
+<!-- 天気 -->
+<section id="screen-weather" class="screen hidden px-5 py-7">
+    <div class="max-w-4xl mx-auto">
+        <button onclick="switchScreen('dashboard')" class="mb-4 text-xs font-bold text-sky-600">← ダッシュボードへ戻る</button>
+        <div class="weather-card rounded-3xl border border-white shadow-lg p-6">
+            <div class="flex justify-between items-start gap-4">
+                <div>
+                    <p class="text-xs text-slate-500 font-bold">天草市</p>
+                    <h2 class="text-2xl font-black text-slate-800">最新の気象情報</h2>
+                </div>
+                <span class="text-4xl">🌤️</span>
+            </div>
+            <div id="liveWeatherDesc" class="mt-5 text-sm font-bold text-slate-700">JST基準で気象データを取得中...</div>
+            <div class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-white/80 rounded-2xl p-4">
+                    <p class="text-[10px] text-slate-400">気温</p>
+                    <p id="weatherTemperature" class="text-xl font-black">--</p>
+                </div>
+                <div class="bg-white/80 rounded-2xl p-4">
+                    <p class="text-[10px] text-slate-400">体感温度</p>
+                    <p id="weatherFeelsLike" class="text-xl font-black">--</p>
+                </div>
+                <div class="bg-white/80 rounded-2xl p-4">
+                    <p class="text-[10px] text-slate-400">湿度</p>
+                    <p id="weatherHumidity" class="text-xl font-black">--</p>
+                </div>
+                <div class="bg-white/80 rounded-2xl p-4">
+                    <p class="text-[10px] text-slate-400">風速</p>
+                    <p id="weatherWind" class="text-xl font-black">--</p>
+                </div>
+            </div>
+            <div class="mt-5">
+                <h3 id="jstReportTitle" class="font-black text-slate-800">🌤️ 天草市 JST気象情報</h3>
+                <div id="lifestyleRecommendation" class="mt-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900">天気情報を取得しています...</div>
+            </div>
+            <button onclick="fetchRealWeatherWithJST()" class="mt-5 w-full bg-sky-500 hover:bg-sky-600 text-white rounded-2xl py-3 font-black">🔄 天気を更新</button>
+        </div>
+
+        <div class="mt-5 bg-white/95 rounded-3xl border border-white shadow-lg p-6">
+            <div class="flex justify-between items-start gap-3">
+                <div>
+                    <p class="text-xs text-sky-500 font-black">自分で考えてみよう</p>
+                    <h2 class="text-xl font-black text-slate-800 mt-1">🎒 今日、何を準備する？</h2>
+                </div>
+                <span class="text-[10px] bg-cyan-50 border border-cyan-200 text-cyan-700 rounded-full px-3 py-1 font-bold">端末に保存</span>
+            </div>
+            <p id="preparationSituation" class="mt-4 text-sm font-black text-slate-800">天気から場面を考えています...</p>
+            <p id="preparationSourceNote" class="mt-1 text-[10px] text-slate-400">最新の天気が取れない時は、下の場面を自分で選べます。</p>
+
+            <div class="mt-4 flex gap-2 overflow-x-auto pb-2">
+                <button data-prep-scenario="auto" onclick="setPreparationScenario('auto')" class="shrink-0 bg-sky-600 text-white border border-sky-600 rounded-xl px-3 py-2 text-xs font-black">🌤️ 今の天気</button>
+                <button data-prep-scenario="rain" onclick="setPreparationScenario('rain')" class="shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold">☔ 雨</button>
+                <button data-prep-scenario="rainWind" onclick="setPreparationScenario('rainWind')" class="shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold">🌧️ 雨＋強風</button>
+                <button data-prep-scenario="veryHot" onclick="setPreparationScenario('veryHot')" class="shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold">🥵 とても暑い</button>
+                <button data-prep-scenario="thunder" onclick="setPreparationScenario('thunder')" class="shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold">⛈️ 雷</button>
+                <button data-prep-scenario="heavyRain" onclick="setPreparationScenario('heavyRain')" class="shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold">🌊 大雨</button>
+                <button data-prep-scenario="snow" onclick="setPreparationScenario('snow')" class="shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold">❄️ 雪</button>
+            </div>
+
+            <p class="mt-3 text-xs font-black text-slate-700">持っていく物・することを、いくつでも選んでね。</p>
+            <div id="preparationChoices" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3"></div>
+            <button id="checkPreparationBtn" onclick="checkPreparationChoices()" class="mt-5 w-full bg-sky-500 hover:bg-sky-600 text-white rounded-2xl py-3 font-black">選んだ理由を確かめる</button>
+            <div id="preparationFeedback" class="hidden mt-4 rounded-2xl border p-4 text-sm leading-relaxed"></div>
+            <p id="preparationSavedAt" class="mt-3 text-[10px] text-slate-400"></p>
+        </div>
+    </div>
+</section>
+
+<!-- 安否 -->
+<section id="screen-safety" class="screen hidden px-5 py-7">
+    <div class="max-w-4xl mx-auto">
+        <button onclick="switchScreen('dashboard')" class="mb-4 text-xs font-bold text-sky-600">← ダッシュボードへ戻る</button>
+        <div class="safe-card rounded-3xl border border-white shadow-lg p-6">
+            <h2 class="text-2xl font-black">🛡️ 安否確認</h2>
+            <p class="text-xs text-slate-500 mt-1">現在の自分の状態を、許可した家族・友達へ送信します。</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+                <button onclick="sendSafety('safe')" class="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl py-4 font-black">😊 元気です</button>
+                <button onclick="sendSafety('messy')" class="bg-orange-50 border border-orange-200 text-orange-900 rounded-2xl py-4 font-black">🏠 被害あり</button>
+                <button onclick="sendSafety('sos')" class="bg-rose-100 border border-rose-300 text-rose-900 rounded-2xl py-4 font-black">🆘 緊急SOS</button>
+            </div>
+            <div id="safetyResultMsg" class="hidden mt-4 text-xs text-center font-medium p-3.5 rounded-xl"></div>
+            <div class="mt-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-black text-slate-800">家族・友達の安否</h3>
+                    <span id="safetyConnStatus" class="text-[10px] text-slate-400">同期中...</span>
+                </div>
+                <div id="groupSafetyStatusList" class="space-y-2 mt-3"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 家族の行動ルール -->
+<section id="screen-family-rules" class="screen hidden px-5 py-7">
+    <div class="max-w-4xl mx-auto">
+        <button onclick="switchScreen('dashboard')" class="mb-4 text-xs font-bold text-violet-600">← ダッシュボードへ戻る</button>
+        <div class="bg-white/95 rounded-3xl border border-white shadow-lg p-6">
+            <div class="flex justify-between items-start gap-3">
+                <div>
+                    <p class="text-xs text-violet-500 font-black">家族で話して決めよう</p>
+                    <h2 class="text-2xl font-black text-slate-800 mt-1">🏠 わたしの行動ルール</h2>
+                </div>
+                <span class="text-[10px] bg-cyan-50 border border-cyan-200 text-cyan-700 rounded-full px-3 py-1 font-bold">📴 オフライン対応</span>
+            </div>
+            <div class="mt-4 bg-violet-50 border border-violet-200 rounded-2xl p-4 text-xs text-violet-900 leading-relaxed">
+                ひとりで正解を決める画面ではありません。まず自分で考えて、そのあと家族と確認しよう。実際の災害では、学校・施設・自治体など、その場の案内を優先してください。
+            </div>
+
+            <div id="familyRuleScenarioArea" class="mt-6">
+                <h3 class="font-black text-slate-800">どこにいる時のルールを作る？</h3>
+                <div id="familyRuleScenarioGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3"></div>
+            </div>
+
+            <div id="familyRuleWizard" class="hidden mt-6 border border-violet-200 rounded-3xl p-5 bg-violet-50/60">
+                <div class="flex justify-between items-center gap-3">
+                    <h3 id="familyRuleScenarioTitle" class="font-black text-violet-900"></h3>
+                    <span id="familyRuleProgress" class="text-xs font-bold text-violet-500"></span>
+                </div>
+                <p id="familyRuleQuestion" class="mt-5 text-lg font-black text-slate-800"></p>
+                <div id="familyRuleChoices" class="grid gap-3 mt-4"></div>
+                <div class="mt-4 bg-white rounded-2xl border border-slate-200 p-3">
+                    <label for="familyRuleCustomInput" class="text-[11px] font-black text-slate-600">家族で決めた別の答えがある時</label>
+                    <div class="flex flex-col sm:flex-row gap-2 mt-2">
+                        <input id="familyRuleCustomInput" maxlength="160" placeholder="短い言葉で入力" class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-300">
+                        <button onclick="saveFamilyRuleCustomAnswer()" class="bg-violet-100 hover:bg-violet-200 text-violet-800 rounded-xl px-4 py-2 text-xs font-black">この答えを選ぶ</button>
+                    </div>
+                </div>
+                <div id="familyRuleFeedback" class="hidden mt-4 rounded-2xl border p-4 text-sm leading-relaxed"></div>
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                    <button onclick="cancelFamilyRuleWizard()" class="bg-white border border-slate-200 text-slate-600 rounded-2xl py-3 font-bold">いったん戻る</button>
+                    <button id="familyRuleNextBtn" onclick="nextFamilyRuleStep()" disabled class="bg-violet-600 hover:bg-violet-700 text-white rounded-2xl py-3 font-black">次へ →</button>
+                </div>
+            </div>
+
+            <div id="familyRuleSummary" class="hidden mt-6 border border-emerald-200 rounded-3xl p-5 bg-emerald-50/70">
+                <p class="text-xs text-emerald-600 font-black">できあがり</p>
+                <h3 class="text-xl font-black text-emerald-900 mt-1">✨ わたしの行動ルール</h3>
+                <div id="familyRuleSummaryContent" class="mt-4 space-y-3"></div>
+                <div class="mt-4 bg-white/80 rounded-2xl p-4 text-xs text-slate-600 leading-relaxed">
+                    この内容は「下書き」です。家族と話して、集合場所や連絡方法を確かめたら保存しよう。
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                    <button onclick="restartCurrentFamilyRule()" class="bg-white border border-emerald-200 text-emerald-800 rounded-2xl py-3 font-bold">考え直す</button>
+                    <button onclick="saveCurrentFamilyRule()" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-3 font-black">端末に保存</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5 bg-white/95 rounded-3xl border border-white shadow-lg p-6">
+            <div class="flex justify-between items-center gap-3">
+                <div>
+                    <h3 class="font-black text-slate-800">保存した家族ルール</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">この端末に保存され、通信がない時も見られます。</p>
+                </div>
+                <span id="familyRuleSavedCount" class="bg-violet-100 text-violet-700 rounded-full px-3 py-1 text-xs font-black">0</span>
+            </div>
+            <div id="savedFamilyRulesList" class="space-y-3 mt-4"></div>
+        </div>
+    </div>
+</section>
+
+<!-- オフライン安心メモ -->
+<section id="screen-offline-kit" class="screen hidden px-5 py-7 offline-soft-pattern">
+    <div class="max-w-4xl mx-auto">
+        <button onclick="backFromOfflineKit()" class="mb-4 text-xs font-bold text-cyan-700">← 戻る</button>
+        <div class="bg-white/95 rounded-3xl border border-white shadow-lg p-6">
+            <div class="flex justify-between items-start gap-3">
+                <div>
+                    <p class="text-xs text-cyan-600 font-black">通信がなくても確認できる</p>
+                    <h2 class="text-2xl font-black text-slate-800 mt-1">📴 オフライン安心メモ</h2>
+                    <p id="offlineOwnerLabel" class="text-xs text-slate-500 mt-2"></p>
+                </div>
+                <span id="offlineKitNetworkBadge" class="text-[10px] rounded-full px-3 py-1 font-black bg-slate-100 text-slate-600">確認中</span>
+            </div>
+            <div class="mt-4 bg-cyan-50 border border-cyan-200 rounded-2xl p-4 text-xs text-cyan-900 leading-relaxed">
+                この情報はこの端末の中に保存します。共有の端末を使う場合は、名前や電話番号の扱いに注意してください。天気・警報などの最新情報には通信が必要です。
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="offlinePrimaryMeeting" class="text-xs font-black text-slate-700">📍 第一集合場所</label>
+                    <input id="offlinePrimaryMeeting" maxlength="160" placeholder="例：○○小学校 体育館前" class="mt-2 w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300">
+                </div>
+                <div>
+                    <label for="offlineSecondaryMeeting" class="text-xs font-black text-slate-700">📍 第二集合場所</label>
+                    <input id="offlineSecondaryMeeting" maxlength="160" placeholder="例：△△公民館" class="mt-2 w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300">
+                </div>
+                <div>
+                    <label for="offlineContactName1" class="text-xs font-black text-slate-700">☎️ 連絡する人 1</label>
+                    <input id="offlineContactName1" maxlength="80" placeholder="名前" class="mt-2 w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300">
+                    <input id="offlineContactPhone1" type="tel" maxlength="40" placeholder="電話番号" class="mt-2 w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300">
+                </div>
+                <div>
+                    <label for="offlineContactName2" class="text-xs font-black text-slate-700">☎️ 連絡する人 2</label>
+                    <input id="offlineContactName2" maxlength="80" placeholder="名前" class="mt-2 w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300">
+                    <input id="offlineContactPhone2" type="tel" maxlength="40" placeholder="電話番号" class="mt-2 w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300">
+                </div>
+            </div>
+
+            <label for="offlineNoContactRule" class="block text-xs font-black text-slate-700 mt-5">📵 電話やネットがつながらない時のルール</label>
+            <textarea id="offlineNoContactRule" rows="3" maxlength="500" placeholder="例：学校にいる時は先生の指示を聞いて、迎えが来るまで学校で待つ" class="mt-2 w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300"></textarea>
+
+            <label for="offlineNotes" class="block text-xs font-black text-slate-700 mt-4">📝 家族で決めたこと・大切なメモ</label>
+            <textarea id="offlineNotes" rows="4" maxlength="1000" placeholder="例：無理に家へ戻らず、その場の安全と案内を優先する" class="mt-2 w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300"></textarea>
+
+            <button onclick="saveOfflinePlan()" class="mt-5 w-full bg-cyan-600 hover:bg-cyan-700 text-white rounded-2xl py-3 font-black">この端末に保存する</button>
+            <div id="offlineSaveMessage" class="hidden mt-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 text-xs font-bold"></div>
+            <p id="offlineLastSavedAt" class="mt-3 text-[10px] text-slate-400"></p>
+        </div>
+
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div class="bg-white/95 rounded-3xl border border-white shadow-lg p-5">
+                <h3 class="font-black text-slate-800">🏠 保存した家族ルール</h3>
+                <div id="offlineRulesList" class="space-y-3 mt-4"></div>
+            </div>
+            <div class="bg-white/95 rounded-3xl border border-white shadow-lg p-5">
+                <h3 class="font-black text-slate-800">🆘 助けを求められる場所</h3>
+                <p class="text-[10px] text-slate-400 mt-1">最後に通信できた時の保存情報です。</p>
+                <div id="offlineHelpPlacesList" class="space-y-3 mt-4"></div>
+            </div>
+            <div class="bg-white/95 rounded-3xl border border-white shadow-lg p-5">
+                <h3 class="font-black text-slate-800">⚠️ 危ない場所</h3>
+                <p class="text-[10px] text-slate-400 mt-1">状況が変わることがあります。周りを見て判断してください。</p>
+                <div id="offlineDangerPlacesList" class="space-y-3 mt-4"></div>
+            </div>
+            <div class="bg-white/95 rounded-3xl border border-white shadow-lg p-5">
+                <h3 class="font-black text-slate-800">🧭 困った時に思い出すこと</h3>
+                <div class="space-y-3 mt-4 text-xs text-slate-700 leading-relaxed">
+                    <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3"><b>1. まず自分の身を守る</b><br>頭を守り、倒れそうな物・割れた物などから離れる。</div>
+                    <div class="bg-violet-50 border border-violet-200 rounded-2xl p-3"><b>2. ひとりで無理に決めない</b><br>先生・施設の人・信頼できる大人や、助けを求められる場所を頼る。</div>
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3"><b>3. 家族と決めたルールを確認</b><br>電話がつながらない時も、集合場所と行動ルールを手がかりにする。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- クイズ -->
+<section id="screen-quiz" class="screen hidden px-5 py-7">
+    <div class="max-w-2xl mx-auto">
+        <button onclick="switchScreen('dashboard')" class="mb-4 text-xs font-bold text-sky-600">← ダッシュボードへ戻る</button>
+        <div class="bg-white/95 rounded-3xl border border-white shadow-lg p-6">
+            <div class="flex justify-between items-start gap-3">
+                <div>
+                    <p class="text-xs text-amber-500 font-black">防災・天気</p>
+                    <h2 class="text-2xl font-black text-slate-800">🧠 考えるクイズ</h2>
+                </div>
+                <div class="text-right">
+                    <span id="quizProgress" class="block text-xs font-bold text-slate-400">-- / --</span>
+                    <span id="quizScore" class="block text-[10px] font-bold text-emerald-600 mt-1">0問チャレンジ</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mt-5">
+                <button id="quizModeScenario" onclick="setQuizMode('scenario')" class="bg-amber-500 text-white border border-amber-500 rounded-xl py-2 text-[11px] font-black">考える</button>
+                <button id="quizModeKnowledge" onclick="setQuizMode('knowledge')" class="bg-white text-slate-600 border border-slate-200 rounded-xl py-2 text-[11px] font-black">知識</button>
+                <button id="quizModeMixed" onclick="setQuizMode('mixed')" class="bg-white text-slate-600 border border-slate-200 rounded-xl py-2 text-[11px] font-black">まぜる</button>
+            </div>
+            <p id="quizModeDescription" class="mt-3 text-xs text-slate-500">場所や天気を見て、「今ならどうする？」を考えます。</p>
+
+            <div id="quizLoading" class="mt-6 text-sm text-slate-500">問題を読み込んでいます...</div>
+            <div id="quizArea" class="hidden mt-6">
+                <span id="quizTopic" class="inline-block text-[10px] bg-amber-50 border border-amber-200 text-amber-700 rounded-full px-3 py-1 font-black"></span>
+                <p id="quizQuestion" class="text-base font-black text-slate-800 whitespace-pre-line leading-relaxed mt-3"></p>
+                <div id="quizChoices" class="grid gap-3 mt-5"></div>
+                <div id="quizAnswerBox" class="hidden mt-5 rounded-2xl p-4 text-sm whitespace-pre-line leading-relaxed"></div>
+                <button id="quizNextBtn" onclick="nextQuizQuestion()" class="hidden mt-4 w-full bg-amber-500 hover:bg-amber-600 text-white rounded-2xl py-3 font-black">次の問題へ →</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- まちの安全情報 -->
+<section id="screen-hazard" class="screen hidden px-5 py-7">
+    <div class="max-w-4xl mx-auto">
+        <button onclick="switchScreen('dashboard')" class="mb-4 text-xs font-bold text-sky-600">← ダッシュボードへ戻る</button>
+        <div class="danger-card rounded-3xl border border-white shadow-lg p-6">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                <div>
+                    <h2 class="text-2xl font-black">🗺️ まちの安全情報</h2>
+                    <p class="text-xs text-slate-500 mt-1">危ない場所と、困った時に助けを求められる場所を家族・友達と共有します。</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="openHazardPostModal('danger')" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-3 rounded-2xl font-black text-xs">＋ ⚠️ 危ない場所</button>
+                    <button onclick="openHazardPostModal('help')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-3 rounded-2xl font-black text-xs">＋ 🆘 助けの場所</button>
+                </div>
+            </div>
+            <div class="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                <p class="text-[10px] text-amber-900 leading-relaxed">
+                    写真なしでも登録できます。GPSは登録する場所を示す時だけ使い、現在位置や移動履歴を追跡しません。個人宅などの情報は、家族・友達の間でも必要な範囲だけ共有してください。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mt-4">
+                <button id="hazardFilterAll" onclick="setHazardFilter('all')" class="bg-slate-800 text-white border border-slate-800 rounded-xl py-2 text-xs font-black">すべて <span id="hazardCountAll">0</span></button>
+                <button id="hazardFilterDanger" onclick="setHazardFilter('danger')" class="bg-white text-orange-700 border border-orange-200 rounded-xl py-2 text-xs font-black">⚠️ 危険 <span id="hazardCountDanger">0</span></button>
+                <button id="hazardFilterHelp" onclick="setHazardFilter('help')" class="bg-white text-emerald-700 border border-emerald-200 rounded-xl py-2 text-xs font-black">🆘 助け <span id="hazardCountHelp">0</span></button>
+            </div>
+
+            <input id="hazardImageInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="previewHazardImage(event)">
+            <div id="hazardSyncStatus" class="mt-4 text-[10px] text-slate-400">同期中...</div>
+            <div id="hazardPostList" class="space-y-4 mt-4"></div>
+        </div>
+    </div>
+</section>
+
+<!-- まちの安全情報 投稿モーダル -->
+<div id="hazardPostModal" class="hidden fixed inset-0 z-[105] modal-backdrop flex items-center justify-center px-5">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto safe-area-bottom">
+        <h2 id="hazardModalTitle" class="text-xl font-black text-slate-800">⚠️ 危ない場所を登録</h2>
+        <p id="hazardModalSubtitle" class="text-xs text-slate-500 mt-1">写真なしでも登録できます。</p>
+
+        <label class="block text-xs font-black text-slate-700 mt-5">どちらを登録する？</label>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+            <button id="hazardKindDanger" onclick="setPlaceKind('danger')" class="bg-orange-500 text-white border border-orange-500 rounded-2xl py-3 text-xs font-black">⚠️ 危ない場所</button>
+            <button id="hazardKindHelp" onclick="setPlaceKind('help')" class="bg-white text-emerald-700 border border-emerald-200 rounded-2xl py-3 text-xs font-black">🆘 助けの場所</button>
+        </div>
+
+        <label class="block text-xs font-black text-slate-700 mt-4">場所の種類</label>
+        <select id="hazardCategory" class="w-full mt-2 border border-slate-200 rounded-2xl px-4 py-3 bg-white"></select>
+
+        <label id="hazardPlaceNameLabel" for="hazardPlaceName" class="block text-xs font-black text-slate-700 mt-4">場所の名前（任意）</label>
+        <input id="hazardPlaceName" maxlength="120" placeholder="例：○○交差点" class="w-full mt-2 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-300">
+
+        <label id="hazardTextLabel" for="hazardTextInput" class="block text-xs font-black text-slate-700 mt-4">どんなところ？</label>
+        <textarea id="hazardTextInput" rows="3" maxlength="2000" placeholder="例：雨のあとに道路へ水がたまりやすいです" class="w-full mt-2 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-300"></textarea>
+
+        <label class="block text-xs font-black text-slate-700 mt-4">写真（任意）</label>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+            <button onclick="triggerImageUpload()" class="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl py-2 text-xs font-bold">📷 写真を選ぶ</button>
+            <button onclick="clearHazardImage()" class="bg-slate-100 border border-slate-200 text-slate-600 rounded-xl py-2 text-xs font-bold">写真なし</button>
+        </div>
+        <div id="hazardImagePreviewWrap" class="hidden mt-3">
+            <img id="hazardImagePreview" class="w-full max-h-44 object-cover rounded-xl" alt="登録写真のプレビュー">
+        </div>
+
+        <label class="block text-xs font-black text-slate-700 mt-4">場所</label>
+        <select id="hazardLocationMode" onchange="updateHazardLocationMode()" class="w-full mt-2 border border-slate-200 rounded-2xl px-4 py-3 bg-white">
+            <option value="area">大まかな地域から選ぶ</option>
+            <option value="gps">今いる登録場所のGPSを使う</option>
+            <option value="none">場所を付けない</option>
+        </select>
+
+        <div id="hazardAreaSelectWrap" class="mt-3">
+            <select id="hazardAreaSelect" class="w-full border border-slate-200 rounded-2xl px-4 py-3 bg-white">
+                <option value="中山口">中山口</option>
+                <option value="本渡町（本渡）">本渡町（本渡）</option>
+                <option value="中央新町">中央新町</option>
+                <option value="栄町">栄町</option>
+                <option value="古川町">古川町</option>
+                <option value="川原町">川原町</option>
+                <option value="船之尾町">船之尾町</option>
+                <option value="東浜町">東浜町</option>
+                <option value="諏訪町">諏訪町</option>
+                <option value="南町">南町</option>
+                <option value="浄南町">浄南町</option>
+                <option value="港町">港町</option>
+                <option value="東町">東町</option>
+                <option value="南新町">南新町</option>
+                <option value="太田町">太田町</option>
+                <option value="大浜町">大浜町</option>
+                <option value="城下町">城下町</option>
+                <option value="川原新町">川原新町</option>
+                <option value="山の手町">山の手町</option>
+            </select>
+        </div>
+        <div id="hazardGpsInfo" class="hidden mt-3 text-[10px] text-slate-500">登録時に位置情報の許可を確認します。</div>
+
+        <div id="hazardPostError" class="hidden mt-4 text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700"></div>
+        <div class="grid grid-cols-2 gap-3 mt-5">
+            <button onclick="closeHazardPostModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold">キャンセル</button>
+            <button id="hazardSubmitBtn" onclick="submitHazardPost()" class="bg-orange-500 hover:bg-orange-600 text-white rounded-2xl py-3 font-black">登録する</button>
+        </div>
+    </div>
+</div>
+
+<!-- 家族・友達追加モーダル -->
+<div id="friendModal" class="hidden fixed inset-0 z-[100] modal-backdrop flex items-center justify-center px-5">
+    <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6">
+        <h2 class="text-xl font-black text-slate-800">家族・友達を検索</h2>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">名前の最初の文字から検索できます。例：R → Rie / Raad / Ran</p>
+
+        <div class="relative mt-5">
+            <input id="friendSearchInput" type="text" placeholder="名前を入力（例：R）" maxlength="100" autocomplete="off"
+                class="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-300"
+                oninput="handleFriendSearchInput()">
+            <div id="friendSearchSpinner" class="hidden absolute right-4 top-3 text-xs text-slate-400">検索中...</div>
+        </div>
+
+        <div id="friendSearchHint" class="mt-3 text-[11px] text-slate-400">1文字以上入力すると候補が表示されます。</div>
+        <div id="friendSearchResults" class="mt-3 max-h-64 overflow-y-auto space-y-2"></div>
+        <div id="friendModalError" class="hidden mt-3 text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700"></div>
+
+        <button onclick="closeFriendModal()" class="mt-5 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold">閉じる</button>
+    </div>
+</div>
+
+<!-- リクエスト詳細モーダル -->
+<div id="friendRequestModal" class="hidden fixed inset-0 z-[110] modal-backdrop flex items-center justify-center px-5">
+    <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6">
+        <div class="text-center">
+            <div class="text-5xl mb-3">👋</div>
+            <h2 class="text-xl font-black text-slate-800">家族・友達リクエスト</h2>
+            <p id="requestModalText" class="text-sm text-slate-600 mt-3 leading-relaxed"></p>
+        </div>
+        <div class="mt-5 bg-slate-50 rounded-2xl p-4">
+            <p class="text-[10px] text-slate-400">許可すると共有される情報</p>
+            <ul class="text-xs text-slate-700 mt-2 space-y-1">
+                <li>✓ 安否確認の結果</li>
+                <li>✓ まちの安全情報の画像</li>
+                <li>✓ 登録した場所の位置</li>
+                <li>✓ 危険・助けの場所のメッセージ</li>
+            </ul>
+            <p class="text-[10px] text-rose-500 mt-3 font-bold">✕ 現在位置の追跡・共有は行いません。</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-5">
+            <button onclick="rejectCurrentFriendRequest()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-3 font-bold">拒否</button>
+            <button onclick="acceptCurrentFriendRequest()" class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl py-3 font-black">許可</button>
+        </div>
+    </div>
+</div>
+
+<!-- オフライン表示 -->
+<div id="networkBanner" class="hidden fixed left-4 right-4 bottom-4 z-[190] max-w-xl mx-auto safe-area-bottom">
+    <div class="bg-slate-900/95 text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3">
+        <span class="text-xl">📴</span>
+        <div class="flex-1">
+            <p class="text-xs font-black">オフラインです</p>
+            <p id="networkBannerText" class="text-[10px] text-white/80 mt-0.5">保存した家族ルールや安心メモは見られます。</p>
+        </div>
+        <button onclick="switchScreen('offline-kit')" class="bg-white/15 hover:bg-white/25 rounded-xl px-3 py-2 text-[10px] font-black">安心メモ</button>
+    </div>
+</div>
+
+<!-- 通知バナー -->
+<div id="pushNotificationBanner" class="fixed top-20 right-4 z-[200] w-[min(380px,calc(100vw-32px))] translate-x-full transition-transform duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 p-4">
+        <div class="flex gap-3">
+            <div class="text-2xl">🔔</div>
+            <div class="flex-1">
+                <p id="pushNotificationTitle" class="font-black text-sm text-slate-800"></p>
+                <p id="pushNotificationText" class="text-xs text-slate-500 mt-1"></p>
+            </div>
+            <button onclick="closePushBanner()" class="text-slate-400 font-black">×</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =====================================================
+   API設定 & グローバル変数
+===================================================== */
+const API_BASE_URL = "https://otenki-app.onrender.com";
+const AMAKUSA_LAT = 32.4547;
+const AMAKUSA_LON = 130.1978;
+const POLL_INTERVAL_MS = 15000;
+const VAPID_PUBLIC_KEY = "";
+
+let pollTimers = [];
+let jstMonitorStarted = false;
+let lastNotifiedKey = "";
+let currentFriendRequest = null;
+let pushServiceWorkerRegistration = null;
+let deferredInstallPrompt = null;
+
+let allQuizQuestions = [];
+let quizQuestions = [];
+let quizIndex = 0;
+let quizAnswered = false;
+let quizMode = "scenario";
+let quizScore = { answered: 0, correct: 0 };
+
+let selectedHazardImage = "";
+let selectedPlaceKind = "danger";
+let hazardFilter = "all";
+
+let currentWeatherSnapshot = null;
+let currentPreparationScenario = "auto";
+let activePreparationScenario = "mild";
+let selectedPreparationItems = new Set();
+
+let currentFamilyRuleScenario = "";
+let familyRuleStep = 0;
+let familyRuleDraft = { answers: [] };
+
+let currentOfflineStorageKey = "";
+let offlineProfile = createDefaultOfflineProfile();
+
+const appState = {
+    userName: "",
+    securityKey: "",
+    accountId: "",
+    friends: [],
+    friendRequests: [],
+    safetyStatuses: [],
+    hazardPosts: []
+};
+
+/* =====================================================
+   API通信用ラッパー
+===================================================== */
+function isApiConfigured() {
+    return Boolean(API_BASE_URL && API_BASE_URL.startsWith("http"));
+}
+
+async function apiRequest(path, options = {}, timeout = 15000) {
+    if (!isApiConfigured()) {
+        return { ok: false, error: "API_BASE_URLが設定されていません。" };
+    }
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return { ok: false, offline: true, error: "現在オフラインです。保存した情報は確認できます。" };
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${path}`, {
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                ...(appState.securityKey ? { "X-Security-Key": appState.securityKey } : {}),
+                ...(options.headers || {})
+            },
+            signal: controller.signal
+        });
+
+        let data = null;
+        try {
+            data = await response.json();
+        } catch {
+            data = null;
+        }
+
+        if (!response.ok) {
+            return { ok: false, error: data?.error || `HTTP ${response.status}` };
+        }
+
+        return { ok: true, data: data || {} };
+    } catch (error) {
+        if (error && error.name === "AbortError") {
+            return { ok: false, error: "サーバーへの接続がタイムアウトしました。" };
+        }
+        return { ok: false, error: error?.message || "サーバーへ接続できませんでした。" };
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/* =====================================================
+   ローカル保存
+===================================================== */
+function saveAppState() {
+    try {
+        const data = {
+            userName: appState.userName,
+            accountId: appState.accountId,
+            securityKey: appState.securityKey,
+            friends: appState.friends,
+            friendRequests: appState.friendRequests,
+            safetyStatuses: appState.safetyStatuses,
+            hazardPosts: appState.hazardPosts
+        };
+        localStorage.setItem("otenkiAppState", JSON.stringify(data));
+    } catch (error) {
+        console.error("状態保存エラー:", error);
+    }
+}
+
+function loadAppState() {
+    try {
+        const raw = localStorage.getItem("otenkiAppState");
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data && typeof data === "object") {
+            appState.userName = data.userName || "";
+            appState.accountId = data.accountId || "";
+            appState.securityKey = data.securityKey || "";
+            appState.friends = Array.isArray(data.friends) ? data.friends : [];
+            appState.friendRequests = Array.isArray(data.friendRequests) ? data.friendRequests : [];
+            appState.safetyStatuses = Array.isArray(data.safetyStatuses) ? data.safetyStatuses : [];
+            appState.hazardPosts = Array.isArray(data.hazardPosts) ? data.hazardPosts : [];
+        }
+    } catch (error) {
+        console.error("保存データ読み込みエラー:", error);
+    }
+}
+
+function createDefaultOfflineProfile() {
+    return {
+        version: 2,
+        ownerId: "",
+        ownerName: "",
+        familyRules: [],
+        emergencyPlan: {
+            primaryMeeting: "",
+            secondaryMeeting: "",
+            contactName1: "",
+            contactPhone1: "",
+            contactName2: "",
+            contactPhone2: "",
+            noContactRule: "",
+            notes: ""
+        },
+        weatherPreparation: null,
+        lastWeather: null,
+        cachedPlaces: [],
+        lastSavedAt: ""
+    };
+}
+
+function normalizeOfflineProfile(value) {
+    const base = createDefaultOfflineProfile();
+    const source = value && typeof value === "object" ? value : {};
+    const plan = source.emergencyPlan && typeof source.emergencyPlan === "object"
+        ? source.emergencyPlan
+        : {};
+
+    return {
+        ...base,
+        ...source,
+        familyRules: Array.isArray(source.familyRules) ? source.familyRules : [],
+        emergencyPlan: {
+            ...base.emergencyPlan,
+            ...plan
+        },
+        cachedPlaces: Array.isArray(source.cachedPlaces) ? source.cachedPlaces : []
+    };
+}
+
+function getOfflineStorageKey() {
+    if (appState.accountId) {
+        return `otenkiOfflineProfile:${appState.accountId}`;
+    }
+    return localStorage.getItem("otenkiLastOfflineProfileKey") || "otenkiOfflineProfile:guest";
+}
+
+function loadOfflineProfile(storageKey = "") {
+    try {
+        const key = storageKey || getOfflineStorageKey();
+        const raw = localStorage.getItem(key);
+        offlineProfile = normalizeOfflineProfile(raw ? JSON.parse(raw) : null);
+        currentOfflineStorageKey = key;
+
+        if (appState.accountId) {
+            offlineProfile.ownerId = appState.accountId;
+            offlineProfile.ownerName = appState.userName;
+            currentOfflineStorageKey = `otenkiOfflineProfile:${appState.accountId}`;
+            localStorage.setItem("otenkiLastOfflineProfileKey", currentOfflineStorageKey);
+        }
+    } catch (error) {
+        console.error("オフライン情報の読み込みエラー:", error);
+        offlineProfile = createDefaultOfflineProfile();
+        currentOfflineStorageKey = getOfflineStorageKey();
+    }
+
+    updateOfflineEntryAvailability();
+    return offlineProfile;
+}
+
+function hasOfflineProfileContent(profile = offlineProfile) {
+    const plan = profile?.emergencyPlan || {};
+    return Boolean(
+        (Array.isArray(profile?.familyRules) && profile.familyRules.length > 0) ||
+        (Array.isArray(profile?.cachedPlaces) && profile.cachedPlaces.length > 0) ||
+        plan.primaryMeeting ||
+        plan.secondaryMeeting ||
+        plan.contactName1 ||
+        plan.contactPhone1 ||
+        plan.contactName2 ||
+        plan.contactPhone2 ||
+        plan.noContactRule ||
+        plan.notes
+    );
+}
+
+function saveOfflineProfile(touchSavedAt = true) {
+    try {
+        const key = appState.accountId
+            ? `otenkiOfflineProfile:${appState.accountId}`
+            : (currentOfflineStorageKey || getOfflineStorageKey());
+
+        currentOfflineStorageKey = key;
+        if (appState.accountId) {
+            offlineProfile.ownerId = appState.accountId;
+            offlineProfile.ownerName = appState.userName;
+        }
+        if (touchSavedAt) {
+            offlineProfile.lastSavedAt = new Date().toISOString();
+        }
+
+        localStorage.setItem(key, JSON.stringify(offlineProfile));
+        if (hasOfflineProfileContent(offlineProfile) || appState.accountId) {
+            localStorage.setItem("otenkiLastOfflineProfileKey", key);
+        }
+        updateOfflineEntryAvailability();
+        updateOfflineSavedLabels();
+        return true;
+    } catch (error) {
+        console.error("オフライン情報の保存エラー:", error);
+        return false;
+    }
+}
+
+function formatSavedTime(value) {
+    if (!value) return "まだ保存されていません";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "保存日時不明";
+    return date.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+}
+
+function updateOfflineEntryAvailability() {
+    const button = document.getElementById("openSavedOfflineBtn");
+    const hint = document.getElementById("offlineLoginHint");
+    const lastKey = localStorage.getItem("otenkiLastOfflineProfileKey");
+    let exists = false;
+
+    if (lastKey) {
+        try {
+            const raw = localStorage.getItem(lastKey);
+            exists = hasOfflineProfileContent(normalizeOfflineProfile(raw ? JSON.parse(raw) : null));
+        } catch {
+            exists = false;
+        }
+    }
+
+    button?.classList.toggle("hidden", !exists);
+    hint?.classList.toggle("hidden", !exists);
+}
+
+function updateOfflineSavedLabels() {
+    const label = document.getElementById("offlineLastSavedAt");
+    if (label) {
+        label.innerText = `最終保存：${formatSavedTime(offlineProfile.lastSavedAt)}`;
+    }
+
+    const prepLabel = document.getElementById("preparationSavedAt");
+    if (prepLabel) {
+        const savedAt = offlineProfile.weatherPreparation?.checkedAt;
+        prepLabel.innerText = savedAt
+            ? `前回考えた日時：${formatSavedTime(savedAt)}`
+            : "選んだ内容は、この端末の安心メモに保存できます。";
+    }
+}
+
+function getJSTNow() {
+    return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+}
+
+/* =====================================================
+   画面切替
+===================================================== */
+function switchScreen(screenId) {
+    document.querySelectorAll(".screen").forEach(el => el.classList.add("hidden"));
+    const target = document.getElementById(`screen-${screenId}`);
+    if (target) {
+        target.classList.remove("hidden");
+    }
+    window.scrollTo(0, 0);
+
+    if (screenId === "quiz") {
+        loadQuizIfNeeded();
+    }
+    if (screenId === "weather") {
+        initializePreparationUI();
+        fetchRealWeatherWithJST();
+    }
+    if (screenId === "safety") {
+        if (navigator.onLine) {
+            pollSafety();
+        } else {
+            renderSafetyList(appState.safetyStatuses);
+        }
+    }
+    if (screenId === "hazard") {
+        if (navigator.onLine) {
+            pollHazard();
+        } else {
+            renderOfflineCachedHazardsInMainScreen();
+        }
+    }
+    if (screenId === "family-rules") {
+        renderFamilyRuleScenarioGrid();
+        renderSavedFamilyRules();
+    }
+    if (screenId === "offline-kit") {
+        hydrateOfflineForm();
+        renderOfflineKit();
+    }
+    if (screenId === "dashboard") {
+        if (navigator.onLine) {
+            pollFriends();
+            pollFriendRequests();
+        } else {
+            renderFriends();
+            renderFriendRequests();
+        }
+    }
+}
+
+/* =====================================================
+   ログインエラー制御
+===================================================== */
+function showLoginError(msg) {
+    const el = document.getElementById("loginErrorMsg");
+    if (!el) return;
+    el.innerText = msg;
+    el.classList.remove("hidden");
+}
+
+function hideLoginError() {
+    const el = document.getElementById("loginErrorMsg");
+    if (el) el.classList.add("hidden");
+}
+
+function setLoginButtonsDisabled(disabled) {
+    ["loginRegisterBtn", "loginLoginBtn"].forEach(id => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        button.disabled = disabled;
+        button.classList.toggle("opacity-50", disabled);
+    });
+}
+
+/* =====================================================
+   認証・ログイン処理
+===================================================== */
+async function handleAuth(type) {
+    hideLoginError();
+    const name = document.getElementById("loginName")?.value.trim();
+    const securityKey = document.getElementById("loginSecurityKey")?.value.trim();
+
+    if (!name || !securityKey) {
+        showLoginError("表示名と自分のセキュリティキーを入力してください。");
+        return;
+    }
+
+    setLoginButtonsDisabled(true);
+    showLoginError("サーバーに接続中です…");
+
+    const path = type === "register" ? "/api/account/register" : "/api/account/login";
+    const result = await apiRequest(path, {
+        method: "POST",
+        body: JSON.stringify({ name, security_key: securityKey })
+    }, 40000);
+
+    setLoginButtonsDisabled(false);
+
+    if (!result.ok) {
+        showLoginError(result.error || "接続に失敗しました。");
+        return;
+    }
+
+    hideLoginError();
+    const user = result.data.user || {};
+    appState.userName = user.name || name;
+    appState.accountId = user.id || "";
+    appState.securityKey = securityKey;
+    appState.friends = result.data.friends || [];
+    appState.friendRequests = result.data.friend_requests || result.data.received || [];
+
+    saveAppState();
+    loadOfflineProfile();
+    updateUserHeader();
+    renderFriends();
+    renderFriendRequests();
+    switchScreen("dashboard");
+    initJSTBackgroundMonitors();
+    startPolling();
+
+    enableRealPushNotifications();
+}
+
+function updateUserHeader() {
+    const welcome = document.getElementById("welcomeUserName");
+    if (welcome) welcome.innerText = appState.userName;
+
+    const label = document.getElementById("currentUserLabel");
+    if (label) label.innerText = `ログイン中: ${appState.userName}`;
+
+    document.getElementById("headerUserArea")?.classList.remove("hidden");
+}
+
+function handleLogout() {
+    if (!confirm("ログアウトしますか？")) return;
+    stopPolling();
+    appState.userName = "";
+    appState.securityKey = "";
+    appState.accountId = "";
+    appState.friends = [];
+    appState.friendRequests = [];
+    appState.safetyStatuses = [];
+    appState.hazardPosts = [];
+
+    localStorage.removeItem("otenkiAppState");
+    document.getElementById("headerUserArea")?.classList.add("hidden");
+    updateOfflineEntryAvailability();
+    switchScreen("login");
+}
+
+/* =====================================================
+   Web Push / 通知関連処理 (main.js 統合)
+===================================================== */
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+async function registerPushServiceWorker() {
+    if (!("serviceWorker" in navigator)) {
+        return null;
+    }
+    try {
+        pushServiceWorkerRegistration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        await navigator.serviceWorker.ready;
+        return pushServiceWorkerRegistration;
+    } catch (error) {
+        console.error("Service Worker登録失敗:", error);
+        return null;
+    }
+}
+
+async function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+        alert("このブラウザは通知に対応していません。");
+        return false;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+        console.warn("通知が許可されませんでした。");
+        return false;
+    }
+    return true;
+}
+
+async function subscribeToRealPush() {
+    if (!("PushManager" in window)) return false;
+    if (!VAPID_PUBLIC_KEY) {
+        console.warn("VAPID_PUBLIC_KEYが未設定です。");
+        return false;
+    }
+    try {
+        const registration = await registerPushServiceWorker();
+        if (!registration) return false;
+        const permitted = await requestNotificationPermission();
+        if (!permitted) return false;
+
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+        }
+
+        const result = await apiRequest("/api/push/subscribe", {
+            method: "POST",
+            body: JSON.stringify({ account_id: appState.accountId, subscription: subscription.toJSON() })
+        }, 15000);
+
+        return result.ok;
+    } catch (error) {
+        console.error("Web Push購読エラー:", error);
+        return false;
+    }
+}
+
+async function unsubscribeFromRealPush() {
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (!subscription) return true;
+
+        await apiRequest("/api/push/unsubscribe", {
+            method: "POST",
+            body: JSON.stringify({ endpoint: subscription.endpoint })
+        }, 10000);
+
+        await subscription.unsubscribe();
+        return true;
+    } catch (error) {
+        console.error("Push購読解除エラー:", error);
+        return false;
+    }
+}
+
+async function enableRealPushNotifications() {
+    const success = await subscribeToRealPush();
+    const statusEl = document.getElementById("pushPermissionStatus");
+    if (success) {
+        if (statusEl) statusEl.innerText = "通知：許可済み";
+        triggerPushNotification("通知を有効にしました", "地震や天気などの重要なお知らせを受け取れるようになりました。");
+        return true;
+    }
+    if (statusEl) statusEl.innerText = "通知：未許可";
+    return false;
+}
+
+async function disableRealPushNotifications() {
+    const success = await unsubscribeFromRealPush();
+    const statusEl = document.getElementById("pushPermissionStatus");
+    if (success && statusEl) statusEl.innerText = "通知：無効";
+}
+
+async function updatePushPermissionStatus() {
+    const statusEl = document.getElementById("pushPermissionStatus");
+    if (!statusEl) return;
+    if (!("Notification" in window)) {
+        statusEl.innerText = "通知：非対応";
+        return;
+    }
+    if (Notification.permission === "granted") {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            statusEl.innerText = subscription ? "通知：許可済み" : "通知：未登録";
+        } catch {
+            statusEl.innerText = "通知：許可済み";
+        }
+        return;
+    }
+    if (Notification.permission === "denied") {
+        statusEl.innerText = "通知：ブロック中";
+        return;
+    }
+    statusEl.innerText = "通知：未設定";
+}
+
+function triggerPushNotification(title, msg) {
+    const banner = document.getElementById("pushNotificationBanner");
+    if (!banner) return;
+    const titleEl = document.getElementById("pushNotificationTitle");
+    const textEl = document.getElementById("pushNotificationText");
+    if (titleEl) titleEl.innerText = title;
+    if (textEl) textEl.innerText = msg;
+    banner.classList.remove("translate-x-full");
+    setTimeout(() => banner.classList.add("translate-x-full"), 6000);
+
+    if ("Notification" in window && Notification.permission === "granted" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification(title, { body: msg, icon: "/icon-192.png", badge: "/icon-192.png" });
+        }).catch(err => console.warn("OS通知エラー:", err));
+    }
+}
+
+function closePushBanner() {
+    document.getElementById("pushNotificationBanner")?.classList.add("translate-x-full");
+}
+
+/* =====================================================
+   フレンド・リクエスト関連
+===================================================== */
+let friendSearchTimer = null;
+let friendSearchSerial = 0;
+
+function openFriendModal() {
+    const modal = document.getElementById("friendModal");
+    if (!modal) return;
+
+    const input = document.getElementById("friendSearchInput");
+    if (input) input.value = "";
+
+    document.getElementById("friendSearchResults")?.replaceChildren();
+    document.getElementById("friendModalError")?.classList.add("hidden");
+
+    const hint = document.getElementById("friendSearchHint");
+    if (hint) {
+        hint.innerText = "1文字以上入力すると候補が表示されます。";
+        hint.classList.remove("hidden");
+    }
+
+    modal.classList.remove("hidden");
+    setTimeout(() => input?.focus(), 100);
+}
+
+function closeFriendModal() {
+    if (friendSearchTimer) {
+        clearTimeout(friendSearchTimer);
+        friendSearchTimer = null;
+    }
+    friendSearchSerial += 1;
+    document.getElementById("friendModal")?.classList.add("hidden");
+}
+
+function handleFriendSearchInput() {
+    const input = document.getElementById("friendSearchInput");
+    const query = input?.value.trim() || "";
+    const resultsEl = document.getElementById("friendSearchResults");
+    const errorEl = document.getElementById("friendModalError");
+    const hint = document.getElementById("friendSearchHint");
+
+    if (errorEl) errorEl.classList.add("hidden");
+    if (friendSearchTimer) clearTimeout(friendSearchTimer);
+
+    if (!query) {
+        friendSearchSerial += 1;
+        if (resultsEl) resultsEl.innerHTML = "";
+        if (hint) {
+            hint.innerText = "1文字以上入力すると候補が表示されます。";
+            hint.classList.remove("hidden");
+        }
+        return;
+    }
+
+    if (hint) {
+        hint.innerText = "入力した文字から始まるユーザーを検索します。";
+        hint.classList.remove("hidden");
+    }
+
+    friendSearchTimer = setTimeout(() => searchFriendUsers(query), 250);
+}
+
+async function searchFriendUsers(query) {
+    if (!appState.accountId || !appState.securityKey) {
+        showFriendSearchError("ログインしてください。");
+        return;
+    }
+
+    const serial = ++friendSearchSerial;
+    const spinner = document.getElementById("friendSearchSpinner");
+    const resultsEl = document.getElementById("friendSearchResults");
+    const hint = document.getElementById("friendSearchHint");
+
+    spinner?.classList.remove("hidden");
+
+    const result = await apiRequest(`/api/users/search?q=${encodeURIComponent(query)}`, {
+        method: "GET"
+    }, 10000);
+
+    if (serial !== friendSearchSerial) return;
+    spinner?.classList.add("hidden");
+
+    if (!result.ok) {
+        if (resultsEl) resultsEl.innerHTML = "";
+        showFriendSearchError(result.error || "ユーザー検索に失敗しました。");
+        return;
+    }
+
+    const users = Array.isArray(result.data.users) ? result.data.users : [];
+    renderFriendSearchResults(users);
+
+    if (hint) {
+        hint.innerText = users.length
+            ? `${users.length}人見つかりました。追加したい人を選んでください。`
+            : "一致するユーザーが見つかりませんでした。";
+        hint.classList.remove("hidden");
+    }
+}
+
+function renderFriendSearchResults(users) {
+    const container = document.getElementById("friendSearchResults");
+    if (!container) return;
+    container.innerHTML = "";
+
+    users.forEach(user => {
+        const id = String(user.id || "");
+        const name = String(user.name || "");
+        if (!id || !name) return;
+
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "w-full text-left bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 rounded-2xl p-3 flex items-center justify-between gap-3";
+
+        const left = document.createElement("div");
+        left.className = "flex items-center gap-3 min-w-0";
+        left.innerHTML = `
+            <div class="w-10 h-10 shrink-0 rounded-full bg-purple-100 flex items-center justify-center text-xl">👤</div>
+            <div class="min-w-0">
+                <div class="text-sm font-black text-slate-800 truncate">${escapeHtml(name)}</div>
+                <div class="text-[10px] text-slate-400 truncate">ユーザーID: ${escapeHtml(id.slice(0, 12))}</div>
+            </div>
+        `;
+
+        const action = document.createElement("span");
+        action.className = "shrink-0 bg-purple-500 text-white rounded-xl px-3 py-2 text-[11px] font-black";
+        action.innerText = "追加";
+
+        row.appendChild(left);
+        row.appendChild(action);
+        row.addEventListener("click", () => sendFriendRequestToUser(id, name, row));
+        container.appendChild(row);
+    });
+}
+
+function showFriendSearchError(message) {
+    const errorEl = document.getElementById("friendModalError");
+    if (!errorEl) return;
+    errorEl.innerText = message;
+    errorEl.classList.remove("hidden");
+}
+
+async function sendFriendRequestToUser(targetUserId, targetName, rowButton) {
+    if (!targetUserId) return;
+
+    const errorEl = document.getElementById("friendModalError");
+    errorEl?.classList.add("hidden");
+
+    const previousHtml = rowButton?.innerHTML;
+    if (rowButton) {
+        rowButton.disabled = true;
+        rowButton.innerHTML = '<div class="w-full text-center text-xs font-bold text-slate-500 py-2">送信中...</div>';
+    }
+
+    const result = await apiRequest("/api/friends/request", {
+        method: "POST",
+        body: JSON.stringify({ user_id: targetUserId })
+    }, 20000);
+
+    if (!result.ok) {
+        if (rowButton) {
+            rowButton.disabled = false;
+            rowButton.innerHTML = previousHtml;
+        }
+        showFriendSearchError(result.error || "リクエストの送信に失敗しました。");
+        return;
+    }
+
+    closeFriendModal();
+    triggerPushNotification("家族・友達リクエスト", `${targetName}さんへリクエストを送信しました。`);
+    alert(`${targetName}さんへ家族・友達リクエストを送信しました。`);
+    await pollFriendRequests();
+}
+
+async function pollFriends() {
+    if (!appState.accountId) return;
+    const result = await apiRequest("/api/friends", { method: "GET" }, 10000);
+    if (!result.ok) return;
+    appState.friends = result.data.friends || [];
+    saveAppState();
+    renderFriends();
+}
+
+function renderFriends() {
+    const container = document.getElementById("friendsList");
+    if (!container) return;
+    container.innerHTML = "";
+
+    if (!appState.friends || appState.friends.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8 bg-white/60 rounded-2xl border border-dashed border-slate-300">
+                <div class="text-3xl mb-2">👥</div>
+                <p class="text-xs text-slate-400">まだ家族・友達が登録されていません。</p>
+                <button onclick="openFriendModal()" class="mt-3 bg-purple-500 text-white rounded-xl px-4 py-2 text-xs font-black">家族・友達を追加</button>
+            </div>
+        `;
+        return;
+    }
+
+    appState.friends.forEach(friend => {
+        const name = typeof friend === "string" ? friend : friend.name || "";
+        const friendId = typeof friend === "object" ? friend.id || "" : "";
+        const status = typeof friend === "object" ? friend.status || "connected" : "connected";
+        const row = document.createElement("div");
+        row.className = "bg-white border border-slate-200 rounded-2xl p-3 flex items-center justify-between";
+        const statusText = status === "connected" ? "接続中" : status;
+
+        row.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-xl">👤</div>
+                <div>
+                    <p class="text-xs font-black text-slate-800">${escapeHtml(name)}</p>
+                    <p class="text-[10px] text-emerald-600 mt-1"><span class="status-dot bg-emerald-500"></span>${escapeHtml(statusText)}</p>
+                </div>
+            </div>
+            <button class="text-[10px] text-slate-400 hover:text-rose-500 font-bold" onclick="removeFriend('${escapeJs(friendId)}', '${escapeJs(name)}')">接続解除</button>
+        `;
+        container.appendChild(row);
+    });
+}
+
+async function removeFriend(friendId, name) {
+    if (!friendId) {
+        alert("相手のユーザーIDを取得できませんでした。画面を更新してもう一度お試しください。");
+        return;
+    }
+    if (!confirm(`${name}さんとの家族・友達接続を解除しますか？`)) return;
+    const result = await apiRequest(`/api/friends/${encodeURIComponent(friendId)}`, { method: "DELETE" });
+    if (!result.ok) {
+        alert(`接続解除に失敗しました：${result.error}`);
+        return;
+    }
+    await pollFriends();
+}
+
+async function pollFriendRequests() {
+    if (!appState.accountId) return;
+    const result = await apiRequest("/api/friends/requests", { method: "GET" }, 10000);
+    if (!result.ok) return;
+
+    const newRequests = (result.data.received || []).filter(request => request.status === "pending");
+    const oldIds = new Set(appState.friendRequests.map(r => String(r.id || "")));
+
+    newRequests.forEach(request => {
+        const id = String(request.id || "");
+        if (id && !oldIds.has(id)) {
+            triggerPushNotification("家族・友達リクエスト", `${request.from?.name || "誰か"}さんからリクエストが届きました。`);
+        }
+    });
+
+    appState.friendRequests = newRequests;
+    saveAppState();
+    renderFriendRequests();
+}
+
+function renderFriendRequests() {
+    const container = document.getElementById("friendRequestsList");
+    const badge = document.getElementById("requestCountBadge");
+    if (!container) return;
+    container.innerHTML = "";
+
+    const requests = appState.friendRequests || [];
+    if (badge) {
+        if (requests.length > 0) {
+            badge.innerText = String(requests.length);
+            badge.classList.remove("hidden");
+        } else {
+            badge.classList.add("hidden");
+        }
+    }
+
+    if (requests.length === 0) {
+        container.innerHTML = `<p class="text-[11px] text-slate-400 text-center py-5">新しいリクエストはありません。</p>`;
+        return;
+    }
+
+    requests.forEach(request => {
+        const fromName = request.from?.name || request.from_name || request.name || "不明なユーザー";
+        const row = document.createElement("div");
+        row.className = "bg-white border border-slate-200 rounded-2xl p-4";
+        row.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-xl">👋</div>
+                <div class="flex-1">
+                    <p class="text-sm font-black text-slate-800">${escapeHtml(fromName)}</p>
+                    <p class="text-[10px] text-slate-500 mt-1">家族・友達になりたいというリクエストです。</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-3">
+                <button class="bg-slate-100 hover:bg-slate-200 rounded-xl py-2 text-xs font-bold text-slate-700" onclick="rejectFriendRequest('${escapeJs(request.id)}')">拒否</button>
+                <button class="bg-emerald-500 hover:bg-emerald-600 rounded-xl py-2 text-xs font-black text-white" onclick="acceptFriendRequest('${escapeJs(request.id)}')">許可</button>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+async function acceptFriendRequest(requestId) {
+    const result = await apiRequest(`/api/friends/requests/${encodeURIComponent(requestId)}/accept`, {
+        method: "POST",
+        body: JSON.stringify({ account_id: appState.accountId })
+    });
+    if (!result.ok) {
+        alert(`リクエストの許可に失敗しました：${result.error}`);
+        return;
+    }
+    appState.friendRequests = appState.friendRequests.filter(req => String(req.id) !== String(requestId));
+    saveAppState();
+    await pollFriends();
+    renderFriendRequests();
+    triggerPushNotification("家族・友達接続完了", "家族・友達として接続されました。");
+}
+
+async function rejectFriendRequest(requestId) {
+    const result = await apiRequest(`/api/friends/requests/${encodeURIComponent(requestId)}/reject`, {
+        method: "POST",
+        body: JSON.stringify({ account_id: appState.accountId })
+    });
+    if (!result.ok) {
+        alert(`リクエストの拒否に失敗しました：${result.error}`);
+        return;
+    }
+    appState.friendRequests = appState.friendRequests.filter(req => String(req.id) !== String(requestId));
+    saveAppState();
+    renderFriendRequests();
+}
+
+/* =====================================================
+   ポーリング & サーバ接続状態
+===================================================== */
+function startPolling() {
+    stopPolling();
+    if (!navigator.onLine || !appState.accountId) return;
+    pollFriends();
+    pollFriendRequests();
+    pollSafety();
+    pollHazard();
+
+    pollTimers.push(setInterval(pollFriends, POLL_INTERVAL_MS));
+    pollTimers.push(setInterval(pollFriendRequests, POLL_INTERVAL_MS));
+    pollTimers.push(setInterval(pollSafety, POLL_INTERVAL_MS));
+    pollTimers.push(setInterval(pollHazard, POLL_INTERVAL_MS));
+}
+
+function stopPolling() {
+    pollTimers.forEach(timer => clearInterval(timer));
+    pollTimers = [];
+}
+
+function setServerConnStatus(ok) {
+    const elements = document.querySelectorAll("#safetyConnStatus, #hazardSyncStatus, #globalConnectionStatus");
+    const isOffline = !navigator.onLine;
+    elements.forEach(el => {
+        if (!el.dataset.customStatus) {
+            el.innerText = isOffline
+                ? "オフライン（保存情報を利用できます）"
+                : (ok ? "サーバー接続中" : "サーバー接続エラー");
+        }
+    });
+}
+
+/* =====================================================
+   安否確認
+===================================================== */
+async function pollSafety() {
+    if (!appState.accountId) return;
+    const statusEl = document.getElementById("safetyConnStatus");
+    const result = await apiRequest("/api/safety", { method: "GET" }, 10000);
+    setServerConnStatus(result.ok);
+
+    if (!result.ok) {
+        if (statusEl) statusEl.innerText = "同期エラー（再試行中）";
+        return;
+    }
+    if (statusEl) statusEl.innerText = `最終同期: ${getJSTNow().toLocaleTimeString("ja-JP")}`;
+
+    appState.safetyStatuses = result.data.statuses || [];
+    saveAppState();
+    renderSafetyList(appState.safetyStatuses);
+}
+
+function safetyStatusLabel(status) {
+    if (status === "safe") return { emoji: "😊", text: "元気です", cls: "bg-amber-50 border-amber-200 text-amber-900" };
+    if (status === "messy") return { emoji: "🏠", text: "被害あり", cls: "bg-orange-50 border-orange-200 text-orange-900" };
+    if (status === "sos") return { emoji: "🆘", text: "緊急SOS", cls: "bg-rose-100 border-rose-300 text-rose-900" };
+    return { emoji: "❔", text: status, cls: "bg-slate-50 border-slate-200 text-slate-700" };
+}
+
+function renderSafetyList(statuses) {
+    const container = document.getElementById("groupSafetyStatusList");
+    if (!container) return;
+    if (!statuses || statuses.length === 0) {
+        container.innerHTML = '<p class="text-[11px] text-slate-400 text-center py-4">まだ安否報告を受信していません。</p>';
+        return;
+    }
+    container.innerHTML = "";
+    statuses.forEach(s => {
+        const info = safetyStatusLabel(s.status);
+        const jstTime = s.created_at ? new Date(s.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }) : "";
+        const row = document.createElement("div");
+        row.className = `flex justify-between items-center text-xs font-bold px-3.5 py-2.5 rounded-xl border ${info.cls}`;
+        row.innerHTML = `<span>${info.emoji} ${escapeHtml(s.name || "")}さんは${escapeHtml(info.text)}！</span><span class="text-[10px] font-medium opacity-70">${escapeHtml(jstTime)}</span>`;
+        container.appendChild(row);
+    });
+}
+
+async function sendSafety(type) {
+    if (!appState.accountId) {
+        alert("ログインしてください。");
+        return;
+    }
+    const msgEl = document.getElementById("safetyResultMsg");
+    const result = await apiRequest("/api/safety", {
+        method: "POST",
+        body: JSON.stringify({ status: type })
+    });
+
+    if (!result.ok) {
+        if (msgEl) {
+            msgEl.innerText = `送信に失敗しました：${result.error}`;
+            msgEl.className = "mt-4 text-xs text-center font-medium p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700";
+            msgEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    if (msgEl) {
+        const info = safetyStatusLabel(type);
+        msgEl.innerText = `${appState.userName}さんは${info.text}！`;
+        msgEl.className = "mt-4 text-xs text-center font-medium p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700";
+        msgEl.classList.remove("hidden");
+    }
+
+    triggerPushNotification("安否確認送信", `${appState.userName}さんの安否情報を家族・友達へ共有しました。`);
+    setTimeout(() => msgEl?.classList.add("hidden"), 5000);
+    pollSafety();
+}
+
+/* =====================================================
+   まちの安全情報（危ない場所 / 助けを求められる場所）
+===================================================== */
+const PLACE_CATEGORY_OPTIONS = {
+    danger: [
+        ["road", "道路・交差点"],
+        ["flood", "水がたまりやすい・冠水"],
+        ["river", "川・用水路"],
+        ["cliff", "崖・斜面"],
+        ["dark", "暗い道・見えにくい場所"],
+        ["traffic", "車や自転車が多い場所"],
+        ["damage", "壊れた物・倒れそうな物"],
+        ["other", "その他の危ない場所"]
+    ],
+    help: [
+        ["child110", "子ども110番の家"],
+        ["police", "交番・警察署"],
+        ["school", "学校・保育施設"],
+        ["shelter", "避難所"],
+        ["store", "コンビニ・お店"],
+        ["public", "公民館・公共施設"],
+        ["trusted", "家族が決めた頼れる場所"],
+        ["other", "その他の助けを求められる場所"]
+    ]
+};
+
+function getPlaceCategoryLabel(kind, category) {
+    const list = PLACE_CATEGORY_OPTIONS[kind] || PLACE_CATEGORY_OPTIONS.danger;
+    const found = list.find(item => item[0] === category);
+    return found ? found[1] : (category || (kind === "help" ? "助けを求められる場所" : "危ない場所"));
+}
+
+function renderHazardCategoryOptions() {
+    const select = document.getElementById("hazardCategory");
+    if (!select) return;
+    const options = PLACE_CATEGORY_OPTIONS[selectedPlaceKind] || [];
+    select.innerHTML = "";
+    options.forEach(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.innerText = label;
+        select.appendChild(option);
+    });
+}
+
+function setPlaceKind(kind) {
+    selectedPlaceKind = kind === "help" ? "help" : "danger";
+    const isHelp = selectedPlaceKind === "help";
+    const dangerButton = document.getElementById("hazardKindDanger");
+    const helpButton = document.getElementById("hazardKindHelp");
+    const submitButton = document.getElementById("hazardSubmitBtn");
+
+    if (dangerButton) {
+        dangerButton.className = isHelp
+            ? "bg-white text-orange-700 border border-orange-200 rounded-2xl py-3 text-xs font-black"
+            : "bg-orange-500 text-white border border-orange-500 rounded-2xl py-3 text-xs font-black";
+    }
+    if (helpButton) {
+        helpButton.className = isHelp
+            ? "bg-emerald-500 text-white border border-emerald-500 rounded-2xl py-3 text-xs font-black"
+            : "bg-white text-emerald-700 border border-emerald-200 rounded-2xl py-3 text-xs font-black";
+    }
+
+    const title = document.getElementById("hazardModalTitle");
+    const subtitle = document.getElementById("hazardModalSubtitle");
+    const placeNameLabel = document.getElementById("hazardPlaceNameLabel");
+    const placeName = document.getElementById("hazardPlaceName");
+    const textLabel = document.getElementById("hazardTextLabel");
+    const textInput = document.getElementById("hazardTextInput");
+
+    if (title) title.innerText = isHelp ? "🆘 助けを求められる場所を登録" : "⚠️ 危ない場所を登録";
+    if (subtitle) subtitle.innerText = isHelp
+        ? "困った時に頼れる場所を、家族・友達と共有します。"
+        : "気をつけたい場所を、家族・友達と共有します。";
+    if (placeNameLabel) placeNameLabel.innerText = isHelp ? "場所の名前（必須）" : "場所の名前（任意）";
+    if (placeName) placeName.placeholder = isHelp ? "例：○○交番、△△こども110番の家" : "例：○○交差点";
+    if (textLabel) textLabel.innerText = isHelp ? "どんな時に、どう頼れる？" : "どんなところが危ない？";
+    if (textInput) textInput.placeholder = isHelp
+        ? "例：困った時に店員さんへ助けを求められます"
+        : "例：雨のあとに道路へ水がたまりやすいです";
+    if (submitButton) {
+        submitButton.innerText = "登録する";
+        submitButton.className = isHelp
+            ? "bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl py-3 font-black"
+            : "bg-orange-500 hover:bg-orange-600 text-white rounded-2xl py-3 font-black";
+    }
+
+    renderHazardCategoryOptions();
+}
+
+function openHazardPostModal(kind = "danger") {
+    document.getElementById("hazardPostError")?.classList.add("hidden");
+    const textInput = document.getElementById("hazardTextInput");
+    const nameInput = document.getElementById("hazardPlaceName");
+    if (textInput) textInput.value = "";
+    if (nameInput) nameInput.value = "";
+    clearHazardImage();
+    setPlaceKind(kind);
+    document.getElementById("hazardPostModal")?.classList.remove("hidden");
+    updateHazardLocationMode();
+    setTimeout(() => document.getElementById("hazardPlaceName")?.focus(), 100);
+}
+
+function closeHazardPostModal() {
+    document.getElementById("hazardPostModal")?.classList.add("hidden");
+}
+
+function triggerImageUpload() {
+    document.getElementById("hazardImageInput")?.click();
+}
+
+function clearHazardImage() {
+    selectedHazardImage = "";
+    const input = document.getElementById("hazardImageInput");
+    if (input) input.value = "";
+    document.getElementById("hazardImagePreviewWrap")?.classList.add("hidden");
+}
+
+async function previewHazardImage(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+        selectedHazardImage = await compressImage(file);
+        const preview = document.getElementById("hazardImagePreview");
+        if (preview) preview.src = selectedHazardImage;
+        document.getElementById("hazardImagePreviewWrap")?.classList.remove("hidden");
+    } catch (error) {
+        selectedHazardImage = "";
+        alert("画像の読み込みに失敗しました。");
+    }
+}
+
+function updateHazardLocationMode() {
+    const mode = document.getElementById("hazardLocationMode")?.value || "area";
+    document.getElementById("hazardAreaSelectWrap")?.classList.toggle("hidden", mode !== "area");
+    document.getElementById("hazardGpsInfo")?.classList.toggle("hidden", mode !== "gps");
+}
+
+function compressImage(file, maxWidth = 1280, quality = 0.78) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = event => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth) {
+                    height = Math.round(height * maxWidth / width);
+                    width = maxWidth;
+                }
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) {
+                    reject(new Error("画像処理を開始できませんでした。"));
+                    return;
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL("image/jpeg", quality));
+            };
+            img.onerror = reject;
+            img.src = event.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+function getCurrentPosition() {
+    return new Promise(resolve => {
+        if (!navigator.geolocation) {
+            resolve({ latitude: null, longitude: null, accuracy: null, fallback: true });
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            position => resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+                fallback: false
+            }),
+            () => resolve({ latitude: null, longitude: null, accuracy: null, fallback: true }),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+        );
+    });
+}
+
+async function submitHazardPost() {
+    const textValue = document.getElementById("hazardTextInput")?.value.trim() || "";
+    const placeName = document.getElementById("hazardPlaceName")?.value.trim() || "";
+    const category = document.getElementById("hazardCategory")?.value || "other";
+    const mode = document.getElementById("hazardLocationMode")?.value || "area";
+    const errorEl = document.getElementById("hazardPostError");
+    const button = document.getElementById("hazardSubmitBtn");
+    const isHelp = selectedPlaceKind === "help";
+
+    if (isHelp && !placeName) {
+        if (errorEl) {
+            errorEl.innerText = "助けを求められる場所の名前を入力してください。";
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    if (!textValue) {
+        if (errorEl) {
+            errorEl.innerText = isHelp
+                ? "どんな時に頼れる場所なのか入力してください。"
+                : "どんなところが危ないのか入力してください。";
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    if (!navigator.onLine) {
+        if (errorEl) {
+            errorEl.innerText = "オフラインでは新しい場所を共有できません。保存済みの安心メモは確認できます。";
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    let latitude = null;
+    let longitude = null;
+    let accuracy = null;
+    let locationLabel = "";
+
+    if (mode === "area") {
+        locationLabel = document.getElementById("hazardAreaSelect")?.value || "天草市内";
+    } else if (mode === "gps") {
+        if (button) {
+            button.disabled = true;
+            button.innerText = "位置取得中...";
+        }
+        const position = await getCurrentPosition();
+        if (position.fallback || position.latitude == null || position.longitude == null) {
+            if (button) {
+                button.disabled = false;
+                button.innerText = "登録する";
+            }
+            if (errorEl) {
+                errorEl.innerText = "位置情報を取得できませんでした。大まかな地域を選ぶ方法も使えます。";
+                errorEl.classList.remove("hidden");
+            }
+            return;
+        }
+        latitude = position.latitude;
+        longitude = position.longitude;
+        accuracy = position.accuracy;
+        locationLabel = "GPSで指定した場所";
+    }
+
+    if (button) {
+        button.disabled = true;
+        button.innerText = "登録中...";
+    }
+    errorEl?.classList.add("hidden");
+
+    const result = await apiRequest("/api/hazards", {
+        method: "POST",
+        body: JSON.stringify({
+            kind: selectedPlaceKind,
+            place_type: selectedPlaceKind,
+            category,
+            place_name: placeName,
+            image: selectedHazardImage || "",
+            text: textValue,
+            latitude,
+            longitude,
+            accuracy,
+            location_label: locationLabel
+        })
+    }, 60000);
+
+    if (button) {
+        button.disabled = false;
+        button.innerText = "登録する";
+    }
+
+    if (!result.ok) {
+        if (errorEl) {
+            errorEl.innerText = result.error || "登録に失敗しました。";
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    const input = document.getElementById("hazardTextInput");
+    const nameInput = document.getElementById("hazardPlaceName");
+    if (input) input.value = "";
+    if (nameInput) nameInput.value = "";
+    clearHazardImage();
+    closeHazardPostModal();
+    triggerPushNotification(
+        isHelp ? "助けを求められる場所を登録しました" : "危ない場所を登録しました",
+        "家族・友達へ、まちの安全情報を共有しました。"
+    );
+    await pollHazard();
+}
+
+function makeOfflinePlaceRecord(post) {
+    const lat = Number(post.latitude ?? post.lat);
+    const lon = Number(post.longitude ?? post.lon);
+    return {
+        id: String(post.id || ""),
+        kind: ((post.kind || post.place_type) === "help" || ["child110", "police", "school", "shelter", "store", "public", "trusted"].includes(String(post.category || ""))) ? "help" : "danger",
+        category: String(post.category || ""),
+        place_name: String(post.place_name || ""),
+        text: String(post.text || ""),
+        author: String(post.author || ""),
+        latitude: Number.isFinite(lat) ? lat : null,
+        longitude: Number.isFinite(lon) ? lon : null,
+        accuracy: Number.isFinite(Number(post.accuracy)) ? Number(post.accuracy) : null,
+        location_label: String(post.location_label || ""),
+        created_at: String(post.created_at || ""),
+        cached_offline: true
+    };
+}
+
+function cachePlacesForOffline(posts) {
+    const nextPlaces = (Array.isArray(posts) ? posts : [])
+        .slice(0, 100)
+        .map(makeOfflinePlaceRecord);
+    const before = JSON.stringify(offlineProfile.cachedPlaces || []);
+    const after = JSON.stringify(nextPlaces);
+    if (before === after) return;
+
+    offlineProfile.cachedPlaces = nextPlaces;
+    offlineProfile.placesCachedAt = new Date().toISOString();
+    saveOfflineProfile(false);
+}
+
+async function pollHazard() {
+    if (!appState.accountId) return;
+    const syncEl = document.getElementById("hazardSyncStatus");
+    const result = await apiRequest("/api/hazards", { method: "GET" }, 10000);
+    setServerConnStatus(result.ok);
+
+    if (!result.ok) {
+        if (syncEl) {
+            syncEl.innerText = result.offline
+                ? `オフライン表示：${formatSavedTime(offlineProfile.placesCachedAt)}`
+                : "同期エラー（保存情報があれば表示します）";
+        }
+        renderOfflineCachedHazardsInMainScreen();
+        return;
+    }
+
+    if (syncEl) syncEl.innerText = `最終同期: ${getJSTNow().toLocaleTimeString("ja-JP")}`;
+    appState.hazardPosts = result.data.posts || [];
+    saveAppState();
+    cachePlacesForOffline(appState.hazardPosts);
+    renderHazardPosts(appState.hazardPosts);
+}
+
+function renderOfflineCachedHazardsInMainScreen() {
+    const cached = Array.isArray(offlineProfile.cachedPlaces) ? offlineProfile.cachedPlaces : [];
+    renderHazardPosts(cached);
+    const syncEl = document.getElementById("hazardSyncStatus");
+    if (syncEl && !navigator.onLine) {
+        syncEl.innerText = cached.length
+            ? `オフライン：${formatSavedTime(offlineProfile.placesCachedAt)}の保存情報`
+            : "オフライン：保存された場所はありません";
+    }
+}
+
+function setHazardFilter(filter) {
+    hazardFilter = ["all", "danger", "help"].includes(filter) ? filter : "all";
+    const definitions = [
+        ["hazardFilterAll", "all", "slate"],
+        ["hazardFilterDanger", "danger", "orange"],
+        ["hazardFilterHelp", "help", "emerald"]
+    ];
+
+    definitions.forEach(([id, value, color]) => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        const active = hazardFilter === value;
+        if (value === "all") {
+            button.className = active
+                ? "bg-slate-800 text-white border border-slate-800 rounded-xl py-2 text-xs font-black"
+                : "bg-white text-slate-700 border border-slate-200 rounded-xl py-2 text-xs font-black";
+        } else if (color === "orange") {
+            button.className = active
+                ? "bg-orange-500 text-white border border-orange-500 rounded-xl py-2 text-xs font-black"
+                : "bg-white text-orange-700 border border-orange-200 rounded-xl py-2 text-xs font-black";
+        } else {
+            button.className = active
+                ? "bg-emerald-500 text-white border border-emerald-500 rounded-xl py-2 text-xs font-black"
+                : "bg-white text-emerald-700 border border-emerald-200 rounded-xl py-2 text-xs font-black";
+        }
+    });
+
+    const source = navigator.onLine && appState.hazardPosts.length
+        ? appState.hazardPosts
+        : (offlineProfile.cachedPlaces || []);
+    renderHazardPosts(source);
+}
+
+function renderHazardPosts(posts = appState.hazardPosts) {
+    const container = document.getElementById("hazardPostList");
+    if (!container) return;
+
+    const normalized = (Array.isArray(posts) ? posts : []).map(post => {
+        const storedKind = post.kind || post.place_type || "";
+        const helpCategories = ["child110", "police", "school", "shelter", "store", "public", "trusted"];
+        const isHelp = storedKind === "help" || helpCategories.includes(String(post.category || ""));
+        return {
+            ...post,
+            kind: isHelp ? "help" : "danger",
+            place_type: isHelp ? "help" : "danger"
+        };
+    });
+    const dangerCount = normalized.filter(post => post.kind === "danger").length;
+    const helpCount = normalized.filter(post => post.kind === "help").length;
+    const allCount = normalized.length;
+
+    const allCountEl = document.getElementById("hazardCountAll");
+    const dangerCountEl = document.getElementById("hazardCountDanger");
+    const helpCountEl = document.getElementById("hazardCountHelp");
+    if (allCountEl) allCountEl.innerText = String(allCount);
+    if (dangerCountEl) dangerCountEl.innerText = String(dangerCount);
+    if (helpCountEl) helpCountEl.innerText = String(helpCount);
+
+    const filtered = hazardFilter === "all"
+        ? normalized
+        : normalized.filter(post => post.kind === hazardFilter);
+
+    if (filtered.length === 0) {
+        const message = hazardFilter === "help"
+            ? "まだ助けを求められる場所は登録されていません。<br>子ども110番の家、交番、学校などを家族と確認してみよう。"
+            : hazardFilter === "danger"
+                ? "まだ危ない場所は登録されていません。<br>気になる場所を家族と確認してみよう。"
+                : "まだまちの安全情報はありません。<br>危ない場所や助けを求められる場所を登録できます。";
+        container.innerHTML = `<div class="text-center py-12 text-xs text-slate-400 bg-white/60 rounded-2xl border border-dashed border-slate-300">${message}</div>`;
+        return;
+    }
+
+    container.innerHTML = "";
+    filtered.forEach(post => {
+        const isHelp = post.kind === "help";
+        const lat = Number(post.latitude ?? post.lat);
+        const lon = Number(post.longitude ?? post.lon);
+        const hasLocation = Number.isFinite(lat) && Number.isFinite(lon);
+        const mapUrl = hasLocation ? `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lon}`)}` : "";
+        const jstTime = post.created_at
+            ? new Date(post.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })
+            : "";
+        const div = document.createElement("div");
+        div.className = isHelp
+            ? "bg-white/95 border border-emerald-200 rounded-2xl p-4 shadow-sm space-y-3"
+            : "bg-white/95 border border-orange-200 rounded-2xl p-4 shadow-sm space-y-3";
+
+        const safeImage = String(post.image || "").startsWith("data:image/") ? post.image : "";
+        const imageHtml = safeImage
+            ? `<img src="${escapeHtml(safeImage)}" class="w-full h-40 object-cover rounded-xl" alt="登録された場所の写真" loading="lazy">`
+            : `<div class="text-[10px] text-slate-400 bg-slate-50 rounded-xl p-3">📷 写真なしの登録</div>`;
+
+        const locationLabel = String(post.location_label || "").trim();
+        const mapHtml = mapUrl
+            ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="text-xs text-sky-600 font-extrabold underline block">📍 登録場所をマップで確認</a>
+               <div class="text-[10px] text-slate-400">${escapeHtml(locationLabel || "GPSで指定した場所")}</div>
+               ${Number.isFinite(Number(post.accuracy)) ? `<div class="text-[10px] text-slate-400">GPS精度 約${Math.round(Number(post.accuracy))}m</div>` : ""}`
+            : locationLabel
+                ? `<div class="text-xs text-sky-700 font-bold">📍 ${escapeHtml(locationLabel)}</div>`
+                : `<div class="text-[10px] text-slate-400">📍 場所指定なし</div>`;
+
+        const categoryLabel = getPlaceCategoryLabel(post.kind, String(post.category || ""));
+        const placeTitle = String(post.place_name || "").trim() || categoryLabel;
+        const cachedNotice = post.cached_offline
+            ? `<div class="text-[10px] text-cyan-700 bg-cyan-50 border border-cyan-100 rounded-xl p-2">📴 この端末に保存した情報を表示しています。</div>`
+            : "";
+
+        div.innerHTML = `
+            <div class="flex justify-between items-start gap-3">
+                <div>
+                    <span class="inline-block text-[10px] font-black rounded-full px-3 py-1 ${isHelp ? "bg-emerald-100 text-emerald-800" : "bg-orange-100 text-orange-800"}">${isHelp ? "🆘 助けを求められる場所" : "⚠️ 危ない場所"}</span>
+                    <h3 class="font-black text-slate-800 mt-2">${escapeHtml(placeTitle)}</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">${escapeHtml(categoryLabel)}</p>
+                </div>
+                <div class="text-right text-[10px] text-slate-400">
+                    <div>👤 ${escapeHtml(post.author || "")}</div>
+                    <div class="mt-1">${escapeHtml(jstTime)}</div>
+                </div>
+            </div>
+            ${imageHtml}
+            <p class="text-xs text-slate-800 font-semibold leading-relaxed">${escapeHtml(post.text || "")}</p>
+            ${mapHtml}
+            ${cachedNotice}
+            <div class="text-[10px] text-slate-400 border-t border-slate-100 pt-2">登録した場所の情報です。投稿者の現在位置を示すものではありません。</div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+/* =====================================================
+   防災・天気クイズ
+===================================================== */
+async function openQuizScreen() {
+    switchScreen("quiz");
+}
+
+function updateQuizModeButtons() {
+    const definitions = [
+        ["quizModeScenario", "scenario"],
+        ["quizModeKnowledge", "knowledge"],
+        ["quizModeMixed", "mixed"]
+    ];
+    definitions.forEach(([id, mode]) => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        const active = quizMode === mode;
+        button.className = active
+            ? "bg-amber-500 text-white border border-amber-500 rounded-xl py-2 text-[11px] font-black"
+            : "bg-white text-slate-600 border border-slate-200 rounded-xl py-2 text-[11px] font-black";
+    });
+
+    const description = document.getElementById("quizModeDescription");
+    if (description) {
+        description.innerText = quizMode === "scenario"
+            ? "場所や天気を見て、「今ならどうする？」を考えます。"
+            : quizMode === "knowledge"
+                ? "天気や防災について知っていることを確かめます。"
+                : "考える問題と知識問題の両方にチャレンジします。";
+    }
+}
+
+function shuffleQuizItems(items) {
+    const copied = [...items];
+    for (let i = copied.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copied[i], copied[j]] = [copied[j], copied[i]];
+    }
+    return copied;
+}
+
+function applyQuizMode() {
+    const scenarioItems = allQuizQuestions.filter(item => item.type === "scenario");
+    const knowledgeItems = allQuizQuestions.filter(item => item.type !== "scenario");
+
+    if (quizMode === "scenario") {
+        quizQuestions = scenarioItems.length ? shuffleQuizItems(scenarioItems) : shuffleQuizItems(allQuizQuestions);
+    } else if (quizMode === "knowledge") {
+        quizQuestions = knowledgeItems.length ? shuffleQuizItems(knowledgeItems) : shuffleQuizItems(allQuizQuestions);
+    } else {
+        quizQuestions = shuffleQuizItems(allQuizQuestions);
+    }
+
+    quizIndex = 0;
+    quizAnswered = false;
+    quizScore = { answered: 0, correct: 0 };
+    updateQuizModeButtons();
+    updateQuizScore();
+    renderQuizQuestion();
+}
+
+function setQuizMode(mode) {
+    quizMode = ["scenario", "knowledge", "mixed"].includes(mode) ? mode : "scenario";
+    updateQuizModeButtons();
+    if (allQuizQuestions.length > 0) {
+        applyQuizMode();
+    }
+}
+
+async function loadQuizIfNeeded() {
+    updateQuizModeButtons();
+    if (allQuizQuestions.length > 0) {
+        if (!quizQuestions.length) applyQuizMode();
+        else renderQuizQuestion();
+        return;
+    }
+
+    const loading = document.getElementById("quizLoading");
+    const area = document.getElementById("quizArea");
+    if (loading) {
+        loading.innerText = "問題を読み込んでいます...";
+        loading.classList.remove("hidden");
+    }
+
+    try {
+        const response = await fetch("/quiz.txt", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const rawText = await response.text();
+        const parsed = Function(`"use strict"; return [${rawText}];`)();
+        allQuizQuestions = Array.isArray(parsed)
+            ? parsed.filter(item => item && item.q && item.a)
+            : [];
+        if (allQuizQuestions.length === 0) throw new Error("問題がありません");
+        if (loading) loading.classList.add("hidden");
+        if (area) area.classList.remove("hidden");
+        applyQuizMode();
+    } catch (error) {
+        console.error("クイズ読み込みエラー:", error);
+        if (loading) {
+            loading.innerText = "クイズを読み込めませんでした。オフライン保存がまだ終わっていない場合は、一度通信できる時に開いてください。";
+        }
+    }
+}
+
+function parseQuizQuestion(item) {
+    const lines = String(item.q || "").split("\n").map(line => line.trim()).filter(Boolean);
+    const questionLines = [];
+    const choices = [];
+    for (const line of lines) {
+        const match = line.match(/^(\d+)\.\s*(.+)$/);
+        if (match) choices.push({ number: match[1], text: match[2] });
+        else questionLines.push(line.replace(/^問題：/, ""));
+    }
+    const answerMatch = String(item.a || "").match(/正解：\s*(\d+)\./);
+    return {
+        question: questionLines.join("\n"),
+        choices,
+        correctNumber: answerMatch ? answerMatch[1] : "",
+        explanation: String(item.a || ""),
+        type: item.type === "scenario" ? "scenario" : "knowledge",
+        topic: String(item.topic || (item.type === "scenario" ? "状況を考える" : "知識を確かめる"))
+    };
+}
+
+function updateQuizScore() {
+    const score = document.getElementById("quizScore");
+    if (!score) return;
+    score.innerText = quizScore.answered > 0
+        ? `${quizScore.answered}問チャレンジ・${quizScore.correct}回よく考えられた`
+        : "0問チャレンジ";
+}
+
+function renderQuizQuestion() {
+    if (!quizQuestions.length) return;
+    quizAnswered = false;
+    const item = quizQuestions[quizIndex % quizQuestions.length];
+    const parsed = parseQuizQuestion(item);
+
+    const progress = document.getElementById("quizProgress");
+    const question = document.getElementById("quizQuestion");
+    const topic = document.getElementById("quizTopic");
+    if (progress) progress.innerText = `${quizIndex + 1} / ${quizQuestions.length}`;
+    if (question) question.innerText = parsed.question;
+    if (topic) topic.innerText = parsed.type === "scenario" ? `💭 ${parsed.topic}` : `📘 ${parsed.topic}`;
+
+    const choicesEl = document.getElementById("quizChoices");
+    if (!choicesEl) return;
+    choicesEl.innerHTML = "";
+
+    parsed.choices.forEach(choice => {
+        const button = document.createElement("button");
+        button.className = "w-full text-left bg-slate-50 hover:bg-amber-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold";
+        button.innerText = `${choice.number}. ${choice.text}`;
+        button.dataset.choiceNumber = choice.number;
+        button.onclick = () => answerQuiz(choice.number, parsed.correctNumber, parsed.explanation, button, parsed.type);
+        choicesEl.appendChild(button);
+    });
+
+    if (parsed.choices.length === 0) {
+        choicesEl.innerHTML = '<div class="bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl p-4 text-xs">この問題の選択肢を読み取れませんでした。</div>';
+    }
+
+    const answerBox = document.getElementById("quizAnswerBox");
+    answerBox?.classList.add("hidden");
+    document.getElementById("quizNextBtn")?.classList.add("hidden");
+}
+
+function answerQuiz(selected, correct, explanation, clickedButton, type = "knowledge") {
+    if (quizAnswered) return;
+    quizAnswered = true;
+    const isCorrect = String(selected) === String(correct);
+    quizScore.answered += 1;
+    if (isCorrect) quizScore.correct += 1;
+    updateQuizScore();
+
+    const answerBox = document.getElementById("quizAnswerBox");
+    const encouragement = isCorrect
+        ? (type === "scenario"
+            ? "🌟 いい考え方だね。状況を見て、安全につながる選び方ができたよ。"
+            : "🎉 よく分かったね！")
+        : (type === "scenario"
+            ? "💡 その選び方を考えた理由も大事だよ。ここでは、もう一つ安全な見方を確かめよう。"
+            : "💡 おしい！理由を知れば、次は自信を持って選べるよ。");
+
+    if (answerBox) {
+        answerBox.innerText = `${encouragement}\n\n${explanation}`;
+        answerBox.className = `mt-5 rounded-2xl p-4 text-sm whitespace-pre-line leading-relaxed border ${isCorrect ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-amber-50 border-amber-200 text-amber-900"}`;
+    }
+
+    document.querySelectorAll("#quizChoices button").forEach(button => {
+        button.disabled = true;
+        if (String(button.dataset.choiceNumber) === String(correct)) {
+            button.className = "w-full text-left bg-emerald-50 border-2 border-emerald-400 rounded-2xl px-4 py-3 text-sm font-bold text-emerald-900";
+        }
+    });
+    if (clickedButton && !isCorrect) {
+        clickedButton.className = "w-full text-left bg-amber-50 border-2 border-amber-300 rounded-2xl px-4 py-3 text-sm font-bold text-amber-900";
+    }
+    document.getElementById("quizNextBtn")?.classList.remove("hidden");
+}
+
+function nextQuizQuestion() {
+    if (!quizQuestions.length) return;
+    quizIndex = (quizIndex + 1) % quizQuestions.length;
+    renderQuizQuestion();
+}
+
+/* =====================================================
+   天気情報取得
+===================================================== */
+async function fetchRealWeatherWithJST() {
+    const descEl = document.getElementById("liveWeatherDesc");
+    if (!descEl) return;
+
+    if (!navigator.onLine) {
+        renderCachedWeatherOrUnavailable();
+        return;
+    }
+
+    descEl.innerText = "JST基準で気象データを取得中...";
+
+    try {
+        const result = await apiRequest("/api/weather", { method: "GET" }, 15000);
+        if (!result.ok) {
+            throw new Error(result.error || "天気情報を取得できませんでした。");
+        }
+
+        const data = result.data;
+        const snapshot = {
+            description: String(data.description || data.weather || "天候不明"),
+            temperature: Number(data.temperature),
+            feelsLike: Number(data.feels_like),
+            humidity: Number(data.humidity),
+            windSpeed: Number(data.wind_speed),
+            fetchedAt: String(data.fetched_at || new Date().toISOString()),
+            cachedAt: new Date().toISOString()
+        };
+
+        currentWeatherSnapshot = snapshot;
+        offlineProfile.lastWeather = snapshot;
+        offlineProfile.weatherCachedAt = snapshot.cachedAt;
+        saveOfflineProfile(false);
+        renderWeatherSnapshot(snapshot, false);
+        evaluateJSTWeatherAndAdvice(
+            snapshot.description,
+            snapshot.windSpeed,
+            [],
+            snapshot.temperature,
+            snapshot.feelsLike,
+            false
+        );
+        updateAutoPreparationFromWeather(snapshot);
+    } catch (error) {
+        console.error("天気取得エラー:", error);
+        if (offlineProfile.lastWeather) {
+            renderWeatherSnapshot(offlineProfile.lastWeather, true);
+            evaluateJSTWeatherAndAdvice(
+                offlineProfile.lastWeather.description,
+                offlineProfile.lastWeather.windSpeed,
+                [],
+                offlineProfile.lastWeather.temperature,
+                offlineProfile.lastWeather.feelsLike,
+                true
+            );
+            updateAutoPreparationFromWeather(offlineProfile.lastWeather);
+        } else {
+            descEl.innerText = `天気情報の取得に失敗しました。${error.message || ""}`;
+            const recommendationEl = document.getElementById("lifestyleRecommendation");
+            if (recommendationEl) {
+                recommendationEl.innerText = "最新の天気は表示できません。下の『今日、何を準備する？』では、雨・強風・暑さなどの場面を自分で選べます。";
+            }
+            initializePreparationUI();
+        }
+    }
+}
+
+function renderWeatherSnapshot(snapshot, cached = false) {
+    const description = String(snapshot?.description || "天候不明");
+    const temperature = Number(snapshot?.temperature);
+    const feelsLike = Number(snapshot?.feelsLike);
+    const humidity = Number(snapshot?.humidity);
+    const windSpeed = Number(snapshot?.windSpeed);
+    const savedTime = snapshot?.cachedAt || snapshot?.fetchedAt || offlineProfile.weatherCachedAt;
+
+    const descEl = document.getElementById("liveWeatherDesc");
+    if (descEl) {
+        descEl.innerText = cached
+            ? `保存した天気：${description} / ${Number.isFinite(temperature) ? temperature.toFixed(1) : "--"}℃ / 風速 ${Number.isFinite(windSpeed) ? windSpeed.toFixed(1) : "--"} m/s（${formatSavedTime(savedTime)}）`
+            : `天草市：${description} / 気温: ${Number.isFinite(temperature) ? temperature.toFixed(1) : "--"}℃ / 風速: ${Number.isFinite(windSpeed) ? windSpeed.toFixed(1) : "--"} m/s (JST)`;
+    }
+
+    const temperatureEl = document.getElementById("weatherTemperature");
+    const feelsLikeEl = document.getElementById("weatherFeelsLike");
+    const humidityEl = document.getElementById("weatherHumidity");
+    const windEl = document.getElementById("weatherWind");
+    if (temperatureEl) temperatureEl.innerText = Number.isFinite(temperature) ? `${temperature.toFixed(1)}℃` : "--";
+    if (feelsLikeEl) feelsLikeEl.innerText = Number.isFinite(feelsLike) ? `${feelsLike.toFixed(1)}℃` : "--";
+    if (humidityEl) humidityEl.innerText = Number.isFinite(humidity) ? `${humidity}%` : "--";
+    if (windEl) windEl.innerText = Number.isFinite(windSpeed) ? `${windSpeed.toFixed(1)} m/s` : "--";
+
+    const sourceNote = document.getElementById("preparationSourceNote");
+    if (sourceNote) {
+        sourceNote.innerText = cached
+            ? `現在は最新情報を取得できないため、${formatSavedTime(savedTime)}に保存した天気を使っています。状況が変わっていないか周りも確認してね。`
+            : `最新の天気を使って場面を選びました。自分で別の場面へ切り替えることもできます。`;
+    }
+}
+
+function renderCachedWeatherOrUnavailable() {
+    if (offlineProfile.lastWeather) {
+        currentWeatherSnapshot = offlineProfile.lastWeather;
+        renderWeatherSnapshot(offlineProfile.lastWeather, true);
+        evaluateJSTWeatherAndAdvice(
+            offlineProfile.lastWeather.description,
+            offlineProfile.lastWeather.windSpeed,
+            [],
+            offlineProfile.lastWeather.temperature,
+            offlineProfile.lastWeather.feelsLike,
+            true
+        );
+        updateAutoPreparationFromWeather(offlineProfile.lastWeather);
+        return;
+    }
+
+    const descEl = document.getElementById("liveWeatherDesc");
+    if (descEl) descEl.innerText = "オフラインです。まだ保存した天気情報がありません。";
+    const recommendationEl = document.getElementById("lifestyleRecommendation");
+    if (recommendationEl) {
+        recommendationEl.innerText = "天気・警報などの最新情報には通信が必要です。準備物の場面は手動で選べます。";
+    }
+    initializePreparationUI();
+}
+
+function evaluateJSTWeatherAndAdvice(desc, windSpeed, forecastList, temperature = NaN, feelsLike = NaN, cached = false) {
+    const jst = getJSTNow();
+    const hour = jst.getHours();
+    const hourMinuteStr = `${String(hour).padStart(2, "0")}:${String(jst.getMinutes()).padStart(2, "0")}`;
+    const recommendations = [];
+    const description = String(desc || "");
+    const wind = Number(windSpeed);
+    const temp = Number(temperature);
+    const feel = Number(feelsLike);
+    const rainFlag = /雨|降水|雷|雪/.test(description);
+    const thunderFlag = /雷/.test(description);
+    const heavyRainFlag = /大雨|豪雨|猛烈|激しい雨/.test(description);
+    const hotFlag = (Number.isFinite(feel) && feel >= 33) || (Number.isFinite(temp) && temp >= 33);
+    let timeGreeting = "";
+
+    if (cached) {
+        timeGreeting = "保存した天気情報を表示しています。最新の状況ではない可能性があります。";
+    } else if (hour < 12) {
+        timeGreeting = `おはようございます。日本標準時 ${hourMinuteStr}、天草市の気象情報をお届けします。`;
+    } else {
+        timeGreeting = `日本標準時 ${hourMinuteStr}、天草市の気象情報です。`;
+    }
+
+    if (thunderFlag) {
+        recommendations.push("雷が聞こえたり空が急に暗くなったりしたら、丈夫な建物など安全な場所へ移ることを考えましょう。");
+    } else if (heavyRainFlag) {
+        recommendations.push("大雨の時は、川・用水路・水がたまった場所へ近づかないようにしましょう。");
+    } else if (rainFlag) {
+        recommendations.push(Number.isFinite(wind) && wind >= 7
+            ? "雨と強い風が予想されます。傘だけに頼らず、レインコートなども考えましょう。"
+            : "雨具を準備し、足元や見えにくさにも気をつけましょう。");
+    } else {
+        recommendations.push("現在の天候を確認しながら、安全にお過ごしください。");
+    }
+
+    if (Number.isFinite(wind) && wind >= 10) {
+        recommendations.push("風が強いため、飛ばされやすい物、看板、木の枝など周りの様子にも注意してください。");
+    }
+    if (hotFlag) {
+        recommendations.push("暑さが厳しい時は、水分・帽子・休憩を忘れず、無理をしないようにしましょう。");
+    }
+
+    const titleEl = document.getElementById("jstReportTitle");
+    const recommendationEl = document.getElementById("lifestyleRecommendation");
+    if (titleEl) titleEl.innerText = cached
+        ? "📴 保存した天草市の気象情報"
+        : `🌤️ 天草市 JST気象情報 (${hourMinuteStr})`;
+    if (!recommendationEl) return;
+
+    let htmlOutput = `<div class="font-bold text-emerald-900 mb-1">${escapeHtml(timeGreeting)}</div><ul class="list-disc pl-4 space-y-1">`;
+    recommendations.forEach(rec => {
+        htmlOutput += `<li>${escapeHtml(rec)}</li>`;
+    });
+    htmlOutput += "</ul>";
+    recommendationEl.innerHTML = htmlOutput;
+}
+
+/* =====================================================
+   天気に合わせて準備物を考える
+===================================================== */
+const PREPARATION_ITEMS = {
+    umbrella: { emoji: "☂️", label: "傘" },
+    raincoat: { emoji: "🧥", label: "レインコート" },
+    boots: { emoji: "🥾", label: "長靴" },
+    towel: { emoji: "🧻", label: "タオル" },
+    hat: { emoji: "🧢", label: "帽子" },
+    water: { emoji: "🥤", label: "水筒・飲み物" },
+    coolTowel: { emoji: "🧊", label: "冷たいタオル" },
+    warmClothes: { emoji: "🧣", label: "防寒着" },
+    gloves: { emoji: "🧤", label: "手袋" },
+    nonSlipShoes: { emoji: "👟", label: "滑りにくい靴" },
+    flashlight: { emoji: "🔦", label: "ライト" },
+    battery: { emoji: "🔋", label: "モバイルバッテリー" },
+    delay: { emoji: "⏰", label: "出かける時間をずらす" },
+    safeBuilding: { emoji: "🏢", label: "安全な建物へ移る" },
+    checkRoute: { emoji: "🗺️", label: "危ない道を避ける" },
+    sandals: { emoji: "🩴", label: "サンダル" }
+};
+
+const PREPARATION_SCENARIOS = {
+    mild: {
+        icon: "🌤️",
+        title: "おだやかな天気",
+        situation: "大きな雨や風の心配は少なそうです。普段の外出に必要な物を考えよう。",
+        choices: ["water", "hat", "towel", "battery", "umbrella", "raincoat", "warmClothes", "sandals"],
+        recommended: ["water"],
+        reasons: {
+            water: "天気が穏やかでも、水分を持っておくと安心だから。"
+        },
+        cautions: {},
+        action: "出かける前に空の様子をもう一度見て、予定に合う持ち物を足してね。"
+    },
+    rain: {
+        icon: "☔",
+        title: "雨",
+        situation: "雨が降りそうです。ぬれにくく、歩きやすくする物を考えよう。",
+        choices: ["umbrella", "raincoat", "boots", "towel", "water", "hat", "sandals", "delay"],
+        recommended: ["umbrella", "towel"],
+        reasons: {
+            umbrella: "風が弱い普通の雨なら、傘で雨をよけやすいから。",
+            towel: "服や持ち物がぬれた時にすぐ拭けるから。"
+        },
+        cautions: {
+            sandals: "サンダルは足がぬれやすく、場所によっては滑りやすいよ。道の様子も確かめよう。"
+        },
+        action: "雨が強くなったり風が出たりしたら、傘だけでなくレインコートや外出時間の変更も考えよう。"
+    },
+    rainWind: {
+        icon: "🌧️",
+        title: "雨と強い風",
+        situation: "雨に加えて風も強そうです。傘があおられる場合も考えて選ぼう。",
+        choices: ["umbrella", "raincoat", "boots", "towel", "delay", "safeBuilding", "checkRoute", "sandals"],
+        recommended: ["raincoat", "delay", "checkRoute"],
+        reasons: {
+            raincoat: "両手を使いやすく、強い風で傘があおられる心配を減らせるから。",
+            delay: "雨風が強い時間を避けることも、自分を守る立派な準備だから。",
+            checkRoute: "海・川・倒れそうな物の近くなど、天気で危険が増す道を避けられるから。"
+        },
+        cautions: {
+            umbrella: "傘を選んだ理由も分かるよ。ただ、風が強い時はあおられて危ないことがあるので、傘だけに頼らない方法も考えよう。",
+            sandals: "強い雨風の日は、サンダルだと滑ったり脱げたりしやすいことがあるよ。"
+        },
+        action: "雨風がとても強い時は、準備物より先に『今は出かけない』という選び方も大切です。"
+    },
+    hot: {
+        icon: "☀️",
+        title: "暑い日",
+        situation: "気温が高くなりそうです。体に熱がたまりすぎない準備を考えよう。",
+        choices: ["water", "hat", "coolTowel", "towel", "delay", "umbrella", "warmClothes", "sandals"],
+        recommended: ["water", "hat"],
+        reasons: {
+            water: "のどが渇く前から少しずつ水分をとる準備になるから。",
+            hat: "外で頭に強い日差しが当たり続けるのを減らせるから。"
+        },
+        cautions: {
+            warmClothes: "冷房対策に役立つこともあるけれど、外では暑くなりすぎない服装か確かめよう。"
+        },
+        action: "日陰や涼しい場所で休む時間も、持ち物と同じくらい大切だよ。"
+    },
+    veryHot: {
+        icon: "🥵",
+        title: "とても暑い日",
+        situation: "かなり暑くなりそうです。持ち物だけでなく、時間や休み方も考えよう。",
+        choices: ["water", "hat", "coolTowel", "delay", "safeBuilding", "umbrella", "warmClothes", "sandals"],
+        recommended: ["water", "hat", "delay"],
+        reasons: {
+            water: "体の水分が不足しないように、すぐ飲める物が必要だから。",
+            hat: "直射日光を受け続けるのを減らせるから。",
+            delay: "特に暑い時間を避けることが、無理をしない行動につながるから。"
+        },
+        cautions: {
+            warmClothes: "室内の冷房対策には使えるけれど、屋外では熱がこもらないようにしよう。"
+        },
+        action: "具合が悪い時は我慢せず、涼しい場所へ移って近くの大人に伝えよう。"
+    },
+    thunder: {
+        icon: "⛈️",
+        title: "雷",
+        situation: "雷が起こる可能性があります。外にいる時の安全な動きも選ぼう。",
+        choices: ["safeBuilding", "delay", "umbrella", "raincoat", "checkRoute", "water", "hat", "sandals"],
+        recommended: ["safeBuilding", "delay"],
+        reasons: {
+            safeBuilding: "雷の音や急な空の変化に気づいた時、丈夫な建物へ移ることが安全につながるから。",
+            delay: "雷が近い時に外へ出ない選び方もできるから。"
+        },
+        cautions: {
+            umbrella: "雨よけにはなるけれど、雷から身を守る道具ではないよ。まず安全な場所を考えよう。"
+        },
+        action: "雷が鳴っている時は、木のすぐ下や開けた場所にとどまらず、周りの大人や施設の案内も聞こう。"
+    },
+    heavyRain: {
+        icon: "🌊",
+        title: "大雨",
+        situation: "雨がとても強い場面です。何を持つかより、どこを通るか・出かけるかも考えよう。",
+        choices: ["delay", "checkRoute", "raincoat", "boots", "flashlight", "battery", "umbrella", "sandals"],
+        recommended: ["delay", "checkRoute", "battery"],
+        reasons: {
+            delay: "危険が高い時間に無理に移動しないことが、自分を守る準備になるから。",
+            checkRoute: "川・用水路・低い道・水がたまった場所を避ける判断につながるから。",
+            battery: "通信できる時に情報や家族の連絡を確認しやすくするから。"
+        },
+        cautions: {
+            umbrella: "傘を持つだけでは、深い水や強い流れからは身を守れないよ。移動しない判断や安全な道の確認を先にしよう。",
+            sandals: "足元が見えにくい大雨では、脱げやすい履物は危険が増えることがあるよ。"
+        },
+        action: "川や用水路、水がたまった道の様子を見に行かないで、早めに安全な場所で情報を確かめよう。"
+    },
+    snow: {
+        icon: "❄️",
+        title: "雪・路面の凍結",
+        situation: "雪や凍った道を考えた準備が必要です。暖かさと歩きやすさを選ぼう。",
+        choices: ["warmClothes", "gloves", "nonSlipShoes", "boots", "water", "delay", "sandals", "umbrella"],
+        recommended: ["warmClothes", "gloves", "nonSlipShoes"],
+        reasons: {
+            warmClothes: "体が冷えすぎないように調整できるから。",
+            gloves: "手を冷えから守り、転んだ時にも手を守りやすいから。",
+            nonSlipShoes: "雪や凍った場所で滑りにくくするため。"
+        },
+        cautions: {
+            sandals: "雪や凍った道では足が冷えやすく、滑りやすいので別の靴を考えよう。"
+        },
+        action: "歩幅を小さくして急がず、道路や交通の情報も確かめよう。"
+    },
+    cold: {
+        icon: "🥶",
+        title: "寒い日",
+        situation: "気温が低くなりそうです。体温を保ちながら動ける準備を考えよう。",
+        choices: ["warmClothes", "gloves", "water", "nonSlipShoes", "hat", "umbrella", "sandals", "towel"],
+        recommended: ["warmClothes", "gloves"],
+        reasons: {
+            warmClothes: "暑くなった時は脱ぐなど、体温を調整できるから。",
+            gloves: "手先の冷えを防ぎやすいから。"
+        },
+        cautions: {
+            sandals: "寒い日は足が冷えやすいので、天気と道に合う靴を考えよう。"
+        },
+        action: "雨や雪もある時は、濡れたままにしない準備も足してね。"
+    },
+    strongWind: {
+        icon: "💨",
+        title: "強い風",
+        situation: "風が強そうです。飛ばされる物や歩きにくさも考えて選ぼう。",
+        choices: ["delay", "checkRoute", "raincoat", "umbrella", "hat", "safeBuilding", "water", "battery"],
+        recommended: ["delay", "checkRoute"],
+        reasons: {
+            delay: "風が弱まるまで移動を待つことも安全な選び方だから。",
+            checkRoute: "看板・木の枝・海沿いなど、強風で危険が増す場所を避けやすいから。"
+        },
+        cautions: {
+            umbrella: "雨があっても、強風では傘があおられることがあるよ。レインコートや時間変更も考えよう。",
+            hat: "帽子は日差し対策になるけれど、風で飛ばされない工夫も必要だよ。"
+        },
+        action: "外に出る必要があるかを大人と確認し、飛んでくる物や転倒にも注意しよう。"
+    }
+};
+
+function detectPreparationScenario(snapshot) {
+    const description = String(snapshot?.description || "");
+    const temperature = Number(snapshot?.temperature);
+    const feelsLike = Number(snapshot?.feelsLike);
+    const windSpeed = Number(snapshot?.windSpeed);
+
+    if (/雷/.test(description)) return "thunder";
+    if (/雪|みぞれ|霰/.test(description)) return "snow";
+    if (/大雨|豪雨|猛烈|激しい雨/.test(description)) return "heavyRain";
+    if (/雨|降水/.test(description) && Number.isFinite(windSpeed) && windSpeed >= 7) return "rainWind";
+    if ((Number.isFinite(feelsLike) && feelsLike >= 35) || (Number.isFinite(temperature) && temperature >= 35)) return "veryHot";
+    if ((Number.isFinite(feelsLike) && feelsLike >= 28) || (Number.isFinite(temperature) && temperature >= 28)) return "hot";
+    if (/雨|降水/.test(description)) return "rain";
+    if (Number.isFinite(windSpeed) && windSpeed >= 10) return "strongWind";
+    if (Number.isFinite(temperature) && temperature <= 7) return "cold";
+    return "mild";
+}
+
+function initializePreparationUI() {
+    const saved = offlineProfile.weatherPreparation;
+    if (!document.getElementById("preparationChoices")) return;
+
+    if (saved && !document.getElementById("preparationChoices").dataset.restored) {
+        currentPreparationScenario = saved.requestedScenario || "auto";
+        activePreparationScenario = saved.resolvedScenario || "mild";
+        selectedPreparationItems = new Set(Array.isArray(saved.selectedItems) ? saved.selectedItems : []);
+        document.getElementById("preparationChoices").dataset.restored = "true";
+    }
+
+    setPreparationScenario(currentPreparationScenario, true);
+    updateOfflineSavedLabels();
+}
+
+function updateAutoPreparationFromWeather(snapshot) {
+    currentWeatherSnapshot = snapshot || currentWeatherSnapshot;
+    if (currentPreparationScenario === "auto") {
+        setPreparationScenario("auto", true);
+    }
+}
+
+function setPreparationScenario(requestedScenario, preserveSelections = false) {
+    const requested = PREPARATION_SCENARIOS[requestedScenario] ? requestedScenario : "auto";
+    const resolved = requested === "auto"
+        ? detectPreparationScenario(currentWeatherSnapshot || offlineProfile.lastWeather)
+        : requested;
+    const changed = activePreparationScenario !== resolved || currentPreparationScenario !== requested;
+
+    currentPreparationScenario = requested;
+    activePreparationScenario = PREPARATION_SCENARIOS[resolved] ? resolved : "mild";
+    if (changed && !preserveSelections) {
+        selectedPreparationItems.clear();
+    }
+
+    document.querySelectorAll("[data-prep-scenario]").forEach(button => {
+        const active = button.dataset.prepScenario === currentPreparationScenario;
+        button.className = active
+            ? "shrink-0 bg-sky-600 text-white border border-sky-600 rounded-xl px-3 py-2 text-xs font-black"
+            : "shrink-0 bg-white text-slate-700 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold";
+    });
+
+    const config = PREPARATION_SCENARIOS[activePreparationScenario];
+    const situation = document.getElementById("preparationSituation");
+    if (situation) situation.innerText = `${config.icon} ${config.title}：${config.situation}`;
+
+    const sourceNote = document.getElementById("preparationSourceNote");
+    if (sourceNote && requested !== "auto") {
+        sourceNote.innerText = "自分で選んだ場面です。実際に出かける時は、最新の天気や周りの様子も確かめてね。";
+    }
+
+    renderPreparationChoices();
+    document.getElementById("preparationFeedback")?.classList.add("hidden");
+}
+
+function renderPreparationChoices() {
+    const container = document.getElementById("preparationChoices");
+    if (!container) return;
+    const config = PREPARATION_SCENARIOS[activePreparationScenario] || PREPARATION_SCENARIOS.mild;
+    container.innerHTML = "";
+
+    config.choices.forEach(itemId => {
+        const item = PREPARATION_ITEMS[itemId];
+        if (!item) return;
+        const selected = selectedPreparationItems.has(itemId);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `tap-card min-h-24 rounded-2xl border p-3 text-left ${selected ? "choice-selected" : "bg-white border-slate-200 hover:bg-sky-50"}`;
+        button.setAttribute("aria-pressed", selected ? "true" : "false");
+        button.innerHTML = `<span class="block text-2xl">${item.emoji}</span><span class="block text-xs font-black text-slate-800 mt-2">${escapeHtml(item.label)}</span><span class="block text-[10px] mt-1 ${selected ? "text-sky-700" : "text-slate-400"}">${selected ? "選んだよ ✓" : "タップして選ぶ"}</span>`;
+        button.onclick = () => togglePreparationItem(itemId);
+        container.appendChild(button);
+    });
+}
+
+function togglePreparationItem(itemId) {
+    if (selectedPreparationItems.has(itemId)) {
+        selectedPreparationItems.delete(itemId);
+    } else {
+        selectedPreparationItems.add(itemId);
+    }
+    renderPreparationChoices();
+    document.getElementById("preparationFeedback")?.classList.add("hidden");
+}
+
+function preparationItemNames(ids) {
+    return ids
+        .map(id => PREPARATION_ITEMS[id]?.label)
+        .filter(Boolean)
+        .join("・");
+}
+
+function checkPreparationChoices() {
+    const feedback = document.getElementById("preparationFeedback");
+    if (!feedback) return;
+    const config = PREPARATION_SCENARIOS[activePreparationScenario] || PREPARATION_SCENARIOS.mild;
+    const selected = [...selectedPreparationItems];
+
+    if (selected.length === 0) {
+        feedback.className = "mt-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 p-4 text-sm leading-relaxed";
+        feedback.innerHTML = "<b>まずは一つ選んでみよう。</b><br>完璧に当てるクイズではないよ。『自分ならこれが必要かも』と思うものから選んで大丈夫。";
+        return;
+    }
+
+    const matched = config.recommended.filter(id => selectedPreparationItems.has(id));
+    const missing = config.recommended.filter(id => !selectedPreparationItems.has(id));
+    const cautionMessages = selected
+        .map(id => config.cautions?.[id])
+        .filter(Boolean);
+    const reasonMessages = matched
+        .map(id => config.reasons?.[id])
+        .filter(Boolean);
+
+    const parts = [];
+    if (matched.length > 0) {
+        parts.push(`<b>いい考えだね！</b> ${escapeHtml(preparationItemNames(matched))}を選んだことが、安全や過ごしやすさにつながるよ。`);
+        reasonMessages.forEach(message => parts.push(`✅ ${escapeHtml(message)}`));
+    } else {
+        parts.push("<b>自分で考えて選べたね。</b> 選んだ物にも役立つ場面があります。ここから、今の天気に特に合う物も一緒に確かめよう。");
+    }
+
+    if (missing.length > 0) {
+        const suggestions = missing.slice(0, 2);
+        parts.push(`💡 もう一つ考えるなら、<b>${escapeHtml(preparationItemNames(suggestions))}</b>も候補だよ。`);
+        suggestions.forEach(id => {
+            if (config.reasons?.[id]) parts.push(`・${escapeHtml(config.reasons[id])}`);
+        });
+    }
+
+    cautionMessages.forEach(message => parts.push(`🔎 ${escapeHtml(message)}`));
+    parts.push(`🧭 ${escapeHtml(config.action)}`);
+
+    feedback.className = `mt-4 rounded-2xl border p-4 text-sm leading-relaxed ${matched.length ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"}`;
+    feedback.innerHTML = parts.map(part => `<p class="mt-2 first:mt-0">${part}</p>`).join("");
+
+    offlineProfile.weatherPreparation = {
+        requestedScenario: currentPreparationScenario,
+        resolvedScenario: activePreparationScenario,
+        selectedItems: selected,
+        checkedAt: new Date().toISOString(),
+        weatherSnapshot: currentWeatherSnapshot || offlineProfile.lastWeather || null
+    };
+    saveOfflineProfile(true);
+    updateOfflineSavedLabels();
+}
+
+/* =====================================================
+   家族の行動ルール
+===================================================== */
+function makeRuleOption(id, label, feedback, tone = "good") {
+    return { id, label, feedback, tone };
+}
+
+const FAMILY_RULE_SCENARIOS = {
+    school: {
+        icon: "🏫",
+        title: "学校にいる時",
+        subtitle: "先生や学校の決まりを手がかりに考える",
+        questions: [
+            {
+                key: "first",
+                icon: "1️⃣",
+                question: "揺れなどがおさまったあと、まずどうする？",
+                options: [
+                    makeRuleOption("listen_teacher", "先生の話を聞く", "いい考えだね。学校では先生や学校の人が周りの安全を確かめています。ひとりで動く前に、近くの先生へ相談すると安心につながるよ。"),
+                    makeRuleOption("go_home_fast", "急いで家へ帰る", "家族に会いたくなるよね。でも道の安全が分からなかったり、迎えに来た家族とすれ違ったりすることがあります。まず先生と、家族で決めたルールを確かめよう。", "think"),
+                    makeRuleOption("keep_calling", "家族へ何度も電話する", "声を聞きたいと思うのは自然だよ。ただ、電話が混み合う時もあります。短い連絡を試したあと、学校の指示や決めたルールで動けるようにしておくと安心だね。", "think")
+                ]
+            },
+            {
+                key: "place",
+                icon: "2️⃣",
+                question: "どこで待つのがよさそう？",
+                options: [
+                    makeRuleOption("school_safe_area", "学校が決めた安全な場所", "いいね。校庭や教室など、学校が安全を確認した場所で待つと、先生も家族も見つけやすくなるよ。"),
+                    makeRuleOption("walk_route", "ひとりで通学路を歩く", "いつもの道でも、災害のあとはブロック塀や電線、道路などの様子が変わることがあります。ひとりで出る前に先生へ確認しよう。", "think"),
+                    makeRuleOption("near_damage", "壊れた物の近くで待つ", "分かりやすい場所にいたいと思ったのかな。けれど、倒れたり落ちたりする物の近くは避けて、先生が案内する場所へ移ろう。", "think")
+                ]
+            },
+            {
+                key: "helper",
+                icon: "3️⃣",
+                question: "困った時、だれに助けを求める？",
+                options: [
+                    makeRuleOption("teacher_staff", "先生・学校の人", "いい考えだね。学校の中では、まず先生や学校の人へ伝えると、家族への連絡や安全確認につなげてもらえるよ。"),
+                    makeRuleOption("friends_only", "友達だけで決める", "友達と助け合うのは大切だね。そのうえで、子どもだけで決めず先生にも伝えると、もっと安全な方法を選びやすいよ。", "think"),
+                    makeRuleOption("tell_no_one", "だれにも言わず我慢する", "心配をかけたくないと思うこともあるね。でも困ったことやけがは、早めに先生へ伝えて大丈夫。助けを求めるのも大切な力だよ。", "think")
+                ]
+            },
+            {
+                key: "no_contact",
+                icon: "4️⃣",
+                question: "家族と連絡できなかったら？",
+                options: [
+                    makeRuleOption("school_handover", "学校と家族で決めた引き渡しルールで待つ", "とても大事な考え方だね。電話が通じなくても、家族と学校が同じルールを知っていれば、別々に探し回る心配を減らせるよ。"),
+                    makeRuleOption("leave_alone", "だれにも言わず学校を出る", "自分で動かなきゃと思ったのかもしれないね。でも家族や先生が探せなくなることがあります。移動する時は先生へ伝えよう。", "think"),
+                    makeRuleOption("search_far", "家族を探して遠くまで歩く", "家族を心配する気持ちは大切だよ。でも危ない場所を通るかもしれません。まず安全な場所にいて、決めた集合方法を使おう。", "think")
+                ]
+            },
+            {
+                key: "meeting",
+                icon: "5️⃣",
+                question: "最後に、家族とどこで会う？",
+                options: [
+                    makeRuleOption("primary_meeting", "{primaryMeeting}", "家族で同じ場所を知っておくのはいいね。学校の引き渡し方法と合っているかも、いっしょに確認しよう。"),
+                    makeRuleOption("school_pickup", "学校で家族の迎えを待つ", "学校と家族がこの方法を決めているなら、分かりやすいルールになるね。だれが迎えに来るかまで決めると、さらに安心だよ。"),
+                    makeRuleOption("not_decided", "まだ決めていないので家族と相談する", "『まだ決めていない』と気づけたのも大切だよ。今日、学校の決まりも確認しながら家族で一つ決めよう。", "think")
+                ]
+            }
+        ]
+    },
+    home: {
+        icon: "🏠",
+        title: "家にひとりの時",
+        subtitle: "自分の身を守り、頼れる人につなぐ",
+        questions: [
+            {
+                key: "first",
+                icon: "1️⃣",
+                question: "大きく揺れたら、まずどうする？",
+                options: [
+                    makeRuleOption("protect_head", "頭を守り、安全な場所で揺れがおさまるのを待つ", "いい考えだね。丈夫な机の下など、その場で頭を守れる場所を使い、あわてて走らないことが最初の安全につながるよ。"),
+                    makeRuleOption("rush_out", "すぐ外へ飛び出す", "外へ出たくなるよね。でも、落ちてくる物や割れた物があるかもしれません。まず頭を守り、揺れがおさまってから周りを確かめよう。", "think"),
+                    makeRuleOption("find_phone_first", "最初にスマホを探す", "連絡は大事だね。ただ、揺れている間は物が落ちることがあります。まず身を守り、そのあと安全を確かめて連絡しよう。", "think")
+                ]
+            },
+            {
+                key: "place",
+                icon: "2️⃣",
+                question: "揺れがおさまったら、どこにいる？",
+                options: [
+                    makeRuleOption("safe_room", "窓や倒れそうな家具から離れた安全な場所", "よく周りを見られているね。割れたガラスや倒れそうな物を避け、出口も確かめられる場所が安心だよ。"),
+                    makeRuleOption("balcony", "ベランダへ出る", "外の様子を見たい気持ちは分かるよ。でも落下物や転落の危険があります。まず室内の安全な場所で状況を確かめよう。", "think"),
+                    makeRuleOption("near_tall_furniture", "背の高い家具のそば", "家具の近くならつかまれると思ったのかな。倒れる可能性がある物からは離れて、安全な場所を選ぼう。", "think")
+                ]
+            },
+            {
+                key: "helper",
+                icon: "3️⃣",
+                question: "ひとりで不安な時、だれを頼る？",
+                options: [
+                    makeRuleOption("trusted_neighbor", "家族と決めた近所の大人・助けの場所", "いいね。ふだんから顔と場所を知っている、家族が決めた相手なら、ひとりで抱え込まず助けを求められるよ。"),
+                    makeRuleOption("any_online_person", "ネットで見つけた知らない人", "だれかに話したいよね。でも知らない人へ住所などを伝えるのは避けよう。家族と決めた大人、交番、店、子ども110番の家などを頼ろう。", "think"),
+                    makeRuleOption("stay_silent", "怖くてもだれにも言わない", "怖い時に声が出にくいこともあるよ。短く『助けてください』『家にひとりです』と伝える練習を家族としておくといいね。", "think")
+                ]
+            },
+            {
+                key: "no_contact",
+                icon: "4️⃣",
+                question: "電話がつながらなかったら？",
+                options: [
+                    makeRuleOption("message_then_rule", "短いメッセージを残し、家族ルールで動く", "とても実用的だね。『無事・今いる場所・これからどうする』を短く残し、つながらなくても決めた行動へ移れると安心だよ。"),
+                    makeRuleOption("call_forever", "つながるまでずっと電話する", "声を聞きたいよね。でも電話が混んでいたり電池が減ったりします。何度か試したら、メッセージや決めた連絡方法・行動ルールも使おう。", "think"),
+                    makeRuleOption("leave_no_note", "何も知らせず遠くへ行く", "安全な場所へ移る必要がある時もあるね。その場合も、できれば行き先をメモやメッセージで残すと家族が探しやすいよ。", "think")
+                ]
+            },
+            {
+                key: "meeting",
+                icon: "5️⃣",
+                question: "家にいられない時、どこで家族と会う？",
+                options: [
+                    makeRuleOption("primary_meeting", "{primaryMeeting}", "第一集合場所を家族みんなが覚えていると、連絡できない時の手がかりになるね。そこまでの道も家族と確認しよう。"),
+                    makeRuleOption("secondary_meeting", "{secondaryMeeting}", "第二集合場所まで決めておくと、第一集合場所へ行けない時にも別の選び方ができます。順番も決めよう。"),
+                    makeRuleOption("not_decided", "まだ決めていないので家族と相談する", "大切な空白に気づけたね。安全な道で行ける場所を、第一・第二の二つ決めてみよう。", "think")
+                ]
+            }
+        ]
+    },
+    lesson: {
+        icon: "🎒",
+        title: "習い事・施設にいる時",
+        subtitle: "その場所の大人と家族の約束をつなぐ",
+        questions: [
+            {
+                key: "first",
+                icon: "1️⃣",
+                question: "まずどうする？",
+                options: [
+                    makeRuleOption("follow_staff", "先生・施設の人の案内を聞く", "いい考えだね。その場所の出口や安全な場所を知っている大人の案内を聞くと、ひとりで判断しなくてよくなるよ。"),
+                    makeRuleOption("leave_quietly", "何も言わず外へ出る", "家族のところへ行きたいよね。でも施設の人や家族が見つけられなくなることがあります。移動する前に必ず伝えよう。", "think"),
+                    makeRuleOption("hide_unknown", "ひとりで知らない部屋に隠れる", "静かな場所へ行きたい気持ちは分かるよ。ただ、見つけてもらいにくくなります。施設の人が案内する安全な場所へ行こう。", "think")
+                ]
+            },
+            {
+                key: "place",
+                icon: "2️⃣",
+                question: "どこで待つ？",
+                options: [
+                    makeRuleOption("facility_safe", "施設が決めた安全な場所", "いいね。施設と家族が同じ待ち場所を知っていれば、迎えの時にも分かりやすいよ。"),
+                    makeRuleOption("outside_gate", "ひとりで外の門や道路へ出る", "目立つ場所で待ちたいのかな。でも道路や落下物の危険があります。施設の人と安全を確かめてからにしよう。", "think"),
+                    makeRuleOption("go_home_route", "いつもの道をひとりで帰る", "いつもの道でも、災害のあとは変わっていることがあります。家族と施設の人が決めた方法を優先しよう。", "think")
+                ]
+            },
+            {
+                key: "helper",
+                icon: "3️⃣",
+                question: "だれに助けを求める？",
+                options: [
+                    makeRuleOption("lesson_teacher", "習い事の先生・施設の人", "その場所をよく知る大人へ伝えるのはいい考えだね。名前や家族の連絡先も、必要な範囲で伝えられるといいよ。"),
+                    makeRuleOption("other_children", "子どもだけで決める", "友達と一緒にいると心強いね。さらに施設の大人へ知らせると、安全確認や家族への連絡につながるよ。", "think"),
+                    makeRuleOption("random_car", "知らない人の車に乗る", "早く帰りたい時でも、家族や施設が確認していない人の車には乗らないようにしよう。信頼できる大人へ助けを求めてね。", "think")
+                ]
+            },
+            {
+                key: "no_contact",
+                icon: "4️⃣",
+                question: "家族へ連絡できなかったら？",
+                options: [
+                    makeRuleOption("facility_rule", "施設で待ち、家族と決めた迎えのルールを使う", "いいね。『だれが迎えに来るか』『何時まで待つか』まで決めておくと、連絡できなくても動きやすいよ。"),
+                    makeRuleOption("walk_search", "家族を探して歩く", "家族を心配しているんだね。でもすれ違いや危ない道の心配があります。まず施設の安全な場所にいて、決めたルールを使おう。", "think"),
+                    makeRuleOption("phone_only", "電話だけを何度も試す", "電話を試すのは大切だね。つながらない時のために、短いメッセージと待つ場所も決めておくと安心だよ。", "think")
+                ]
+            },
+            {
+                key: "meeting",
+                icon: "5️⃣",
+                question: "最後にどこで会う？",
+                options: [
+                    makeRuleOption("facility_pickup", "習い事・施設で迎えを待つ", "施設と家族が確認した方法なら分かりやすいね。迎えに来てよい人も決めておこう。"),
+                    makeRuleOption("primary_meeting", "{primaryMeeting}", "集合場所を使う場合は、施設の人へ伝えてから移動することと、安全な道を家族で確かめよう。"),
+                    makeRuleOption("not_decided", "まだ決めていないので家族と相談する", "今決める必要があることに気づけたね。次の習い事までに、施設の決まりも聞いて家族で決めよう。", "think")
+                ]
+            }
+        ]
+    },
+    outside: {
+        icon: "🚶",
+        title: "外出中・通学中",
+        subtitle: "周りを見て、安全な場所と頼れる人を探す",
+        questions: [
+            {
+                key: "first",
+                icon: "1️⃣",
+                question: "外で大きな揺れを感じたら、まずどうする？",
+                options: [
+                    makeRuleOption("protect_move_away", "頭を守り、塀・看板・ガラスなどから離れる", "よく周りを見ているね。落ちたり倒れたりしそうな物から離れ、揺れがおさまるまで頭を守ろう。"),
+                    makeRuleOption("run_without_looking", "周りを見ずに走る", "早く逃げたいよね。でも車や落下物に気づきにくくなります。まず周りを見て、安全な方向へ落ち着いて動こう。", "think"),
+                    makeRuleOption("stand_wall", "ブロック塀のそばに立つ", "体を支えたいと思ったのかな。でも塀が倒れることがあります。塀や古い建物から離れよう。", "think")
+                ]
+            },
+            {
+                key: "place",
+                icon: "2️⃣",
+                question: "揺れがおさまったら、どこへ行く？",
+                options: [
+                    makeRuleOption("near_safe_place", "近くの安全な広い場所・丈夫な建物", "いい考えだね。今いる場所に応じて、落下物が少ない場所や、案内のある丈夫な建物を選ぼう。"),
+                    makeRuleOption("river_check", "川や海の様子を見に行く", "どうなったか気になるよね。でも地震や大雨のあとは危険が増えることがあります。水辺へ近づかず、情報を確認しよう。", "think"),
+                    makeRuleOption("damaged_shortcut", "壊れた物がある近道を通る", "早く着きたい気持ちは分かるよ。けれど、近道より安全な道を選ぶことが大切。通れない時の別ルートも考えよう。", "think")
+                ]
+            },
+            {
+                key: "helper",
+                icon: "3️⃣",
+                question: "困った時、どこで助けを求める？",
+                options: [
+                    makeRuleOption("help_place", "交番・店・学校・子ども110番の家など", "いいね。助けを求められる場所を普段から知っておくと、ひとりでも次の行動を相談できます。"),
+                    makeRuleOption("unknown_person", "だれでもいいのでついて行く", "助けを求めることは大切。でも知らない人について行かず、人のいる店・交番・学校など場所を選んで相談しよう。", "think"),
+                    makeRuleOption("hide_problem", "困っていても隠す", "迷ったり怖かったりしたら、助けを求めて大丈夫。『家族と連絡できません』と短く伝えてみよう。", "think")
+                ]
+            },
+            {
+                key: "no_contact",
+                icon: "4️⃣",
+                question: "家族と連絡できなかったら？",
+                options: [
+                    makeRuleOption("stay_and_rule", "安全な場所にいて、家族ルールを確認する", "とても大切だね。むやみに動かず、今いる場所を伝えられる時に短く残し、決めた集合方法を使おう。"),
+                    makeRuleOption("wander", "家族を探して歩き回る", "会いたい気持ちは自然だよ。でもすれ違いや危ない場所を通る心配があります。安全な場所と決めたルールを手がかりにしよう。", "think"),
+                    makeRuleOption("battery_calls", "電池がなくなるまで電話する", "何度か試すのはいいね。そのあとに備え、電池を残しながらメッセージや助けの場所も使おう。", "think")
+                ]
+            },
+            {
+                key: "meeting",
+                icon: "5️⃣",
+                question: "安全を確認できたら、どこで会う？",
+                options: [
+                    makeRuleOption("primary_meeting", "{primaryMeeting}", "家族で同じ場所と行き方を知っておくのはいいね。道が危ない時は無理に向かわない、という条件も決めよう。"),
+                    makeRuleOption("secondary_meeting", "{secondaryMeeting}", "第一集合場所へ行けない時の第二候補があると、状況に合わせて考えられるね。使う順番も確認しよう。"),
+                    makeRuleOption("not_decided", "まだ決めていないので家族と相談する", "空白に気づけたのは前進だよ。学校・家・よく行く場所から安全に向かえる所を家族で考えよう。", "think")
+                ]
+            }
+        ]
+    },
+    separated: {
+        icon: "👨‍👩‍👧‍👦",
+        title: "家族が別々の場所にいる時",
+        subtitle: "連絡できなくても、同じ考え方で動けるようにする",
+        questions: [
+            {
+                key: "first",
+                icon: "1️⃣",
+                question: "家族と離れている時、最初に大切なのは？",
+                options: [
+                    makeRuleOption("own_safety_first", "まず自分のいる場所で身を守る", "その通り。家族を心配しても、まず一人ひとりが今いる場所で安全を確かめることが、あとで会うための第一歩になるよ。"),
+                    makeRuleOption("go_search", "すぐ家族を探しに行く", "家族のところへ行きたいよね。でも道路や建物が危ないかもしれません。まず自分の安全と、その場所の指示を確かめよう。", "think"),
+                    makeRuleOption("panic_calls", "何も考えず電話をかけ続ける", "不安な時に電話したくなるよね。短い連絡を試したら、電池を残して、決めた行動ルールも使おう。", "think")
+                ]
+            },
+            {
+                key: "place",
+                icon: "2️⃣",
+                question: "それぞれ、どこにいる？",
+                options: [
+                    makeRuleOption("stay_safe_current", "今いる学校・職場・施設などの安全な場所", "いい考えだね。急いで全員が移動するより、それぞれが安全な場所で案内を聞く方が、すれ違いを減らせる場合があります。"),
+                    makeRuleOption("all_home", "必ずすぐ家に戻る", "家は安心に感じるよね。でも家までの道や家自体が安全とは限りません。『安全を確認できた時だけ』など条件も決めよう。", "think"),
+                    makeRuleOption("unknown_meeting", "その時に思いついた場所", "柔軟に考えることは大切だね。ただ、連絡できない時は家族に伝わりません。前もって第一・第二の場所を決めよう。", "think")
+                ]
+            },
+            {
+                key: "helper",
+                icon: "3️⃣",
+                question: "ひとりになった家族は、だれを頼る？",
+                options: [
+                    makeRuleOption("trusted_adults_places", "先生・施設の人・家族が決めた頼れる人や場所", "いいね。家族以外にも頼れる相手を決めておくと、電話がつながらない時の安心が増えるよ。"),
+                    makeRuleOption("family_only", "家族以外には絶対に頼らない", "家族を待ちたい気持ちは分かるよ。でもけがや危険がある時は、先生・交番・店など信頼できる大人へ助けを求めて大丈夫。", "think"),
+                    makeRuleOption("social_post", "住所や居場所を誰でも見られる所へ投稿する", "見つけてもらいたいよね。ただ、住所や細かい居場所を広く公開するのは避け、家族が決めた連絡相手や公的な場所を使おう。", "think")
+                ]
+            },
+            {
+                key: "no_contact",
+                icon: "4️⃣",
+                question: "電話が通じない時、どう連絡する？",
+                options: [
+                    makeRuleOption("multiple_methods", "短いメッセージ・伝言サービス・決めた連絡先を使う", "いい考えだね。一つにつながらなくても別の方法があるように、家族で使う順番を練習しておこう。"),
+                    makeRuleOption("voice_calls_only", "通話だけを何度も続ける", "声を聞ける通話は安心だよ。でも混み合う時があります。短いメッセージや伝言サービスも家族で試しておこう。", "think"),
+                    makeRuleOption("no_plan", "連絡できるまで何も決めない", "待つことが安全な場合もあるね。だからこそ『どこで待つ』『何時間後にどうする』を前もって決めると不安を減らせるよ。", "think")
+                ]
+            },
+            {
+                key: "meeting",
+                icon: "5️⃣",
+                question: "連絡できなくても分かる集合場所は？",
+                options: [
+                    makeRuleOption("primary_meeting", "{primaryMeeting}", "家族みんなが第一集合場所を知っていれば、大きな手がかりになるね。行けない時の条件も一緒に決めよう。"),
+                    makeRuleOption("secondary_meeting", "{secondaryMeeting}", "第二集合場所まであると応用がきくね。第一へ行けない時だけ使うなど、順番をそろえよう。"),
+                    makeRuleOption("not_decided", "まだ決めていないので家族と相談する", "今ここで気づけたのが大切だよ。家族全員が知っていて、安全な道で行ける場所を二つ考えてみよう。", "think")
+                ]
+            }
+        ]
+    }
+};
+
+function substituteFamilyRuleLabel(label) {
+    const plan = offlineProfile.emergencyPlan || {};
+    const primary = plan.primaryMeeting
+        ? `第一集合場所：${plan.primaryMeeting}`
+        : "家族で決めた第一集合場所";
+    const secondary = plan.secondaryMeeting
+        ? `第二集合場所：${plan.secondaryMeeting}`
+        : "家族で決めた第二集合場所";
+    return String(label)
+        .replace("{primaryMeeting}", primary)
+        .replace("{secondaryMeeting}", secondary);
+}
+
+function getFamilyRuleScenario(scenarioId) {
+    return FAMILY_RULE_SCENARIOS[scenarioId] || null;
+}
+
+function renderFamilyRuleScenarioGrid() {
+    const container = document.getElementById("familyRuleScenarioGrid");
+    if (!container) return;
+    container.innerHTML = "";
+
+    Object.entries(FAMILY_RULE_SCENARIOS).forEach(([id, scenario]) => {
+        const saved = (offlineProfile.familyRules || []).find(rule => rule.scenarioId === id);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tap-card bg-white hover:bg-violet-50 border border-violet-200 rounded-2xl p-4 text-left";
+        button.innerHTML = `
+            <div class="flex items-start gap-3">
+                <span class="text-3xl">${scenario.icon}</span>
+                <div class="flex-1">
+                    <h4 class="font-black text-slate-800">${escapeHtml(scenario.title)}</h4>
+                    <p class="text-[10px] text-slate-500 mt-1">${escapeHtml(scenario.subtitle)}</p>
+                    <span class="inline-block mt-2 text-[10px] rounded-full px-2 py-1 font-bold ${saved ? (saved.confirmed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700") : "bg-slate-100 text-slate-500"}">${saved ? (saved.confirmed ? "家族と確認済み" : "保存済み・家族と相談中") : "まだ作っていない"}</span>
+                </div>
+            </div>`;
+        button.onclick = () => startFamilyRuleScenario(id);
+        container.appendChild(button);
+    });
+}
+
+function startFamilyRuleScenario(scenarioId) {
+    const scenario = getFamilyRuleScenario(scenarioId);
+    if (!scenario) return;
+    currentFamilyRuleScenario = scenarioId;
+    familyRuleStep = 0;
+    familyRuleDraft = { scenarioId, answers: [] };
+    document.getElementById("familyRuleScenarioArea")?.classList.add("hidden");
+    document.getElementById("familyRuleSummary")?.classList.add("hidden");
+    document.getElementById("familyRuleWizard")?.classList.remove("hidden");
+    renderFamilyRuleStep();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderFamilyRuleStep() {
+    const scenario = getFamilyRuleScenario(currentFamilyRuleScenario);
+    if (!scenario) return;
+    const question = scenario.questions[familyRuleStep];
+    if (!question) {
+        showFamilyRuleSummary();
+        return;
+    }
+
+    const title = document.getElementById("familyRuleScenarioTitle");
+    const progress = document.getElementById("familyRuleProgress");
+    const questionEl = document.getElementById("familyRuleQuestion");
+    const choices = document.getElementById("familyRuleChoices");
+    const custom = document.getElementById("familyRuleCustomInput");
+    const feedback = document.getElementById("familyRuleFeedback");
+    const nextButton = document.getElementById("familyRuleNextBtn");
+
+    if (title) title.innerText = `${scenario.icon} ${scenario.title}`;
+    if (progress) progress.innerText = `${familyRuleStep + 1} / ${scenario.questions.length}`;
+    if (questionEl) questionEl.innerText = `${question.icon} ${question.question}`;
+    if (custom) custom.value = "";
+    feedback?.classList.add("hidden");
+    if (nextButton) {
+        nextButton.disabled = true;
+        nextButton.innerText = familyRuleStep === scenario.questions.length - 1 ? "ルールを見る →" : "次へ →";
+    }
+
+    if (!choices) return;
+    choices.innerHTML = "";
+    question.options.forEach(option => {
+        const displayLabel = substituteFamilyRuleLabel(option.label);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tap-card bg-white hover:bg-violet-50 border border-violet-200 rounded-2xl px-4 py-4 text-left text-sm font-black text-slate-800";
+        button.innerText = displayLabel;
+        button.onclick = () => chooseFamilyRuleAnswer(option, displayLabel, button);
+        choices.appendChild(button);
+    });
+}
+
+function chooseFamilyRuleAnswer(option, displayLabel, clickedButton) {
+    const scenario = getFamilyRuleScenario(currentFamilyRuleScenario);
+    const question = scenario?.questions?.[familyRuleStep];
+    if (!scenario || !question) return;
+
+    familyRuleDraft.answers[familyRuleStep] = {
+        key: question.key,
+        question: question.question,
+        answerId: option.id,
+        answer: displayLabel,
+        feedback: option.feedback,
+        tone: option.tone || "good"
+    };
+
+    document.querySelectorAll("#familyRuleChoices button").forEach(button => {
+        button.disabled = true;
+        button.classList.remove("rule-choice-selected");
+    });
+    clickedButton?.classList.add("rule-choice-selected");
+    showFamilyRuleFeedback(option.feedback, option.tone || "good");
+    const nextButton = document.getElementById("familyRuleNextBtn");
+    if (nextButton) nextButton.disabled = false;
+}
+
+function saveFamilyRuleCustomAnswer() {
+    const input = document.getElementById("familyRuleCustomInput");
+    const value = input?.value.trim() || "";
+    if (!value) {
+        input?.focus();
+        return;
+    }
+
+    const scenario = getFamilyRuleScenario(currentFamilyRuleScenario);
+    const question = scenario?.questions?.[familyRuleStep];
+    if (!scenario || !question) return;
+
+    familyRuleDraft.answers[familyRuleStep] = {
+        key: question.key,
+        question: question.question,
+        answerId: "custom",
+        answer: value,
+        feedback: "家族で決めた言葉を自分で書けたね。実際にその行動ができるか、場所・道・頼る人まで家族と確かめると、もっと自信を持てるよ。",
+        tone: "good"
+    };
+
+    document.querySelectorAll("#familyRuleChoices button").forEach(button => {
+        button.disabled = true;
+        button.classList.remove("rule-choice-selected");
+    });
+    showFamilyRuleFeedback(familyRuleDraft.answers[familyRuleStep].feedback, "good");
+    const nextButton = document.getElementById("familyRuleNextBtn");
+    if (nextButton) nextButton.disabled = false;
+}
+
+function showFamilyRuleFeedback(message, tone = "good") {
+    const feedback = document.getElementById("familyRuleFeedback");
+    if (!feedback) return;
+    const good = tone !== "think";
+    feedback.className = `mt-4 rounded-2xl border p-4 text-sm leading-relaxed ${good ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-amber-50 border-amber-200 text-amber-900"}`;
+    feedback.innerHTML = `<b>${good ? "その考えに自信を持っていいね。" : "そう考えた気持ちも大事だよ。"}</b><br><span class="inline-block mt-2">${escapeHtml(message)}</span>`;
+}
+
+function nextFamilyRuleStep() {
+    const scenario = getFamilyRuleScenario(currentFamilyRuleScenario);
+    if (!scenario || !familyRuleDraft.answers[familyRuleStep]) return;
+    if (familyRuleStep >= scenario.questions.length - 1) {
+        showFamilyRuleSummary();
+        return;
+    }
+    familyRuleStep += 1;
+    renderFamilyRuleStep();
+}
+
+function showFamilyRuleSummary() {
+    const scenario = getFamilyRuleScenario(currentFamilyRuleScenario);
+    const summary = document.getElementById("familyRuleSummaryContent");
+    if (!scenario || !summary) return;
+
+    document.getElementById("familyRuleWizard")?.classList.add("hidden");
+    document.getElementById("familyRuleScenarioArea")?.classList.add("hidden");
+    document.getElementById("familyRuleSummary")?.classList.remove("hidden");
+    summary.innerHTML = `
+        <div class="bg-white rounded-2xl border border-emerald-200 p-4">
+            <h4 class="font-black text-slate-800">${scenario.icon} ${escapeHtml(scenario.title)}</h4>
+        </div>
+        ${familyRuleDraft.answers.map((answer, index) => `
+            <div class="bg-white rounded-2xl border border-slate-200 p-4">
+                <p class="text-[10px] text-slate-400 font-bold">${index + 1}. ${escapeHtml(answer.question)}</p>
+                <p class="text-sm font-black text-slate-800 mt-1">${escapeHtml(answer.answer)}</p>
+            </div>
+        `).join("")}`;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function restartCurrentFamilyRule() {
+    if (!currentFamilyRuleScenario) return;
+    startFamilyRuleScenario(currentFamilyRuleScenario);
+}
+
+function cancelFamilyRuleWizard() {
+    currentFamilyRuleScenario = "";
+    familyRuleStep = 0;
+    familyRuleDraft = { answers: [] };
+    document.getElementById("familyRuleWizard")?.classList.add("hidden");
+    document.getElementById("familyRuleSummary")?.classList.add("hidden");
+    document.getElementById("familyRuleScenarioArea")?.classList.remove("hidden");
+    renderFamilyRuleScenarioGrid();
+}
+
+function saveCurrentFamilyRule() {
+    const scenario = getFamilyRuleScenario(currentFamilyRuleScenario);
+    if (!scenario || familyRuleDraft.answers.length !== scenario.questions.length) return;
+
+    const now = new Date().toISOString();
+    const existingIndex = (offlineProfile.familyRules || []).findIndex(rule => rule.scenarioId === currentFamilyRuleScenario);
+    const existing = existingIndex >= 0 ? offlineProfile.familyRules[existingIndex] : null;
+    const record = {
+        id: existing?.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        scenarioId: currentFamilyRuleScenario,
+        scenarioTitle: scenario.title,
+        scenarioIcon: scenario.icon,
+        answers: familyRuleDraft.answers.map(answer => ({
+            key: answer.key,
+            question: answer.question,
+            answer: answer.answer
+        })),
+        confirmed: false,
+        confirmedAt: "",
+        createdAt: existing?.createdAt || now,
+        updatedAt: now
+    };
+
+    if (!Array.isArray(offlineProfile.familyRules)) offlineProfile.familyRules = [];
+    if (existingIndex >= 0) offlineProfile.familyRules.splice(existingIndex, 1, record);
+    else offlineProfile.familyRules.push(record);
+
+    if (!saveOfflineProfile(true)) {
+        alert("端末への保存に失敗しました。ブラウザの保存容量を確認してください。");
+        return;
+    }
+
+    triggerPushNotification("家族ルールを保存しました", "家族と確認できたら『確認済み』にしてね。");
+    cancelFamilyRuleWizard();
+    renderSavedFamilyRules();
+    renderFamilyRuleScenarioGrid();
+}
+
+function toggleFamilyRuleConfirmed(ruleId) {
+    const rule = (offlineProfile.familyRules || []).find(item => item.id === ruleId);
+    if (!rule) return;
+    rule.confirmed = !rule.confirmed;
+    rule.confirmedAt = rule.confirmed ? new Date().toISOString() : "";
+    rule.updatedAt = new Date().toISOString();
+    saveOfflineProfile(true);
+    renderSavedFamilyRules();
+    renderFamilyRuleScenarioGrid();
+    renderOfflineKit();
+}
+
+function rebuildFamilyRule(scenarioId) {
+    startFamilyRuleScenario(scenarioId);
+}
+
+function deleteFamilyRule(ruleId) {
+    const rule = (offlineProfile.familyRules || []).find(item => item.id === ruleId);
+    if (!rule) return;
+    if (!confirm(`「${rule.scenarioTitle}」のルールを削除しますか？`)) return;
+    offlineProfile.familyRules = offlineProfile.familyRules.filter(item => item.id !== ruleId);
+    saveOfflineProfile(true);
+    renderSavedFamilyRules();
+    renderFamilyRuleScenarioGrid();
+    renderOfflineKit();
+}
+
+function familyRuleCardHtml(rule, compact = false) {
+    const answers = Array.isArray(rule.answers) ? rule.answers : [];
+    const statusClass = rule.confirmed
+        ? "bg-emerald-100 text-emerald-700"
+        : "bg-amber-100 text-amber-700";
+    const statusText = rule.confirmed ? "家族と確認済み" : "家族と相談中";
+    const answerHtml = answers.map((answer, index) => `
+        <div class="${compact ? "py-1" : "bg-slate-50 rounded-xl p-3"}">
+            <p class="text-[10px] text-slate-400">${index + 1}. ${escapeHtml(answer.question || "")}</p>
+            <p class="text-xs font-black text-slate-700 mt-1">${escapeHtml(answer.answer || "")}</p>
+        </div>`).join("");
+
+    return `
+        <div class="bg-white border border-violet-200 rounded-2xl p-4">
+            <div class="flex justify-between items-start gap-3">
+                <div>
+                    <h4 class="font-black text-slate-800">${escapeHtml(rule.scenarioIcon || "🏠")} ${escapeHtml(rule.scenarioTitle || "家族ルール")}</h4>
+                    <span class="inline-block mt-2 text-[10px] rounded-full px-2 py-1 font-black ${statusClass}">${statusText}</span>
+                </div>
+                <span class="text-[10px] text-slate-400">更新 ${escapeHtml(formatSavedTime(rule.updatedAt))}</span>
+            </div>
+            <div class="space-y-2 mt-3">${answerHtml}</div>
+            ${compact ? "" : `
+                <div class="grid grid-cols-3 gap-2 mt-4">
+                    <button onclick="toggleFamilyRuleConfirmed('${escapeJs(rule.id)}')" class="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl py-2 text-[10px] font-black">${rule.confirmed ? "相談中へ戻す" : "家族と確認した"}</button>
+                    <button onclick="rebuildFamilyRule('${escapeJs(rule.scenarioId)}')" class="bg-violet-50 hover:bg-violet-100 border border-violet-200 text-violet-800 rounded-xl py-2 text-[10px] font-black">作り直す</button>
+                    <button onclick="deleteFamilyRule('${escapeJs(rule.id)}')" class="bg-slate-50 hover:bg-rose-50 border border-slate-200 text-slate-600 rounded-xl py-2 text-[10px] font-black">削除</button>
+                </div>`}
+        </div>`;
+}
+
+function renderSavedFamilyRules() {
+    const container = document.getElementById("savedFamilyRulesList");
+    const count = document.getElementById("familyRuleSavedCount");
+    const rules = Array.isArray(offlineProfile.familyRules) ? offlineProfile.familyRules : [];
+    if (count) count.innerText = String(rules.length);
+    if (!container) return;
+
+    if (rules.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-xs text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-300">まだ保存したルールはありません。<br>上の場面を選んで作ってみよう。</div>';
+        return;
+    }
+
+    container.innerHTML = rules
+        .slice()
+        .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))
+        .map(rule => familyRuleCardHtml(rule, false))
+        .join("");
+}
+
+/* =====================================================
+   オフライン安心メモ
+===================================================== */
+function setInputValue(id, value) {
+    const input = document.getElementById(id);
+    if (input) input.value = value || "";
+}
+
+function getInputValue(id) {
+    return document.getElementById(id)?.value.trim() || "";
+}
+
+function hydrateOfflineForm() {
+    const plan = offlineProfile.emergencyPlan || {};
+    setInputValue("offlinePrimaryMeeting", plan.primaryMeeting);
+    setInputValue("offlineSecondaryMeeting", plan.secondaryMeeting);
+    setInputValue("offlineContactName1", plan.contactName1);
+    setInputValue("offlineContactPhone1", plan.contactPhone1);
+    setInputValue("offlineContactName2", plan.contactName2);
+    setInputValue("offlineContactPhone2", plan.contactPhone2);
+    setInputValue("offlineNoContactRule", plan.noContactRule);
+    setInputValue("offlineNotes", plan.notes);
+}
+
+function saveOfflinePlan() {
+    offlineProfile.emergencyPlan = {
+        primaryMeeting: getInputValue("offlinePrimaryMeeting"),
+        secondaryMeeting: getInputValue("offlineSecondaryMeeting"),
+        contactName1: getInputValue("offlineContactName1"),
+        contactPhone1: getInputValue("offlineContactPhone1"),
+        contactName2: getInputValue("offlineContactName2"),
+        contactPhone2: getInputValue("offlineContactPhone2"),
+        noContactRule: getInputValue("offlineNoContactRule"),
+        notes: getInputValue("offlineNotes")
+    };
+
+    const message = document.getElementById("offlineSaveMessage");
+    if (!saveOfflineProfile(true)) {
+        if (message) {
+            message.innerText = "保存できませんでした。ブラウザの保存容量や設定を確認してください。";
+            message.className = "mt-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 p-3 text-xs font-bold";
+        }
+        return;
+    }
+
+    if (message) {
+        message.innerText = "✅ この端末に保存しました。通信がない時も、この画面から確認できます。";
+        message.className = "mt-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 text-xs font-bold";
+        setTimeout(() => message.classList.add("hidden"), 6000);
+    }
+    renderFamilyRuleScenarioGrid();
+    renderOfflineKit();
+}
+
+function safeTelephoneValue(value) {
+    return String(value || "").replace(/[^0-9+*#]/g, "");
+}
+
+function offlinePlaceCardHtml(place) {
+    const isHelp = place.kind === "help";
+    const category = getPlaceCategoryLabel(isHelp ? "help" : "danger", String(place.category || ""));
+    const title = String(place.place_name || "").trim() || category;
+    const lat = Number(place.latitude);
+    const lon = Number(place.longitude);
+    const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lon);
+    const mapUrl = hasCoordinates ? `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lon}`)}` : "";
+    const location = String(place.location_label || "").trim();
+
+    return `
+        <div class="bg-white border ${isHelp ? "border-emerald-200" : "border-orange-200"} rounded-2xl p-3">
+            <div class="flex justify-between items-start gap-2">
+                <div>
+                    <span class="text-[10px] font-black ${isHelp ? "text-emerald-700" : "text-orange-700"}">${isHelp ? "🆘 助け" : "⚠️ 危険"}</span>
+                    <h4 class="text-xs font-black text-slate-800 mt-1">${escapeHtml(title)}</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">${escapeHtml(category)}</p>
+                </div>
+                <span class="text-[10px] text-slate-400">${escapeHtml(location || "場所指定なし")}</span>
+            </div>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed">${escapeHtml(place.text || "")}</p>
+            ${mapUrl && navigator.onLine
+                ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="inline-block mt-2 text-[10px] text-sky-600 underline font-bold">地図を開く</a>`
+                : hasCoordinates
+                    ? `<p class="mt-2 text-[10px] text-cyan-700">📴 緯度 ${lat.toFixed(5)} / 経度 ${lon.toFixed(5)}（地図を開くには通信が必要）</p>`
+                    : ""}
+        </div>`;
+}
+
+function renderOfflineKit() {
+    const owner = document.getElementById("offlineOwnerLabel");
+    if (owner) {
+        const name = offlineProfile.ownerName || appState.userName || "この端末の利用者";
+        owner.innerText = `${name}さんの保存情報`;
+    }
+
+    const badge = document.getElementById("offlineKitNetworkBadge");
+    if (badge) {
+        badge.innerText = navigator.onLine ? "オンライン" : "オフライン";
+        badge.className = navigator.onLine
+            ? "text-[10px] rounded-full px-3 py-1 font-black bg-emerald-100 text-emerald-700"
+            : "text-[10px] rounded-full px-3 py-1 font-black bg-slate-800 text-white";
+    }
+
+    updateOfflineSavedLabels();
+
+    const rulesContainer = document.getElementById("offlineRulesList");
+    const rules = Array.isArray(offlineProfile.familyRules) ? offlineProfile.familyRules : [];
+    if (rulesContainer) {
+        rulesContainer.innerHTML = rules.length
+            ? rules
+                .slice()
+                .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))
+                .map(rule => familyRuleCardHtml(rule, true))
+                .join("")
+            : '<div class="text-xs text-slate-400 bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-4 text-center">まだ家族ルールがありません。</div>';
+    }
+
+    const places = Array.isArray(offlineProfile.cachedPlaces) ? offlineProfile.cachedPlaces : [];
+    const helpPlaces = places.filter(place => place.kind === "help");
+    const dangerPlaces = places.filter(place => place.kind !== "help");
+    const helpContainer = document.getElementById("offlineHelpPlacesList");
+    const dangerContainer = document.getElementById("offlineDangerPlacesList");
+
+    if (helpContainer) {
+        helpContainer.innerHTML = helpPlaces.length
+            ? helpPlaces.slice(0, 30).map(offlinePlaceCardHtml).join("")
+            : '<div class="text-xs text-slate-400 bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-4 text-center">まだ保存された助けの場所はありません。通信できる時に「まちの安全情報」を開くと保存されます。</div>';
+    }
+    if (dangerContainer) {
+        dangerContainer.innerHTML = dangerPlaces.length
+            ? dangerPlaces.slice(0, 30).map(offlinePlaceCardHtml).join("")
+            : '<div class="text-xs text-slate-400 bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-4 text-center">まだ保存された危ない場所はありません。</div>';
+    }
+}
+
+function openLastSavedOfflineInfo() {
+    const key = localStorage.getItem("otenkiLastOfflineProfileKey");
+    if (!key || !localStorage.getItem(key)) {
+        alert("この端末には、まだ安心メモが保存されていません。");
+        return;
+    }
+    loadOfflineProfile(key);
+    switchScreen("offline-kit");
+}
+
+function backFromOfflineKit() {
+    if (appState.userName && appState.accountId && appState.securityKey) {
+        switchScreen("dashboard");
+    } else {
+        switchScreen("login");
+    }
+}
+
+/* =====================================================
+   ネット接続表示・PWAインストール
+===================================================== */
+function updateNetworkState() {
+    const online = navigator.onLine;
+    const banner = document.getElementById("networkBanner");
+    const status = document.getElementById("networkStatusText");
+    const globalStatus = document.getElementById("globalConnectionStatus");
+
+    banner?.classList.toggle("hidden", online);
+    if (status) {
+        status.innerText = online
+            ? "🟢 オンライン：最新情報を取得できます。"
+            : "⚫ オフライン：保存した家族ルール・安心メモを利用できます。";
+    }
+    if (globalStatus && !online) {
+        globalStatus.innerText = "オフライン";
+    }
+
+    if (online) {
+        if (appState.accountId) startPolling();
+    } else {
+        stopPolling();
+    }
+    renderOfflineKit();
+}
+
+async function installPwaApp() {
+    if (!deferredInstallPrompt) {
+        alert("このブラウザでは自動の追加画面を出せません。ブラウザのメニューから『ホーム画面に追加』または『アプリをインストール』を選んでください。");
+        return;
+    }
+
+    deferredInstallPrompt.prompt();
+    try {
+        await deferredInstallPrompt.userChoice;
+    } finally {
+        deferredInstallPrompt = null;
+        document.getElementById("installAppButton")?.classList.add("hidden");
+    }
+}
+
+function handlePwaInstallPrompt(event) {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    document.getElementById("installAppButton")?.classList.remove("hidden");
+}
+
+function handlePwaInstalled() {
+    deferredInstallPrompt = null;
+    document.getElementById("installAppButton")?.classList.add("hidden");
+    triggerPushNotification("アプリを追加しました", "ホーム画面からすぐ開けます。大切な安心メモは端末にも保存されます。");
+}
+
+function initJSTBackgroundMonitors() {
+    if (jstMonitorStarted) return;
+    jstMonitorStarted = true;
+
+    setInterval(() => {
+        if (!appState.userName) return;
+        const jst = getJSTNow();
+        const h = jst.getHours();
+        const m = jst.getMinutes();
+        const dateKey = `${jst.toDateString()}-${h}-${m}`;
+
+        if (h === 6 && m === 0 && lastNotifiedKey !== dateKey) {
+            lastNotifiedKey = dateKey;
+            triggerPushNotification("朝6:00 定時お天気レポート", "【JST】本日の天気予報と生活アドバイスをお届けします。");
+        } else if (h === 18 && m === 30 && lastNotifiedKey !== dateKey) {
+            lastNotifiedKey = dateKey;
+            triggerPushNotification("夜18:30 翌日お天気レポート", "【JST】明日の天気予報と夜間見守りのお知らせをお届けします。");
+        }
+    }, 30000);
+}
+
+/* =====================================================
+   文字列エスケープ
+===================================================== */
+function escapeHtml(value) {
+    return String(value).replace(/[&<>'"]/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+    }[ch]));
+}
+
+function escapeJs(value) {
+    return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+}
+
+/* =====================================================
+   イベントリスナー・初期化
+===================================================== */
+function closeFriendRequestModal() {
+    currentFriendRequest = null;
+    document.getElementById("friendRequestModal")?.classList.add("hidden");
+}
+
+function acceptCurrentFriendRequest() {
+    if (!currentFriendRequest?.id) {
+        closeFriendRequestModal();
+        return;
+    }
+    acceptFriendRequest(currentFriendRequest.id);
+    closeFriendRequestModal();
+}
+
+function rejectCurrentFriendRequest() {
+    if (!currentFriendRequest?.id) {
+        closeFriendRequestModal();
+        return;
+    }
+    rejectFriendRequest(currentFriendRequest.id);
+    closeFriendRequestModal();
+}
+
+window.addEventListener("online", updateNetworkState);
+window.addEventListener("offline", updateNetworkState);
+window.addEventListener("beforeinstallprompt", handlePwaInstallPrompt);
+window.addEventListener("appinstalled", handlePwaInstalled);
+
+window.addEventListener("storage", event => {
+    if (!event.key) return;
+    if (event.key === currentOfflineStorageKey || event.key === "otenkiLastOfflineProfileKey") {
+        loadOfflineProfile(currentOfflineStorageKey || undefined);
+        renderFamilyRuleScenarioGrid();
+        renderSavedFamilyRules();
+        hydrateOfflineForm();
+        renderOfflineKit();
+    }
+});
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        closeFriendModal();
+        closeFriendRequestModal();
+        closeHazardPostModal();
+    }
+    if (event.key === "Enter" && event.target?.id === "familyRuleCustomInput") {
+        event.preventDefault();
+        saveFamilyRuleCustomAnswer();
+    }
+});
+
+document.addEventListener("click", event => {
+    const friendModal = document.getElementById("friendModal");
+    if (friendModal && event.target === friendModal) closeFriendModal();
+
+    const requestModal = document.getElementById("friendRequestModal");
+    if (requestModal && event.target === requestModal) closeFriendRequestModal();
+
+    const hazardModal = document.getElementById("hazardPostModal");
+    if (hazardModal && event.target === hazardModal) closeHazardPostModal();
+
+    const enableButton = event.target.closest("#enablePushButton");
+    if (enableButton) enableRealPushNotifications();
+
+    const disableButton = event.target.closest("#disablePushButton");
+    if (disableButton) disableRealPushNotifications();
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+    loadAppState();
+    loadOfflineProfile();
+    updateOfflineEntryAvailability();
+    setPlaceKind("danger");
+    updateQuizModeButtons();
+    renderFamilyRuleScenarioGrid();
+    renderSavedFamilyRules();
+    hydrateOfflineForm();
+    renderOfflineKit();
+
+    await registerPushServiceWorker();
+    await updatePushPermissionStatus();
+
+    if (appState.userName && appState.accountId && appState.securityKey) {
+        updateUserHeader();
+        renderFriends();
+        renderFriendRequests();
+        switchScreen("dashboard");
+        initJSTBackgroundMonitors();
+        if (navigator.onLine) startPolling();
+    } else {
+        switchScreen("login");
+    }
+
+    updateNetworkState();
+});
+</script>
+
+</body>
+</html>
