@@ -572,9 +572,10 @@
 
         <label class="block text-xs font-black text-slate-700 mt-4">写真（任意）</label>
         <div class="grid grid-cols-2 gap-2 mt-2">
-            <button onclick="triggerImageUpload()" class="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl py-2 text-xs font-bold">📷 写真を選ぶ</button>
-            <button onclick="clearHazardImage()" class="bg-slate-100 border border-slate-200 text-slate-600 rounded-xl py-2 text-xs font-bold">写真なし</button>
+            <button id="hazardPhotoChooseBtn" type="button" onclick="triggerImageUpload()" class="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl py-2 text-xs font-bold">📷 写真を選ぶ</button>
+            <button id="hazardPhotoNoneBtn" type="button" onclick="chooseNoHazardImage()" class="bg-slate-100 border border-slate-200 text-slate-600 rounded-xl py-2 text-xs font-bold">🚫 写真なし</button>
         </div>
+        <p id="hazardPhotoChoiceStatus" class="mt-2 text-[10px] text-slate-400">写真は任意です。</p>
         <div id="hazardImagePreviewWrap" class="hidden mt-3">
             <img id="hazardImagePreview" class="w-full max-h-44 object-cover rounded-xl" alt="登録写真のプレビュー">
         </div>
@@ -1902,6 +1903,7 @@ function openHazardPostModal(kind) {
     if (nameInput) nameInput.value = "";
 
     clearHazardImage();
+    updateHazardPhotoChoiceUI("none");
 
     // 助けの場所を押した場合は、ここで必ず help を保持する
     selectedPlaceKind = selectedKind;
@@ -1919,8 +1921,39 @@ function closeHazardPostModal() {
     document.getElementById("hazardPostModal")?.classList.add("hidden");
 }
 
+function updateHazardPhotoChoiceUI(mode = "none") {
+    const chooseBtn = document.getElementById("hazardPhotoChooseBtn");
+    const noneBtn = document.getElementById("hazardPhotoNoneBtn");
+    const status = document.getElementById("hazardPhotoChoiceStatus");
+
+    const hasPhoto = mode === "photo";
+
+    if (chooseBtn) {
+        chooseBtn.className = hasPhoto
+            ? "bg-orange-500 border border-orange-500 text-white rounded-xl py-2 text-xs font-bold"
+            : "bg-orange-50 border border-orange-200 text-orange-800 rounded-xl py-2 text-xs font-bold";
+    }
+
+    if (noneBtn) {
+        noneBtn.className = hasPhoto
+            ? "bg-slate-100 border border-slate-200 text-slate-600 rounded-xl py-2 text-xs font-bold"
+            : "bg-slate-700 border border-slate-700 text-white rounded-xl py-2 text-xs font-bold";
+    }
+
+    if (status) {
+        status.innerText = hasPhoto
+            ? "写真を使う設定です。"
+            : "写真なしで登録します。";
+    }
+}
+
 function triggerImageUpload() {
     document.getElementById("hazardImageInput")?.click();
+}
+
+function chooseNoHazardImage() {
+    clearHazardImage();
+    updateHazardPhotoChoiceUI("none");
 }
 
 function clearHazardImage() {
@@ -1928,6 +1961,7 @@ function clearHazardImage() {
     const input = document.getElementById("hazardImageInput");
     if (input) input.value = "";
     document.getElementById("hazardImagePreviewWrap")?.classList.add("hidden");
+    updateHazardPhotoChoiceUI("none");
 }
 
 async function previewHazardImage(event) {
@@ -1938,6 +1972,7 @@ async function previewHazardImage(event) {
         const preview = document.getElementById("hazardImagePreview");
         if (preview) preview.src = selectedHazardImage;
         document.getElementById("hazardImagePreviewWrap")?.classList.remove("hidden");
+        updateHazardPhotoChoiceUI("photo");
     } catch (error) {
         selectedHazardImage = "";
         alert("画像の読み込みに失敗しました。");
