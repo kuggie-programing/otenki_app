@@ -553,6 +553,8 @@
         <h2 id="hazardModalTitle" class="text-xl font-black text-slate-800">⚠️ 危ない場所を登録</h2>
         <p id="hazardModalSubtitle" class="text-xs text-slate-500 mt-1">写真なしでも登録できます。</p>
 
+        <input id="hazardPlaceKindValue" type="hidden" value="danger">
+
         <label class="block text-xs font-black text-slate-700 mt-5">どちらを登録する？</label>
         <div class="grid grid-cols-2 gap-2 mt-2">
             <button id="hazardKindDanger" onclick="setPlaceKind('danger')" class="bg-orange-500 text-white border border-orange-500 rounded-2xl py-3 text-xs font-black">⚠️ 危ない場所</button>
@@ -697,7 +699,7 @@ const API_BASE_URL = "https://otenki-app.onrender.com";
 const AMAKUSA_LAT = 32.4547;
 const AMAKUSA_LON = 130.1978;
 const POLL_INTERVAL_MS = 15000;
-const VAPID_PUBLIC_KEY = "";
+let VAPID_PUBLIC_KEY = "";
 
 let pollTimers = [];
 let jstMonitorStarted = false;
@@ -1143,6 +1145,34 @@ function handleLogout() {
 /* =====================================================
    Web Push / 通知関連処理 (main.js 統合)
 ===================================================== */
+async function ensureVapidPublicKey() {
+    if (VAPID_PUBLIC_KEY) {
+        return true;
+    }
+
+    try {
+        const result = await apiRequest("/api/push/public-key", {
+            method: "GET"
+        }, 15000);
+
+        const publicKey = String(result?.data?.public_key || "").trim();
+
+        if (!result.ok || !publicKey) {
+            console.warn(
+                "VAPID公開キーを取得できませんでした:",
+                result?.error || "公開キーが空です。"
+            );
+            return false;
+        }
+
+        VAPID_PUBLIC_KEY = publicKey;
+        return true;
+    } catch (error) {
+        console.error("VAPID公開キー取得エラー:", error);
+        return false;
+    }
+}
+
 function urlBase64ToUint8Array(base64String) {
     const padding = "=".repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -1183,10 +1213,13 @@ async function requestNotificationPermission() {
 
 async function subscribeToRealPush() {
     if (!("PushManager" in window)) return false;
-    if (!VAPID_PUBLIC_KEY) {
-        console.warn("VAPID_PUBLIC_KEYが未設定です。");
+
+    const vapidReady = await ensureVapidPublicKey();
+    if (!vapidReady || !VAPID_PUBLIC_KEY) {
+        console.warn("VAPID_PUBLIC_KEYを取得できないため、Push購読を開始できません。");
         return false;
     }
+
     try {
         const registration = await registerPushServiceWorker();
         if (!registration) return false;
@@ -1759,6 +1792,34 @@ const PLACE_CATEGORY_OPTIONS = {
     ]
 };
 
+function normalizePlaceKind(post = {}) {
+    const explicitKind = String(post.kind || "").trim().toLowerCase();
+    if (explicitKind === "help" || explicitKind === "danger") {
+        return explicitKind;
+    }
+
+    const explicitPlaceType = String(post.place_type || "").trim().toLowerCase();
+    if (explicitPlaceType === "help" || explicitPlaceType === "danger") {
+        return explicitPlaceType;
+    }
+
+    // ここから下は、種類を保存していなかった古い投稿だけの互換処理。
+    // 新しい投稿では必ず kind / place_type が保存されるため、
+    // カテゴリだけで危険と助けが入れ替わることはありません。
+    const category = String(post.category || "").trim();
+    const legacyHelpCategories = [
+        "child110",
+        "police",
+        "school",
+        "shelter",
+        "store",
+        "public",
+        "trusted"
+    ];
+
+    return legacyHelpCategories.includes(category) ? "help" : "danger";
+}
+
 function getPlaceCategoryLabel(kind, category) {
     const list = PLACE_CATEGORY_OPTIONS[kind] || PLACE_CATEGORY_OPTIONS.danger;
     const found = list.find(item => item[0] === category);
@@ -1780,6 +1841,12 @@ function renderHazardCategoryOptions() {
 
 function setPlaceKind(kind) {
     selectedPlaceKind = kind === "help" ? "help" : "danger";
+
+    const kindInput = document.getElementById("hazardPlaceKindValue");
+    if (kindInput) {
+        kindInput.value = selectedPlaceKind;
+    }
+
     const isHelp = selectedPlaceKind === "help";
     const dangerButton = document.getElementById("hazardKindDanger");
     const helpButton = document.getElementById("hazardKindHelp");
@@ -1936,11 +2003,20 @@ function getCurrentPosition() {
 async function submitHazardPost() {
     const textValue = document.getElementById("hazardTextInput")?.value.trim() || "";
     const placeName = document.getElementById("hazardPlaceName")?.value.trim() || "";
-    const category = document.getElementById("hazardCategory")?.value || "other";
     const mode = document.getElementById("hazardLocationMode")?.value || "area";
     const errorEl = document.getElementById("hazardPostError");
     const button = document.getElementById("hazardSubmitBtn");
-    const isHelp = selectedPlaceKind === "help";
+
+    // 投稿ボタンを押した瞬間に種類を固定する。
+    // 以降のGPS取得や通信中に、危険/助けが入れ替わらないようにする。
+    const kindInputValue = document.getElementById("hazardPlaceKindValue")?.value;
+    const postKind = kindInputValue === "help" ? "help" : "danger";
+    const isHelp = postKind === "help";
+
+    // 選ばれているカテゴリが、その種類のカテゴリかも確認する。
+    const rawCategory = document.getElementById("hazardCategory")?.value || "other";
+    const validCategoryValues = (PLACE_CATEGORY_OPTIONS[postKind] || []).map(item => item[0]);
+    const category = validCategoryValues.includes(rawCategory) ? rawCategory : "other";
 
     if (isHelp && !placeName) {
         if (errorEl) {
@@ -2007,8 +2083,8 @@ async function submitHazardPost() {
     const result = await apiRequest("/api/hazards", {
         method: "POST",
         body: JSON.stringify({
-            kind: selectedPlaceKind,
-            place_type: selectedPlaceKind,
+            kind: postKind,
+            place_type: postKind,
             category,
             place_name: placeName,
             image: selectedHazardImage || "",
@@ -2051,7 +2127,7 @@ function makeOfflinePlaceRecord(post) {
     const lon = Number(post.longitude ?? post.lon);
     return {
         id: String(post.id || ""),
-        kind: ((post.kind || post.place_type) === "help" || ["child110", "police", "school", "shelter", "store", "public", "trusted"].includes(String(post.category || ""))) ? "help" : "danger",
+        kind: normalizePlaceKind(post),
         category: String(post.category || ""),
         place_name: String(post.place_name || ""),
         text: String(post.text || ""),
@@ -2150,13 +2226,11 @@ function renderHazardPosts(posts = appState.hazardPosts) {
     if (!container) return;
 
     const normalized = (Array.isArray(posts) ? posts : []).map(post => {
-        const storedKind = post.kind || post.place_type || "";
-        const helpCategories = ["child110", "police", "school", "shelter", "store", "public", "trusted"];
-        const isHelp = storedKind === "help" || helpCategories.includes(String(post.category || ""));
+        const normalizedKind = normalizePlaceKind(post);
         return {
             ...post,
-            kind: isHelp ? "help" : "danger",
-            place_type: isHelp ? "help" : "danger"
+            kind: normalizedKind,
+            place_type: normalizedKind
         };
     });
     const dangerCount = normalized.filter(post => post.kind === "danger").length;
@@ -3909,6 +3983,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     hydrateOfflineForm();
     renderOfflineKit();
 
+    await ensureVapidPublicKey();
     await registerPushServiceWorker();
     await updatePushPermissionStatus();
 
