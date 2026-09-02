@@ -3717,6 +3717,116 @@ def get_weather():
     })
 
 
+
+# =========================================================
+# OpenWeatherMap - 明日の予報
+# =========================================================
+
+@app.get(
+    "/api/weather/tomorrow"
+)
+def get_tomorrow_weather():
+
+    if not OPENWEATHER_API_KEY:
+
+        return jsonify({
+            "error":
+                "OPENWEATHER_API_KEYが設定されていません。"
+        }), 500
+
+    params = {
+        "lat": OPENWEATHER_LAT,
+        "lon": OPENWEATHER_LON,
+        "appid": OPENWEATHER_API_KEY,
+        "units": "metric",
+        "lang": "ja"
+    }
+
+    try:
+        response = requests.get(
+            "https://api.openweathermap.org/data/2.5/forecast",
+            params=params,
+            timeout=10
+        )
+    except requests.RequestException as error:
+        return jsonify({
+            "error": f"OpenWeatherMapへの接続に失敗しました: {error}"
+        }), 502
+
+    try:
+        forecast_data = response.json()
+    except Exception:
+        return jsonify({
+            "error": "OpenWeatherMapから正しい予報データを取得できませんでした。"
+        }), 502
+
+    if not response.ok:
+        return jsonify({
+            "error": forecast_data.get(
+                "message",
+                f"OpenWeatherMap HTTP {response.status_code}"
+            )
+        }), response.status_code
+
+    city_info = forecast_data.get("city", {}) or {}
+    timezone_seconds = int(city_info.get("timezone", 9 * 3600) or 9 * 3600)
+    local_now = datetime.now(timezone.utc) + timedelta(seconds=timezone_seconds)
+    tomorrow_date = (local_now + timedelta(days=1)).date()
+
+    tomorrow_items = []
+    for item in forecast_data.get("list", []) or []:
+        try:
+            dt_utc = datetime.fromtimestamp(int(item.get("dt", 0)), tz=timezone.utc)
+            dt_local = dt_utc + timedelta(seconds=timezone_seconds)
+        except Exception:
+            continue
+        if dt_local.date() == tomorrow_date:
+            tomorrow_items.append((dt_local, item))
+
+    if not tomorrow_items:
+        return jsonify({
+            "error": "明日の予報データが見つかりませんでした。"
+        }), 404
+
+    temps_min = []
+    temps_max = []
+    pops = []
+    winds = []
+
+    for _, item in tomorrow_items:
+        main = item.get("main", {}) or {}
+        wind = item.get("wind", {}) or {}
+        if isinstance(main.get("temp_min"), (int, float)):
+            temps_min.append(float(main["temp_min"]))
+        if isinstance(main.get("temp_max"), (int, float)):
+            temps_max.append(float(main["temp_max"]))
+        if isinstance(item.get("pop"), (int, float)):
+            pops.append(float(item["pop"]))
+        if isinstance(wind.get("speed"), (int, float)):
+            winds.append(float(wind["speed"]))
+
+    # 日中に近い予報を、その日の代表的な天気として使います。
+    representative_dt, representative = min(
+        tomorrow_items,
+        key=lambda pair: abs(pair[0].hour - 12)
+    )
+    weather_list = representative.get("weather", []) or []
+    weather = weather_list[0] if weather_list else {}
+
+    return jsonify({
+        "ok": True,
+        "city": city_info.get("name", "天草市"),
+        "date": tomorrow_date.isoformat(),
+        "description": weather.get("description", "天候不明"),
+        "temp_min": min(temps_min) if temps_min else None,
+        "temp_max": max(temps_max) if temps_max else None,
+        "pop": max(pops) if pops else 0,
+        "wind_speed_max": max(winds) if winds else None,
+        "representative_time": representative_dt.isoformat(),
+        "fetched_at": now_utc_iso()
+    })
+
+
 # =========================================================
 # VAPID公開鍵
 # =========================================================

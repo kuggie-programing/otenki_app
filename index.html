@@ -98,6 +98,27 @@
             border-radius: 9999px;
             display: inline-block;
         }
+
+        body.emergency-active {
+            background: linear-gradient(180deg, #fff7ed 0%, #fff1f2 48%, #f8fafc 100%);
+        }
+
+        body.emergency-active .glass-header {
+            background: linear-gradient(135deg, rgba(225, 29, 72, .98), rgba(234, 88, 12, .98));
+        }
+
+        .emergency-pulse {
+            animation: emergencyPulse 1.8s ease-in-out infinite;
+        }
+
+        @keyframes emergencyPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, .18); }
+            50% { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .emergency-pulse { animation: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -113,6 +134,7 @@
         </div>
         <div id="headerUserArea" class="hidden flex items-center gap-2">
             <span id="currentUserLabel" class="text-xs font-bold"></span>
+            <button id="headerEmergencyButton" onclick="enterEmergencyMode()" class="text-[11px] bg-rose-500/90 hover:bg-rose-600 border border-white/30 px-3 py-1.5 rounded-xl font-black shadow-sm">🚨 緊急</button>
             <button onclick="handleLogout()" class="text-[11px] bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl font-bold">ログアウト</button>
         </div>
     </div>
@@ -152,18 +174,95 @@
 <!-- ダッシュボード -->
 <section id="screen-dashboard" class="screen hidden px-5 py-7">
     <div class="max-w-4xl mx-auto">
-        <div class="bg-white/90 rounded-3xl border border-white shadow-lg p-6 mb-5">
-            <p class="text-xs text-slate-500 font-bold">ようこそ</p>
-            <h2 id="welcomeUserName" class="text-2xl font-black text-slate-800 mt-1"></h2>
-            <p class="text-xs text-slate-500 mt-2">家族・友達と天気・安否・まちの安全情報を共有できます。</p>
+        <div class="bg-white/95 rounded-3xl border border-white shadow-xl p-5 sm:p-7 mb-5 overflow-hidden relative">
+            <div class="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-yellow-100/70"></div>
+            <div class="absolute right-6 top-5 w-24 h-24 rounded-full bg-sky-100/70"></div>
+
+            <div class="relative grid grid-cols-1 lg:grid-cols-[170px_1fr_150px] gap-5 items-center">
+                <div class="flex lg:block items-center gap-4">
+                    <img src="/icon-192.png" alt="防災アプリの案内マーク" class="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-md">
+                    <div class="lg:mt-3 bg-sky-50 border border-sky-200 rounded-2xl px-4 py-3 text-sm font-black text-sky-800">
+                        <span id="tomorrowMascotMessage">明日の天気を見て、どうそなえるか考えよう。</span>
+                    </div>
+                </div>
+
+                <div class="min-w-0">
+                    <p class="text-xs text-sky-600 font-black tracking-wide">明日の自分を先に考える</p>
+                    <h2 class="text-3xl sm:text-4xl font-black text-slate-900 mt-1">あした、どうする？</h2>
+                    <p class="text-sm text-slate-500 mt-2">明日の天気を見て、自分で考えて、わからなければ家族と相談しよう。</p>
+
+                    <div class="mt-4 bg-gradient-to-r from-sky-50 to-cyan-50 border border-sky-200 rounded-2xl p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p class="text-[11px] text-sky-600 font-black">あしたの天気</p>
+                                <p id="dashboardTomorrowWeather" class="text-xl font-black text-slate-900 mt-1">天気を確認中...</p>
+                            </div>
+                            <div class="text-right">
+                                <p id="dashboardTomorrowTemp" class="text-sm font-black text-slate-700">--℃ / --℃</p>
+                                <p id="dashboardTomorrowRain" class="text-xs text-slate-500 mt-1">降水確率 --%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative bg-amber-50 border border-amber-200 rounded-3xl p-4 text-center shadow-sm">
+                    <div class="text-4xl">🐷</div>
+                    <p class="text-xs font-black text-amber-800 mt-1">知恵貯金</p>
+                    <p id="wisdomBankCount" class="text-3xl font-black text-amber-700 mt-1">0</p>
+                    <p class="text-[10px] text-amber-700 mt-1">考えて決めた分だけ増える</p>
+                </div>
+            </div>
+
+            <div class="relative mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                <button onclick="openTomorrowPreparation()" class="bg-white hover:bg-sky-50 border border-sky-200 rounded-2xl p-3 text-center shadow-sm">
+                    <div class="text-2xl">🌤️</div><p class="text-[11px] font-black mt-2">明日の天気を見る</p>
+                </button>
+                <button onclick="openTomorrowPreparation()" class="bg-white hover:bg-sky-50 border border-sky-200 rounded-2xl p-3 text-center shadow-sm">
+                    <div class="text-2xl">🎒</div><p class="text-[11px] font-black mt-2">何を持つ？</p>
+                </button>
+                <button onclick="openTomorrowPreparation()" class="bg-white hover:bg-sky-50 border border-sky-200 rounded-2xl p-3 text-center shadow-sm">
+                    <div class="text-2xl">⏰</div><p class="text-[11px] font-black mt-2">何時に出る？</p>
+                </button>
+                <button onclick="openTomorrowPreparation()" class="bg-white hover:bg-sky-50 border border-sky-200 rounded-2xl p-3 text-center shadow-sm">
+                    <div class="text-2xl">👀</div><p class="text-[11px] font-black mt-2">何に気をつける？</p>
+                </button>
+                <button onclick="switchScreen('family-rules')" class="bg-white hover:bg-violet-50 border border-violet-200 rounded-2xl p-3 text-center shadow-sm">
+                    <div class="text-2xl">👨‍👩‍👧‍👦</div><p class="text-[11px] font-black mt-2">家族と相談</p>
+                </button>
+                <button onclick="switchScreen('offline-kit')" class="bg-white hover:bg-cyan-50 border border-cyan-200 rounded-2xl p-3 text-center shadow-sm">
+                    <div class="text-2xl">📝</div><p class="text-[11px] font-black mt-2">決めたことを保存</p>
+                </button>
+            </div>
+        </div>
+
+        <!-- 災害時の緊急モード入口 -->
+        <button onclick="enterEmergencyMode()" class="emergency-pulse mb-5 w-full text-left bg-gradient-to-r from-rose-50 to-orange-50 hover:from-rose-100 hover:to-orange-100 border-2 border-rose-200 rounded-3xl p-5 shadow-sm">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 shrink-0 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-3xl shadow-sm">🚨</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[11px] text-rose-600 font-black">災害が起きたら、考える画面から切り替える</p>
+                    <h3 class="text-xl font-black text-slate-900 mt-0.5">緊急モード</h3>
+                    <p class="text-xs text-slate-600 mt-1">迷わないように「まず安全 → 安否 → 家族の約束 → 集合場所」の順で表示します。</p>
+                </div>
+                <span class="text-2xl text-rose-500 font-black">›</span>
+            </div>
+        </button>
+
+        <!-- 既存機能は削除せず、そのまま残す -->
+        <div class="mb-3 flex items-end justify-between gap-3">
+            <div>
+                <p class="text-xs text-slate-400 font-bold">いつもの機能</p>
+                <h3 class="text-lg font-black text-slate-800">必要なときに使う</h3>
+            </div>
+            <p id="welcomeUserName" class="text-xs text-slate-500 font-bold"></p>
         </div>
 
         <!-- メニュー -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button onclick="switchScreen('weather')" class="bg-white hover:bg-sky-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
                 <div class="text-4xl mb-3">🌤️</div>
-                <h3 class="font-black text-slate-800">今日の天気・準備</h3>
-                <p class="text-xs text-slate-500 mt-1">天気を見て、自分で持ち物を考える</p>
+                <h3 class="font-black text-slate-800">天気・準備</h3>
+                <p class="text-xs text-slate-500 mt-1">今日と明日の天気から、自分で準備を考える</p>
             </button>
             <button onclick="switchScreen('safety')" class="bg-white hover:bg-emerald-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
                 <div class="text-4xl mb-3">🛡️</div>
@@ -238,6 +337,97 @@
             </div>
             <div id="friendRequestsList" class="space-y-3 mt-4"></div>
         </div>
+    </div>
+</section>
+
+<!-- 緊急モード -->
+<section id="screen-emergency" class="screen hidden px-4 sm:px-5 py-5 sm:py-7">
+    <div class="max-w-3xl mx-auto">
+        <div class="bg-gradient-to-br from-rose-600 to-orange-500 text-white rounded-3xl shadow-xl p-5 sm:p-7">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-black text-white/80">緊急モード</p>
+                    <h2 class="text-3xl sm:text-4xl font-black mt-1">あわてず、この順番で</h2>
+                    <p class="text-sm text-white/90 mt-2 leading-relaxed">揺れている最中はスマホの操作より、自分の身を守ることを優先してね。</p>
+                </div>
+                <div class="text-5xl sm:text-6xl shrink-0">🛡️</div>
+            </div>
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+                <span id="emergencyNetworkBadge" class="bg-white/20 border border-white/25 rounded-full px-3 py-1 text-[11px] font-black">通信を確認中</span>
+                <span class="bg-white/20 border border-white/25 rounded-full px-3 py-1 text-[11px] font-black">必要な情報を大きく表示</span>
+            </div>
+        </div>
+
+        <div class="mt-4 bg-white rounded-3xl border-2 border-rose-200 shadow-lg p-5 sm:p-6">
+            <div class="flex gap-4 items-start">
+                <div class="w-12 h-12 shrink-0 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center text-2xl font-black">1</div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-black text-slate-900">まず、自分の安全</h3>
+                    <p class="text-xs text-slate-500 mt-1">連絡や移動より先に、自分の身を守る。</p>
+                    <div class="grid sm:grid-cols-3 gap-2 mt-4 text-xs font-bold text-slate-700">
+                        <div class="bg-rose-50 border border-rose-100 rounded-2xl p-3">🙆 頭を守る</div>
+                        <div class="bg-rose-50 border border-rose-100 rounded-2xl p-3">🪑 丈夫な机の下などへ</div>
+                        <div class="bg-rose-50 border border-rose-100 rounded-2xl p-3">⚠️ 倒れる物・割れる物から離れる</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6">
+            <div class="flex gap-4 items-start">
+                <div class="w-12 h-12 shrink-0 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-2xl font-black">2</div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-xl font-black text-slate-900">安否を知らせる</h3>
+                    <p class="text-xs text-slate-500 mt-1">通信できる時だけ送信。つながらない時は何度も無理に操作しなくて大丈夫。</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
+                        <button onclick="sendEmergencySafety('safe')" class="bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 rounded-2xl py-4 px-3 font-black">😊 元気です</button>
+                        <button onclick="sendEmergencySafety('messy')" class="bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-900 rounded-2xl py-4 px-3 font-black">🏠 被害あり</button>
+                        <button onclick="sendEmergencySafety('sos')" class="bg-rose-100 hover:bg-rose-200 border border-rose-300 text-rose-900 rounded-2xl py-4 px-3 font-black">🆘 緊急SOS</button>
+                    </div>
+                    <div id="emergencySafetyResult" class="hidden mt-3 rounded-2xl border p-3 text-xs font-bold"></div>
+                    <button onclick="switchScreen('safety')" class="mt-3 text-xs font-black text-sky-700">家族・友達の安否も見る →</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6">
+            <div class="flex gap-4 items-start">
+                <div class="w-12 h-12 shrink-0 rounded-2xl bg-violet-100 text-violet-800 flex items-center justify-center text-2xl font-black">3</div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-xl font-black text-slate-900">家族との約束を確認</h3>
+                    <p class="text-xs text-slate-500 mt-1">連絡できない時こそ、前もって家族で決めたルールを手がかりにする。</p>
+                    <div id="emergencyFamilyRuleSummary" class="mt-4"></div>
+                    <button onclick="switchScreen('family-rules')" class="mt-3 w-full bg-violet-600 hover:bg-violet-700 text-white rounded-2xl py-3 font-black">保存した行動ルールを見る</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6">
+            <div class="flex gap-4 items-start">
+                <div class="w-12 h-12 shrink-0 rounded-2xl bg-cyan-100 text-cyan-800 flex items-center justify-center text-2xl font-black">4</div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-xl font-black text-slate-900">集合場所・安心メモ</h3>
+                    <p class="text-xs text-slate-500 mt-1">端末に保存した情報は、通信がない時でも確認できます。</p>
+                    <div id="emergencyMeetingSummary" class="mt-4 grid gap-2"></div>
+                    <button onclick="switchScreen('offline-kit')" class="mt-3 w-full bg-cyan-600 hover:bg-cyan-700 text-white rounded-2xl py-3 font-black">オフライン安心メモを開く</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button onclick="switchScreen('hazard')" class="bg-white hover:bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-left shadow-sm">
+                <div class="text-2xl">🗺️</div>
+                <p class="font-black text-slate-800 mt-1">まちの安全情報</p>
+                <p class="text-[11px] text-slate-500 mt-1">危ない場所・助けを求められる場所を確認</p>
+            </button>
+            <button onclick="switchScreen('offline-kit')" class="bg-white hover:bg-cyan-50 border border-cyan-200 rounded-2xl p-4 text-left shadow-sm">
+                <div class="text-2xl">☎️</div>
+                <p class="font-black text-slate-800 mt-1">連絡先・家族メモ</p>
+                <p class="text-[11px] text-slate-500 mt-1">保存した連絡先や「つながらない時のルール」を確認</p>
+            </button>
+        </div>
+
+        <button onclick="exitEmergencyMode()" class="mt-5 w-full bg-slate-800 hover:bg-slate-900 text-white rounded-2xl py-3 font-black">普段の画面に戻る</button>
     </div>
 </section>
 
@@ -724,6 +914,8 @@ let currentWeatherSnapshot = null;
 let currentPreparationScenario = "auto";
 let activePreparationScenario = "mild";
 let selectedPreparationItems = new Set();
+let emergencyModeActive = false;
+let emergencyModeExiting = false;
 
 let currentFamilyRuleScenario = "";
 let familyRuleStep = 0;
@@ -996,6 +1188,10 @@ function getJSTNow() {
    画面切替
 ===================================================== */
 function switchScreen(screenId) {
+    if (emergencyModeActive && screenId === "dashboard" && !emergencyModeExiting) {
+        screenId = "emergency";
+    }
+
     document.querySelectorAll(".screen").forEach(el => el.classList.add("hidden"));
     const target = document.getElementById(`screen-${screenId}`);
     if (target) {
@@ -1033,6 +1229,8 @@ function switchScreen(screenId) {
         renderOfflineKit();
     }
     if (screenId === "dashboard") {
+        updateWisdomBankCount();
+        fetchTomorrowDashboard();
         if (navigator.onLine) {
             pollFriends();
             pollFriendRequests();
@@ -1040,6 +1238,9 @@ function switchScreen(screenId) {
             renderFriends();
             renderFriendRequests();
         }
+    }
+    if (screenId === "emergency") {
+        renderEmergencyMode();
     }
 }
 
@@ -1129,6 +1330,9 @@ function updateUserHeader() {
 function handleLogout() {
     if (!confirm("ログアウトしますか？")) return;
     stopPolling();
+    emergencyModeActive = false;
+    emergencyModeExiting = false;
+    document.body.classList.remove("emergency-active");
     appState.userName = "";
     appState.securityKey = "";
     appState.accountId = "";
@@ -2558,6 +2762,242 @@ function nextQuizQuestion() {
 }
 
 /* =====================================================
+   緊急モード
+===================================================== */
+function enterEmergencyMode() {
+    emergencyModeActive = true;
+    emergencyModeExiting = false;
+    document.body.classList.add("emergency-active");
+    switchScreen("emergency");
+}
+
+function exitEmergencyMode() {
+    emergencyModeExiting = true;
+    emergencyModeActive = false;
+    document.body.classList.remove("emergency-active");
+    switchScreen("dashboard");
+    emergencyModeExiting = false;
+}
+
+function renderEmergencyMode() {
+    loadOfflineProfile();
+
+    const networkBadge = document.getElementById("emergencyNetworkBadge");
+    if (networkBadge) {
+        networkBadge.innerText = navigator.onLine
+            ? "🟢 オンライン：安否を送れます"
+            : "⚫ オフライン：保存情報を使います";
+        networkBadge.className = navigator.onLine
+            ? "bg-emerald-500/30 border border-white/30 rounded-full px-3 py-1 text-[11px] font-black"
+            : "bg-slate-900/30 border border-white/30 rounded-full px-3 py-1 text-[11px] font-black";
+    }
+
+    const familyRuleEl = document.getElementById("emergencyFamilyRuleSummary");
+    if (familyRuleEl) {
+        const rules = Array.isArray(offlineProfile.familyRules) ? offlineProfile.familyRules : [];
+        const confirmed = rules.filter(rule => rule.confirmed);
+        const shown = (confirmed.length ? confirmed : rules).slice(0, 3);
+
+        if (!shown.length) {
+            familyRuleEl.innerHTML = '<div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900"><b>まだ家族ルールが保存されていません。</b><br>安全な場所にいて、学校・施設・自治体などその場の案内を優先しよう。</div>';
+        } else {
+            familyRuleEl.innerHTML = shown.map(rule => {
+                const title = escapeHtml(rule.scenarioTitle || "家族ルール");
+                const status = rule.confirmed ? "家族と確認済み" : "家族と相談中";
+                return `<div class="mt-2 first:mt-0 bg-violet-50 border border-violet-200 rounded-2xl p-3"><div class="flex items-center justify-between gap-2"><b class="text-xs text-violet-900">${title}</b><span class="text-[10px] font-black text-violet-600">${status}</span></div></div>`;
+            }).join("");
+        }
+    }
+
+    const meetingEl = document.getElementById("emergencyMeetingSummary");
+    if (meetingEl) {
+        const plan = offlineProfile.emergencyPlan || {};
+        const rows = [];
+        if (plan.primaryMeeting) rows.push(`<div class="bg-cyan-50 border border-cyan-200 rounded-2xl p-3"><p class="text-[10px] text-cyan-600 font-black">第一集合場所</p><p class="text-sm font-black text-slate-800 mt-1">📍 ${escapeHtml(plan.primaryMeeting)}</p></div>`);
+        if (plan.secondaryMeeting) rows.push(`<div class="bg-cyan-50 border border-cyan-200 rounded-2xl p-3"><p class="text-[10px] text-cyan-600 font-black">第二集合場所</p><p class="text-sm font-black text-slate-800 mt-1">📍 ${escapeHtml(plan.secondaryMeeting)}</p></div>`);
+        if (plan.noContactRule) rows.push(`<div class="bg-slate-50 border border-slate-200 rounded-2xl p-3"><p class="text-[10px] text-slate-500 font-black">連絡できない時のルール</p><p class="text-xs font-bold text-slate-700 mt-1 leading-relaxed">${escapeHtml(plan.noContactRule)}</p></div>`);
+        if (plan.contactName1 || plan.contactPhone1) rows.push(`<div class="bg-white border border-slate-200 rounded-2xl p-3"><p class="text-[10px] text-slate-500 font-black">連絡先</p><p class="text-xs font-bold text-slate-700 mt-1">☎️ ${escapeHtml(plan.contactName1 || "連絡先1")} ${escapeHtml(plan.contactPhone1 || "")}</p></div>`);
+
+        meetingEl.innerHTML = rows.length
+            ? rows.join("")
+            : '<div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900"><b>集合場所・連絡先がまだ保存されていません。</b><br>今いる場所の安全を優先して、近くの信頼できる大人や施設の案内を聞こう。</div>';
+    }
+}
+
+async function sendEmergencySafety(type) {
+    const resultEl = document.getElementById("emergencySafetyResult");
+
+    if (!navigator.onLine) {
+        if (resultEl) {
+            resultEl.innerText = "オフラインのため安否は送信できません。保存した家族ルール・集合場所を確認してね。";
+            resultEl.className = "mt-3 rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 p-3 text-xs font-bold";
+            resultEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    if (!appState.accountId) {
+        if (resultEl) {
+            resultEl.innerText = "安否を送るにはログインが必要です。";
+            resultEl.className = "mt-3 rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 p-3 text-xs font-bold";
+            resultEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    const result = await apiRequest("/api/safety", {
+        method: "POST",
+        body: JSON.stringify({ status: type })
+    });
+
+    if (!result.ok) {
+        if (resultEl) {
+            resultEl.innerText = `送信に失敗しました：${result.error}`;
+            resultEl.className = "mt-3 rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 p-3 text-xs font-bold";
+            resultEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    const info = safetyStatusLabel(type);
+    if (resultEl) {
+        resultEl.innerText = `${info.emoji}「${info.text}」を家族・友達へ送りました。`;
+        resultEl.className = "mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-800 p-3 text-xs font-bold";
+        resultEl.classList.remove("hidden");
+    }
+    triggerPushNotification("安否確認送信", `${appState.userName}さんの安否情報を家族・友達へ共有しました。`);
+    pollSafety();
+}
+
+/* =====================================================
+   ダッシュボード：明日のそなえ
+===================================================== */
+function getWisdomBankEntries() {
+    try {
+        const raw = localStorage.getItem("otenkiWisdomBank");
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function updateWisdomBankCount() {
+    const el = document.getElementById("wisdomBankCount");
+    if (el) el.innerText = String(getWisdomBankEntries().length);
+}
+
+function saveWisdomBankEntry(entry) {
+    try {
+        const list = getWisdomBankEntries();
+        list.push({ ...entry, savedAt: new Date().toISOString() });
+        localStorage.setItem("otenkiWisdomBank", JSON.stringify(list.slice(-100)));
+        updateWisdomBankCount();
+    } catch (error) {
+        console.error("知恵貯金の保存エラー:", error);
+    }
+}
+
+async function openTomorrowPreparation() {
+    switchScreen("weather");
+
+    const prepTitle = document.querySelector("#preparationChoices")
+        ?.closest(".bg-white\\/95")
+        ?.querySelector("h2");
+    if (prepTitle) prepTitle.innerText = "🎒 明日、何を準備する？";
+
+    const sourceNote = document.getElementById("preparationSourceNote");
+    if (sourceNote) sourceNote.innerText = "明日の予報を使って考えます。分からない時は家族と相談してね。";
+
+    if (navigator.onLine) {
+        try {
+            const result = await apiRequest("/api/weather/tomorrow", { method: "GET" }, 15000);
+            if (result.ok) {
+                const data = result.data || {};
+                const tomorrowSnapshot = {
+                    description: String(data.description || "天候不明"),
+                    temperature: Number(data.temp_max),
+                    feelsLike: Number(data.temp_max),
+                    humidity: NaN,
+                    windSpeed: Number(data.wind_speed_max),
+                    fetchedAt: String(data.fetched_at || new Date().toISOString()),
+                    cachedAt: new Date().toISOString(),
+                    forecastDate: String(data.date || "")
+                };
+                currentWeatherSnapshot = tomorrowSnapshot;
+                currentPreparationScenario = "auto";
+                setPreparationScenario("auto", false);
+                const situation = document.getElementById("preparationSituation");
+                if (situation) {
+                    const original = situation.innerText;
+                    situation.innerText = `明日の予報：${tomorrowSnapshot.description}。${original}`;
+                }
+            }
+        } catch (error) {
+            console.error("明日の準備用予報の取得エラー:", error);
+        }
+    }
+
+    setTimeout(() => {
+        document.getElementById("preparationChoices")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+}
+
+async function fetchTomorrowDashboard() {
+    const weatherEl = document.getElementById("dashboardTomorrowWeather");
+    const tempEl = document.getElementById("dashboardTomorrowTemp");
+    const rainEl = document.getElementById("dashboardTomorrowRain");
+    const mascotEl = document.getElementById("tomorrowMascotMessage");
+    if (!weatherEl) return;
+
+    if (!navigator.onLine) {
+        weatherEl.innerText = "通信できる時に明日の天気を確認しよう";
+        if (tempEl) tempEl.innerText = "--℃ / --℃";
+        if (rainEl) rainEl.innerText = "オフライン";
+        if (mascotEl) mascotEl.innerText = "明日の予定を思い出して、できる準備から考えよう。";
+        return;
+    }
+
+    weatherEl.innerText = "天気を確認中...";
+    try {
+        const result = await apiRequest("/api/weather/tomorrow", { method: "GET" }, 15000);
+        if (!result.ok) throw new Error(result.error || "明日の天気を取得できませんでした。");
+        const data = result.data || {};
+        weatherEl.innerText = String(data.description || "天候不明");
+        if (tempEl) {
+            const max = Number(data.temp_max);
+            const min = Number(data.temp_min);
+            tempEl.innerText = `${Number.isFinite(max) ? Math.round(max) : "--"}℃ / ${Number.isFinite(min) ? Math.round(min) : "--"}℃`;
+        }
+        if (rainEl) {
+            const pop = Number(data.pop);
+            rainEl.innerText = `降水確率 ${Number.isFinite(pop) ? Math.round(pop * 100) : "--"}%`;
+        }
+
+        const desc = String(data.description || "");
+        const wind = Number(data.wind_speed_max);
+        const pop = Number(data.pop);
+        let message = "明日の天気を見て、何を準備するか考えてみよう。";
+        if (/雷/.test(desc)) {
+            message = "明日は雷に注意。外にいる時どうするか、今のうちに考えよう。";
+        } else if (/雨|降水/.test(desc) || (Number.isFinite(pop) && pop >= 0.5)) {
+            message = Number.isFinite(wind) && wind >= 7
+                ? "明日は雨と風に注意。持ち物だけでなく、出る時間や気をつけることも考えよう。"
+                : "明日は雨かも。持ち物と、いつもより早く出るか考えてみよう。";
+        } else if (Number.isFinite(wind) && wind >= 10) {
+            message = "明日は風が強そう。飛ばされる物や歩きにくさも考えてみよう。";
+        } else {
+            message = "明日の予定を思い浮かべて、自分に必要な準備を考えてみよう。";
+        }
+        if (mascotEl) mascotEl.innerText = message;
+    } catch (error) {
+        weatherEl.innerText = "明日の天気を取得できませんでした";
+        if (mascotEl) mascotEl.innerText = "天気が取れない時も、明日の予定からできる準備を考えよう。";
+        console.error("明日の天気取得エラー:", error);
+    }
+}
+
+/* =====================================================
    天気情報取得
 ===================================================== */
 async function fetchRealWeatherWithJST() {
@@ -2747,7 +3187,11 @@ const PREPARATION_ITEMS = {
     umbrella: { emoji: "☂️", label: "傘" },
     raincoat: { emoji: "🧥", label: "レインコート" },
     boots: { emoji: "🥾", label: "長靴" },
-    towel: { emoji: "🧻", label: "タオル" },
+    towel: {
+        emoji: "",
+        label: "タオル",
+        iconHtml: `<svg viewBox="0 0 48 48" class="w-8 h-8" aria-hidden="true"><rect x="7" y="11" width="34" height="27" rx="6" fill="#7dd3fc"/><path d="M13 18h22M13 24h22" stroke="#e0f2fe" stroke-width="3" stroke-linecap="round"/><path d="M13 32h22" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round"/><path d="M33 30v8" stroke="#0369a1" stroke-width="2" stroke-linecap="round"/></svg>`
+    },
     hat: { emoji: "🧢", label: "帽子" },
     water: { emoji: "🥤", label: "水筒・飲み物" },
     coolTowel: { emoji: "🧊", label: "冷たいタオル" },
@@ -2758,7 +3202,7 @@ const PREPARATION_ITEMS = {
     battery: { emoji: "🔋", label: "モバイルバッテリー" },
     delay: { emoji: "⏰", label: "出かける時間をずらす" },
     safeBuilding: { emoji: "🏢", label: "安全な建物へ移る" },
-    checkRoute: { emoji: "🗺️", label: "危ない道を避ける" },
+    checkRoute: { emoji: "🗺️", label: "通学路の危ない場所を確認" },
     sandals: { emoji: "🩴", label: "サンダル" }
 };
 
@@ -2799,7 +3243,7 @@ const PREPARATION_SCENARIOS = {
         reasons: {
             raincoat: "両手を使いやすく、強い風で傘があおられる心配を減らせるから。",
             delay: "雨風が強い時間を避けることも、自分を守る立派な準備だから。",
-            checkRoute: "海・川・倒れそうな物の近くなど、天気で危険が増す道を避けられるから。"
+            checkRoute: "いつもの通学路で、海・川・倒れそうな物など天気で危険が増す場所に気づけるから。危ない時は一人で道を変えず、家族や学校と相談しよう。"
         },
         cautions: {
             umbrella: "傘を選んだ理由も分かるよ。ただ、風が強い時はあおられて危ないことがあるので、傘だけに頼らない方法も考えよう。",
@@ -2861,7 +3305,7 @@ const PREPARATION_SCENARIOS = {
         recommended: ["delay", "checkRoute", "battery"],
         reasons: {
             delay: "危険が高い時間に無理に移動しないことが、自分を守る準備になるから。",
-            checkRoute: "川・用水路・低い道・水がたまった場所を避ける判断につながるから。",
+            checkRoute: "いつもの通学路に川・用水路・低い場所などがないか先に確認できるから。危険がありそうなら家族や学校と相談しよう。",
             battery: "通信できる時に情報や家族の連絡を確認しやすくするから。"
         },
         cautions: {
@@ -2909,7 +3353,7 @@ const PREPARATION_SCENARIOS = {
         recommended: ["delay", "checkRoute"],
         reasons: {
             delay: "風が弱まるまで移動を待つことも安全な選び方だから。",
-            checkRoute: "看板・木の枝・海沿いなど、強風で危険が増す場所を避けやすいから。"
+            checkRoute: "いつもの通学路で、看板・木の枝・海沿いなど強風で危険が増す場所を先に確認できるから。"
         },
         cautions: {
             umbrella: "雨があっても、強風では傘があおられることがあるよ。レインコートや時間変更も考えよう。",
@@ -3006,7 +3450,10 @@ function renderPreparationChoices() {
         button.type = "button";
         button.className = `tap-card min-h-24 rounded-2xl border p-3 text-left ${selected ? "choice-selected" : "bg-white border-slate-200 hover:bg-sky-50"}`;
         button.setAttribute("aria-pressed", selected ? "true" : "false");
-        button.innerHTML = `<span class="block text-2xl">${item.emoji}</span><span class="block text-xs font-black text-slate-800 mt-2">${escapeHtml(item.label)}</span><span class="block text-[10px] mt-1 ${selected ? "text-sky-700" : "text-slate-400"}">${selected ? "選んだよ ✓" : "タップして選ぶ"}</span>`;
+        const iconMarkup = item.iconHtml
+            ? `<span class="block">${item.iconHtml}</span>`
+            : `<span class="block text-2xl">${escapeHtml(item.emoji || "")}</span>`;
+        button.innerHTML = `${iconMarkup}<span class="block text-xs font-black text-slate-800 mt-2">${escapeHtml(item.label)}</span><span class="block text-[10px] mt-1 ${selected ? "text-sky-700" : "text-slate-400"}">${selected ? "選んだよ ✓" : "タップして選ぶ"}</span>`;
         button.onclick = () => togglePreparationItem(itemId);
         container.appendChild(button);
     });
@@ -3080,6 +3527,11 @@ function checkPreparationChoices() {
         weatherSnapshot: currentWeatherSnapshot || offlineProfile.lastWeather || null
     };
     saveOfflineProfile(true);
+    saveWisdomBankEntry({
+        type: "weatherPreparation",
+        scenario: activePreparationScenario,
+        selectedItems: selected
+    });
     updateOfflineSavedLabels();
 }
 
@@ -3853,6 +4305,9 @@ function backFromOfflineKit() {
 ===================================================== */
 function updateNetworkState() {
     const online = navigator.onLine;
+    if (emergencyModeActive) {
+        setTimeout(renderEmergencyMode, 0);
+    }
     const banner = document.getElementById("networkBanner");
     const status = document.getElementById("networkStatusText");
     const globalStatus = document.getElementById("globalConnectionStatus");
