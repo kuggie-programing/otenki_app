@@ -4,8 +4,8 @@
    - アプリ画面のオフライン表示
 ===================================================== */
 
-const CACHE_VERSION = "otenki-phase-free-v2";
-const RUNTIME_CACHE = "otenki-phase-free-runtime-v2";
+const CACHE_VERSION = "otenki-phase-free-v1";
+const RUNTIME_CACHE = "otenki-phase-free-runtime-v1";
 const APP_SHELL = [
     "/",
     "/index.html",

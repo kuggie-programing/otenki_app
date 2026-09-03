@@ -1,0 +1,7 @@
+.env
+*.pem
+__pycache__/
+*.pyc
+.venv/
+venv/
+otenki_data.json.tmp

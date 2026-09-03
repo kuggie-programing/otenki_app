@@ -16,7 +16,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 try:
-    from pywebpush import webpush, WebPushException  # pyright: ignore[reportMissingImports]
+    from pywebpush import webpush, WebPushException
 except ImportError:
     webpush = None
     WebPushException = Exception
@@ -3899,30 +3899,6 @@ def internal_error(
 # 起動
 # =========================================================
 
-# =========================================================
-# 公開サーバー用バックグラウンド監視の起動
-# Gunicorn でも最初のリクエスト時に1回だけ開始します。
-# =========================================================
-
-_BACKGROUND_MONITORS_STARTED = False
-_BACKGROUND_MONITORS_LOCK = threading.Lock()
-
-def ensure_background_monitors_started():
-    global _BACKGROUND_MONITORS_STARTED
-    if _BACKGROUND_MONITORS_STARTED:
-        return
-    with _BACKGROUND_MONITORS_LOCK:
-        if _BACKGROUND_MONITORS_STARTED:
-            return
-        start_earthquake_monitor()
-        start_weather_monitor()
-        _BACKGROUND_MONITORS_STARTED = True
-
-@app.before_request
-def _start_background_monitors_on_first_request():
-    ensure_background_monitors_started()
-
-
 if __name__ == "__main__":
 
     ensure_data_file()
@@ -3998,7 +3974,8 @@ if __name__ == "__main__":
         "========================================"
     )
 
-    ensure_background_monitors_started()
+    start_earthquake_monitor()
+    start_weather_monitor()
 
     app.run(
         host="0.0.0.0",
