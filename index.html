@@ -120,6 +120,12 @@
         @media (prefers-reduced-motion: reduce) {
             .emergency-pulse { animation: none !important; }
         }
+    
+        /* カンプに合わせたホーム背景 */
+        #screen-dashboard {
+            background-image: radial-gradient(circle, rgba(14,165,233,.10) 1.2px, transparent 1.2px);
+            background-size: 24px 24px;
+        }
     </style>
 </head>
 <body>
@@ -173,30 +179,79 @@
 </section>
 
 <!-- ダッシュボード -->
-<section id="screen-dashboard" class="screen hidden px-5 py-7">
-    <div class="max-w-4xl mx-auto">
-        <div class="bg-white/95 rounded-3xl border border-white shadow-xl p-5 sm:p-7 mb-5 overflow-hidden relative">
-            <div class="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-yellow-100/70"></div>
-            <div class="absolute right-6 top-5 w-24 h-24 rounded-full bg-sky-100/70"></div>
+<section id="screen-dashboard" class="screen hidden px-4 sm:px-5 py-6">
+    <div class="max-w-4xl mx-auto space-y-5">
 
-            <div class="relative grid grid-cols-1 lg:grid-cols-[170px_1fr_150px] gap-5 items-center">
+        <!-- 災害時：最上段に常時見える入口 -->
+        <button onclick="enterEmergencyMode()" class="emergency-pulse w-full text-left bg-gradient-to-r from-rose-50 to-orange-50 hover:from-rose-100 hover:to-orange-100 border-2 border-rose-200 rounded-3xl p-4 sm:p-5 shadow-sm">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 shrink-0 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-3xl shadow-sm">🚨</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[11px] text-rose-600 font-black">災害が起きたら</p>
+                    <h2 class="text-xl sm:text-2xl font-black text-slate-900">緊急モード</h2>
+                    <p class="text-xs text-slate-600 mt-1">まず安全 → 安否 → 家族の約束 → 集合場所の順で確認</p>
+                </div>
+                <span class="text-2xl text-rose-500 font-black">›</span>
+            </div>
+        </button>
+
+        <!-- ふだんから準備しておく2つ -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button onclick="switchScreen('offline-kit')" class="bg-white hover:bg-orange-50 border border-slate-200 rounded-3xl p-5 sm:p-6 text-left shadow-sm">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-2xl">📴</div>
+                    <div>
+                        <h3 class="font-black text-slate-800 text-lg">オフライン安心メモ</h3>
+                        <p class="text-xs text-slate-500 mt-1">集合場所・連絡先・家族ルールを保存</p>
+                    </div>
+                </div>
+            </button>
+            <button onclick="switchScreen('family-rules')" class="bg-white hover:bg-violet-50 border border-slate-200 rounded-3xl p-5 sm:p-6 text-left shadow-sm">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center text-2xl">🏠</div>
+                    <div>
+                        <h3 class="font-black text-slate-800 text-lg">わたしの行動ルール</h3>
+                        <p class="text-xs text-slate-500 mt-1">場面を選んで、家族のルールを作る</p>
+                    </div>
+                </div>
+            </button>
+        </div>
+
+        <!-- 安否確認：独立して目立たせる -->
+        <div class="flex justify-center">
+            <button onclick="switchScreen('safety')" class="w-full sm:w-[58%] bg-white hover:bg-sky-50 border border-slate-200 rounded-3xl p-5 text-left shadow-sm">
+                <div class="flex items-center gap-4 justify-center sm:justify-start">
+                    <div class="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-2xl">🛡️</div>
+                    <div>
+                        <h3 class="font-black text-slate-800 text-lg">安否確認</h3>
+                        <p class="text-xs text-slate-500 mt-1">自分の安否を大切な人へ共有</p>
+                    </div>
+                </div>
+            </button>
+        </div>
+
+        <!-- このアプリの主役：あした、どうする？ -->
+        <div class="bg-white/95 rounded-3xl border border-sky-100 shadow-xl overflow-hidden relative">
+            <div class="absolute -right-8 -top-10 w-40 h-40 rounded-full bg-yellow-100/70"></div>
+            <div class="absolute right-10 top-5 w-20 h-20 rounded-full bg-sky-100/70"></div>
+
+            <div class="relative p-5 sm:p-7 grid grid-cols-1 lg:grid-cols-[120px_1fr_150px] gap-5 items-center">
                 <div class="flex lg:block items-center gap-4">
-                    <img src="/icon-192.png" alt="防災アプリの案内マーク" class="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-md">
-                    <div class="lg:mt-3 bg-sky-50 border border-sky-200 rounded-2xl px-4 py-3 text-sm font-black text-sky-800">
+                    <img src="/icon-192.png" alt="防災アプリの案内マーク" class="w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-md">
+                    <div class="lg:mt-3 bg-sky-50 border border-sky-200 rounded-2xl px-3 py-2 text-xs font-black text-sky-800">
                         <span id="tomorrowMascotMessage">明日の天気を見て、どうそなえるか考えよう。</span>
                     </div>
                 </div>
 
                 <div class="min-w-0">
-                    <p class="text-xs text-sky-600 font-black tracking-wide">明日の自分を先に考える</p>
+                    <p class="text-[11px] text-sky-600 font-black tracking-wide">明日の自分を先に考える</p>
                     <h2 class="text-3xl sm:text-4xl font-black text-slate-900 mt-1">あした、どうする？</h2>
-                    <p class="text-sm text-slate-500 mt-2">明日の天気を見て、自分で考えて、わからなければ家族と相談しよう。</p>
-
+                    <p class="text-xs sm:text-sm text-slate-500 mt-2">天気を見て、自分で考えて、わからなければ家族と相談しよう。</p>
                     <div class="mt-4 bg-gradient-to-r from-sky-50 to-cyan-50 border border-sky-200 rounded-2xl p-4">
                         <div class="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                                <p class="text-[11px] text-sky-600 font-black">あしたの天気</p>
-                                <p id="dashboardTomorrowWeather" class="text-xl font-black text-slate-900 mt-1">天気を確認中...</p>
+                                <p class="text-[10px] text-sky-600 font-black">あしたの天気</p>
+                                <p id="dashboardTomorrowWeather" class="text-lg sm:text-xl font-black text-slate-900 mt-1">天気を確認中...</p>
                             </div>
                             <div class="text-right">
                                 <p id="dashboardTomorrowTemp" class="text-sm font-black text-slate-700">--℃ / --℃</p>
@@ -206,138 +261,92 @@
                     </div>
                 </div>
 
-                <div class="relative bg-amber-50 border border-amber-200 rounded-3xl p-4 text-center shadow-sm">
-                    <div class="text-4xl">🐷</div>
-                    <p class="text-xs font-black text-amber-800 mt-1">知恵貯金</p>
-                    <p id="wisdomBankCount" class="text-3xl font-black text-amber-700 mt-1">0</p>
-                    <p class="text-[10px] text-amber-700 mt-1">考えて決めた分だけ増える</p>
+                <div class="relative bg-amber-50 border border-amber-200 rounded-3xl p-3 text-center shadow-sm">
+                    <img src="/tyokin.png" alt="知恵貯金" class="w-16 h-16 mx-auto object-contain drop-shadow-sm">
+                    <p class="text-[11px] font-black text-amber-800 mt-1">知恵貯金</p>
+                    <p id="wisdomBankCount" class="text-2xl font-black text-amber-700 mt-0.5">0</p>
+                    <p class="text-[9px] text-amber-700 mt-1">考えて決めた分だけ増える</p>
                 </div>
             </div>
 
-            <div class="relative mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            <div class="relative border-t border-sky-100 bg-sky-50/40 p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                 <button onclick="openTomorrowPreparation()" class="bg-white hover:bg-sky-50 border border-sky-200 rounded-2xl p-3 text-center shadow-sm">
-                    <div class="text-2xl">🌤️</div><p class="text-[11px] font-black mt-2">明日の天気を見る</p>
+                    <div class="text-xl">🌤️</div><p class="text-[10px] font-black mt-1">明日の天気</p>
                 </button>
                 <button onclick="openTomorrowPreparation()" class="bg-white hover:bg-sky-50 border border-sky-200 rounded-2xl p-3 text-center shadow-sm">
-                    <div class="text-2xl">🎒</div><p class="text-[11px] font-black mt-2">何を持つ？</p>
+                    <div class="text-xl">🎒</div><p class="text-[10px] font-black mt-1">何を持つ？</p>
                 </button>
                 <button onclick="openTomorrowPreparation()" class="bg-white hover:bg-sky-50 border border-sky-200 rounded-2xl p-3 text-center shadow-sm">
-                    <div class="text-2xl">⏰</div><p class="text-[11px] font-black mt-2">何時に出る？</p>
+                    <div class="text-xl">⏰</div><p class="text-[10px] font-black mt-1">何時に出る？</p>
                 </button>
                 <button onclick="openTomorrowPreparation()" class="bg-white hover:bg-sky-50 border border-sky-200 rounded-2xl p-3 text-center shadow-sm">
-                    <div class="text-2xl">👀</div><p class="text-[11px] font-black mt-2">何に気をつける？</p>
+                    <div class="text-xl">👀</div><p class="text-[10px] font-black mt-1">気をつけること</p>
                 </button>
                 <button onclick="switchScreen('family-rules')" class="bg-white hover:bg-violet-50 border border-violet-200 rounded-2xl p-3 text-center shadow-sm">
-                    <div class="text-2xl">👨‍👩‍👧‍👦</div><p class="text-[11px] font-black mt-2">家族と相談</p>
+                    <div class="text-xl">👨‍👩‍👧‍👦</div><p class="text-[10px] font-black mt-1">家族と相談</p>
                 </button>
                 <button onclick="switchScreen('offline-kit')" class="bg-white hover:bg-cyan-50 border border-cyan-200 rounded-2xl p-3 text-center shadow-sm">
-                    <div class="text-2xl">📝</div><p class="text-[11px] font-black mt-2">決めたことを保存</p>
+                    <div class="text-xl">📝</div><p class="text-[10px] font-black mt-1">決めたことを保存</p>
                 </button>
             </div>
         </div>
 
-        <!-- 災害時の緊急モード入口 -->
-        <button onclick="enterEmergencyMode()" class="emergency-pulse mb-5 w-full text-left bg-gradient-to-r from-rose-50 to-orange-50 hover:from-rose-100 hover:to-orange-100 border-2 border-rose-200 rounded-3xl p-5 shadow-sm">
-            <div class="flex items-center gap-4">
-                <div class="w-14 h-14 shrink-0 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-3xl shadow-sm">🚨</div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[11px] text-rose-600 font-black">災害が起きたら、考える画面から切り替える</p>
-                    <h3 class="text-xl font-black text-slate-900 mt-0.5">緊急モード</h3>
-                    <p class="text-xs text-slate-600 mt-1">迷わないように「まず安全 → 安否 → 家族の約束 → 集合場所」の順で表示します。</p>
+        <!-- 家族・友達 -->
+        <div class="friend-card border border-white rounded-3xl p-5 shadow-lg">
+            <div class="flex justify-between items-center gap-3">
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold">家族・友達</p>
+                    <h3 class="font-black text-slate-800">つながっている人</h3>
                 </div>
-                <span class="text-2xl text-rose-500 font-black">›</span>
+                <div class="flex items-center gap-2">
+                    <span id="requestCountBadge" class="hidden bg-rose-500 text-white text-[10px] font-black rounded-full px-2 py-1">0</span>
+                    <button onclick="openFriendModal()" class="bg-purple-500 hover:bg-purple-600 text-white rounded-xl px-3 py-2 text-xs font-black">＋追加</button>
+                </div>
             </div>
-        </button>
-
-        <!-- 既存機能は削除せず、そのまま残す -->
-        <div class="mb-3 flex items-end justify-between gap-3">
-            <div>
-                <p class="text-xs text-slate-400 font-bold">いつもの機能</p>
-                <h3 class="text-lg font-black text-slate-800">必要なときに使う</h3>
+            <div id="friendsList" class="space-y-2 mt-4"></div>
+            <div class="mt-4 pt-4 border-t border-slate-100">
+                <p class="text-[10px] text-slate-400 font-bold mb-2">家族・友達リクエスト</p>
+                <div id="friendRequestsList" class="space-y-3"></div>
             </div>
-            <p id="welcomeUserName" class="text-xs text-slate-500 font-bold"></p>
         </div>
 
-        <!-- メニュー -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button onclick="switchScreen('weather')" class="bg-white hover:bg-sky-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
-                <div class="text-4xl mb-3">🌤️</div>
-                <h3 class="font-black text-slate-800">天気・準備</h3>
-                <p class="text-xs text-slate-500 mt-1">今日と明日の天気から、自分で準備を考える</p>
-            </button>
-            <button onclick="switchScreen('safety')" class="bg-white hover:bg-emerald-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
-                <div class="text-4xl mb-3">🛡️</div>
-                <h3 class="font-black text-slate-800">安否確認</h3>
-                <p class="text-xs text-slate-500 mt-1">自分の安否を大切な人へ共有</p>
-            </button>
-            <button onclick="switchScreen('hazard')" class="bg-white hover:bg-orange-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
-                <div class="text-4xl mb-3">🗺️</div>
+        <!-- 地域・学び・天気の補助機能 -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <button onclick="switchScreen('hazard')" class="bg-white hover:bg-orange-50 border border-slate-200 rounded-3xl p-5 text-left shadow-sm">
+                <div class="text-3xl mb-2">🗺️</div>
                 <h3 class="font-black text-slate-800">まちの安全情報</h3>
                 <p class="text-xs text-slate-500 mt-1">危ない場所と、助けを求められる場所</p>
             </button>
-            <button onclick="switchScreen('family-rules')" class="bg-white hover:bg-violet-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
-                <div class="text-4xl mb-3">🏠</div>
-                <h3 class="font-black text-slate-800">わたしの行動ルール</h3>
-                <p class="text-xs text-slate-500 mt-1">場面を選んで、家族のルールを作る</p>
+            <button onclick="openQuizScreen()" class="bg-white hover:bg-yellow-50 border border-slate-200 rounded-3xl p-5 text-left shadow-sm">
+                <div class="text-3xl mb-2">🧠</div>
+                <h3 class="font-black text-slate-800">考えるクイズ</h3>
+                <p class="text-xs text-slate-500 mt-1">状況に合わせて考える練習</p>
             </button>
-            <button onclick="switchScreen('offline-kit')" class="bg-white hover:bg-cyan-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
-                <div class="text-4xl mb-3">📴</div>
-                <h3 class="font-black text-slate-800">オフライン安心メモ</h3>
-                <p class="text-xs text-slate-500 mt-1">集合場所・連絡先・家族ルールを保存</p>
-            </button>
-            <button onclick="openFriendModal()" class="bg-white hover:bg-purple-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm">
-                <div class="text-4xl mb-3">👨‍👩‍👧‍👦</div>
-                <h3 class="font-black text-slate-800">家族・友達を追加</h3>
-                <p class="text-xs text-slate-500 mt-1">表示名を入力してリクエストを送信</p>
-            </button>
-            <button onclick="openQuizScreen()" class="bg-white hover:bg-yellow-50 border border-slate-200 rounded-3xl p-6 text-left shadow-sm sm:col-span-2">
-                <div class="text-4xl mb-3">🧠</div>
-                <h3 class="font-black text-slate-800">考える防災・天気クイズ</h3>
-                <p class="text-xs text-slate-500 mt-1">正解を覚えるだけでなく、状況に合わせて考える練習</p>
+            <button onclick="switchScreen('weather')" class="bg-white hover:bg-sky-50 border border-slate-200 rounded-3xl p-5 text-left shadow-sm">
+                <div class="text-3xl mb-2">🌤️</div>
+                <h3 class="font-black text-slate-800">天気・準備</h3>
+                <p class="text-xs text-slate-500 mt-1">今日と明日の天気を詳しく見る</p>
             </button>
         </div>
 
-        <!-- 接続状態 & プッシュ通知設定 -->
-        <div class="mt-5 bg-white/90 border border-slate-200 rounded-3xl p-5 shadow-sm">
-            <div class="flex justify-between items-center">
-                <h3 class="font-black text-slate-800">接続状態</h3>
-                <span id="globalConnectionStatus" class="text-[10px] text-slate-400">確認中...</span>
-            </div>
-            <p id="networkStatusText" class="text-[10px] text-slate-500 mt-2">ネットワークを確認中...</p>
-            <p id="pushPermissionStatus" class="text-[10px] text-slate-400 mt-1">プッシュ通知を確認中...</p>
-            <div class="flex flex-wrap gap-2 mt-3">
-                <button id="enablePushButton" class="bg-sky-500 hover:bg-sky-600 text-white rounded-xl px-4 py-2 text-xs font-bold">
-                    🔔 通知を有効にする
-                </button>
-                <button id="disablePushButton" class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-4 py-2 text-xs font-bold">
-                    🔕 通知を無効にする
-                </button>
-                <button id="installAppButton" onclick="installPwaApp()" class="hidden bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl px-4 py-2 text-xs font-bold">
-                    📲 ホーム画面に追加
-                </button>
-            </div>
-        </div>
-
-        <!-- フレンド -->
-        <div class="mt-5 friend-card border border-white rounded-3xl p-5 shadow-lg">
-            <div class="flex justify-between items-center">
+        <!-- 接続・通知：最下部に控えめに -->
+        <div class="bg-white/85 border border-slate-200 rounded-3xl p-4 shadow-sm">
+            <div class="flex flex-wrap justify-between items-center gap-3">
                 <div>
-                    <h3 class="font-black text-slate-800">家族・友達</h3>
-                    <p class="text-[10px] text-slate-400 mt-1">許可した相手とのみ情報を共有します。</p>
+                    <p class="text-[10px] text-slate-400 font-bold">接続・通知</p>
+                    <p id="networkStatusText" class="text-[10px] text-slate-500 mt-1">ネットワークを確認中...</p>
+                    <p id="pushPermissionStatus" class="text-[10px] text-slate-400 mt-1">プッシュ通知を確認中...</p>
+                    <span id="globalConnectionStatus" class="text-[10px] text-slate-400">確認中...</span>
                 </div>
-                <button onclick="openFriendModal()" class="bg-purple-500 hover:bg-purple-600 text-white rounded-xl px-3 py-2 text-xs font-black">＋追加</button>
+                <div class="flex flex-wrap gap-2">
+                    <button id="enablePushButton" class="bg-sky-500 hover:bg-sky-600 text-white rounded-xl px-3 py-2 text-[10px] font-bold">🔔 通知ON</button>
+                    <button id="disablePushButton" class="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-3 py-2 text-[10px] font-bold">🔕 通知OFF</button>
+                    <button id="installAppButton" onclick="installPwaApp()" class="hidden bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl px-3 py-2 text-[10px] font-bold">📲 ホーム画面に追加</button>
+                </div>
             </div>
-            <div id="friendsList" class="space-y-2 mt-4"></div>
+            <p id="welcomeUserName" class="text-[10px] text-slate-400 font-bold mt-2"></p>
         </div>
 
-        <!-- リクエスト -->
-        <div class="mt-5 request-card border border-white rounded-3xl p-5 shadow-lg">
-            <div class="flex justify-between items-center">
-                <h3 class="font-black text-slate-800">家族・友達リクエスト</h3>
-                <span id="requestCountBadge" class="hidden bg-rose-500 text-white text-[10px] font-black rounded-full px-2 py-1">0</span>
-            </div>
-            <div id="friendRequestsList" class="space-y-3 mt-4"></div>
-        </div>
     </div>
 </section>
 
