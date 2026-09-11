@@ -4,8 +4,8 @@
    - アプリ画面のオフライン表示
 ===================================================== */
 
-const CACHE_VERSION = "otenki-phase-free-v3";
-const RUNTIME_CACHE = "otenki-phase-free-runtime-v3";
+const CACHE_VERSION = "otenki-phase-free-v2";
+const RUNTIME_CACHE = "otenki-phase-free-runtime-v2";
 const APP_SHELL = [
     "/",
     "/index.html",
@@ -17,8 +17,7 @@ const APP_SHELL = [
     "/icon-512.png",
     "/badge-96.png",
     "/icon.png",
-    "/badge.png",
-    "/tyokin.png"
+    "/badge.png"
 ];
 
 self.addEventListener("install", event => {
