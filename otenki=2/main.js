@@ -1,3 +1,4 @@
+# Python 3.11+ recommended. Packages are installed into the Python used below.
 Flask==3.1.3
 flask-cors==6.0.5
 requests==2.32.5

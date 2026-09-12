@@ -1,0 +1,16 @@
+# Secrets and actual user data: do not commit.
+.env
+.env.*
+!.env.example
+*.pem
+otenki_data*.json
+otenki_data*.json.*
+data/
+backups/
+*.bak
+*.tmp
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/

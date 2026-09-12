@@ -1,31 +1,78 @@
-{
-  ".env.example": "09f41a1924bc0e462eba4f7a6dea09f770e17817a9fdbaa2fd9c599e56a82ce5",
-  ".gitignore": "5193e2803417c4640076d037e3d47daaad6c35b5ce9d58cfa44b21f79543e70c",
-  "CHANGELOG.txt": "bfd74ee0993cfef6887f9a3456bba34bc27ba1ea2f5547967a7ed8d48c886a90",
-  "Procfile": "2e6a65d3bc827acae4982a01a25ad27ab952a58776f6909b959a5a9ba915b484",
-  "README_DEPLOY.txt": "7dd9cc43e59655b34744ec9ab92315a6dea1ecab3145a06c5654d4097fae8867",
-  "README_UPDATE.txt": "7dd9cc43e59655b34744ec9ab92315a6dea1ecab3145a06c5654d4097fae8867",
-  "TEST_REPORT.txt": "23a2a7d7eaaf8e914343e8dc2c3fb630574185053bbf52d0f32614cceef258f4",
-  "api-config.js": "48b0c1429e9da42fb97cfe8bce4d98ef5432fbc762dcbdc97b1f5237b5bfad1f",
-  "app.css": "936068dd8c04110bc9c5ca5896d726a91013e54dbbd99bc1e8c9fe7445fcb6d1",
-  "app_core.py": "e4a4f69b8785dc39fe2adf09d3f4ca4260493dd0b897a377686b37b219a6d5e0",
-  "badge-96.png": "28a7cc93448e53029ab6d8b16940bbfafb29f7e43a143a7b66565265e226e0c3",
-  "badge.png": "28a7cc93448e53029ab6d8b16940bbfafb29f7e43a143a7b66565265e226e0c3",
-  "browser_test_results.json": "b505923a89123caa33744f17ea55dd3ce73fbd5ac17b51077447c09848310fee",
-  "file_inventory.json": "a632e282fb30a96e2ef1e0ce2fb1f81f525d02dcec21847b56a82fe1f2fed329",
-  "function_inventory.json": "c4acd428df1d3e949ff0fcfae9f7ff183f6c87335ce0b2c94ec55aaf411a969e",
-  "icon-192.png": "36c1eae99884501cab6504d82a16728b051b8cf58c458da6be5b4e86f0e019af",
-  "icon-512.png": "015789a27a5d41df57a74800bbf68b940b997b5b85ce1b36f53cb97af34303a9",
-  "icon.png": "36c1eae99884501cab6504d82a16728b051b8cf58c458da6be5b4e86f0e019af",
-  "index.html": "ebaa9443ecdeb93de4e74ede9ef042da19c19f107934c141b05b1111c8d46d32",
-  "main.js": "ced2c521d2fb15675e187886a490476eb5acb9b871865394d53ea9983c7afc7d",
-  "main.py": "559b0792c8d4322f29af58022667baaff6d42a06995b9492e45455358900742c",
-  "manifest.webmanifest": "502fee04f40cf034063f9720568b3acae81300dba89064ee73711f4250a1018a",
-  "quiz.json": "07dd5ffb189771cf6211fc1e2b653c81c57b7859df5b51ce64e5401cbcb9e86a",
-  "quiz.txt": "ce51d7003e38aef6abe3ca8eee834765a712cb71afd1d6c2e1d0843f809632f5",
-  "requirements.txt": "f456db2bac02ff831937707b01c627821805645855d395bbbf7e42e33336a7e7",
-  "sw.js": "3089bcb93fbb19592ccbe4c2edd6827e739c6b50c8a2932124e3d609f1578f12",
-  "test_app.py": "995caf6eb2d3ec673fc3d1788e326babef26286178beead2192fd551c4a5ce09",
-  "test_core.py": "1a6994e7bfe4257d33478a5ab9f2401e317803944a40194d5b761c32dbc8ebb8",
-  "tyokin.png": "a6538e8a67454cfea4066a5656ff7c53474533ce2bedda1d296e15b992347e1b"
-}
+
+import unittest, tempfile, json, threading, base64, os
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+from app_core import JsonStore, DataStoreError, normalize_key, hash_key, decode_key_header, find_account, resolve_data_path
+
+class CoreTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory()
+        self.path=Path(self.tmp.name)/"db.json"
+        self.store=JsonStore(self.path,{"users":{},"friendships":{},"events":[]})
+    def tearDown(self):self.tmp.cleanup()
+    def test_exact_unicode_keys_and_legacy_hash(self):
+        for key in ["ABC-abc-123", "ひみつのキー１２３🔑", "é-key", "a b"]:
+            digest=hash_key(key)
+            data={"users":{"user":{"name":"試験","security_key_hash":digest}}}
+            self.assertEqual(find_account(data,key)["id"],"user")
+            self.assertIsNone(find_account(data,key+"x"))
+    def test_encoded_header_roundtrip(self):
+        for key in ["ASCII_key","ひみつ１２３🔑"]:
+            encoded=base64.b64encode(key.encode()).decode()
+            self.assertEqual(decode_key_header({"X-Security-Key-Encoded":encoded}),key)
+    def test_invalid_headers_rejected(self):
+        for value in ["!!!!","a","/w=="]:
+            self.assertEqual(decode_key_header({"X-Security-Key-Encoded":value}),"")
+    def test_legacy_header(self):
+        self.assertEqual(decode_key_header({"X-Security-Key":" abc "}),"abc")
+        self.assertEqual(decode_key_header({"Authorization":"Bearer abc"}),"abc")
+    def test_key_is_case_sensitive(self):
+        self.assertNotEqual(hash_key("ABC"),hash_key("abc"))
+        self.assertNotEqual(hash_key("１２３"),hash_key("123"))
+    def test_input_validation(self):
+        for v in [None,[],12,""," "*4,"a\nb","x"*257]:
+            with self.assertRaises(ValueError):normalize_key(v)
+        self.assertEqual(normalize_key(" \ufeff abc \ufeff "),"abc")
+    def test_existing_data_survives_initialization(self):
+        data=self.store.read();data["users"]["old"]={"security_key_hash":hash_key("old")};data["unknown_field"]="keep"
+        self.store.write(data);before=self.path.read_bytes()
+        self.store.ensure();self.assertEqual(self.path.read_bytes(),before)
+        self.assertEqual(self.store.read()["unknown_field"],"keep")
+    def test_corrupt_file_is_never_reset(self):
+        self.path.write_text("{broken")
+        with self.assertRaises(DataStoreError):self.store.read()
+        with self.assertRaises(DataStoreError):self.store.write({"users":{},"friendships":{},"events":[]})
+        self.assertEqual(self.path.read_text(),"{broken")
+    def test_wrong_schema_is_never_reset(self):
+        self.path.write_text('{"users":[]}')
+        with self.assertRaises(DataStoreError):self.store.read()
+        self.assertEqual(self.path.read_text(),'{"users":[]}')
+    def test_backup_before_change(self):
+        d=self.store.read();d["users"]["a"]={};self.store.write(d)
+        d["users"]["b"]={};self.store.write(d)
+        backup=json.loads(self.path.with_name("db.json.bak").read_text())
+        self.assertIn("a",backup["users"]);self.assertNotIn("b",backup["users"])
+    def test_parallel_transactions(self):
+        def task(i):
+            with self.store.lock:
+                d=self.store.read();d["users"][str(i)]={"id":i};self.store.write(d)
+        with ThreadPoolExecutor(max_workers=8) as executor:list(executor.map(task,range(50)))
+        self.assertEqual(len(self.store.read()["users"]),50)
+    def test_restart_reads_same_data(self):
+        d=self.store.read();d["users"]["a"]={"security_key_hash":hash_key("key")};self.store.write(d)
+        second=JsonStore(self.path,self.store.defaults)
+        self.assertEqual(find_account(second.read(),"key")["id"],"a")
+    def test_data_path_not_working_directory(self):
+        with tempfile.TemporaryDirectory() as d:
+            original=os.getcwd()
+            try:
+                os.chdir(d)
+                self.assertEqual(resolve_data_path(self.tmp.name),Path(self.tmp.name)/"otenki_data.json")
+                self.assertEqual(resolve_data_path(self.tmp.name,"data/live.json"),Path(self.tmp.name)/"data/live.json")
+            finally:os.chdir(original)
+    def test_nonfinite_data_not_written(self):
+        self.store.ensure();before=self.path.read_bytes()
+        data=self.store.read();data["number"]=float("nan")
+        with self.assertRaises(DataStoreError):self.store.write(data)
+        self.assertEqual(self.path.read_bytes(),before)
+if __name__=="__main__":unittest.main()
