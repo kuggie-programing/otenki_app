@@ -1,0 +1,108 @@
+[
+  {
+    "test": "Japanese-key registration and authenticated HTTP header",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Five logout/relogin cycles without display name",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Wrong-key feedback; show/hide; Enter; surrounding spaces",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Reload retains current-tab login",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Five steps; pending resume; unique save; history; reuse",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Family rule wizard/save/confirmation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Offline plan persistence",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Account switch isolates new wisdom/drafts and retains A data",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Emergency send, back, normal-mode return",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "All 745 quiz items and three modes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Layout has no horizontal overflow at 320/360/390/768/1280px",
+    "ok": true,
+    "detail": [
+      {
+        "width": 320,
+        "scroll": 320
+      },
+      {
+        "width": 360,
+        "scroll": 360
+      },
+      {
+        "width": 390,
+        "scroll": 390
+      },
+      {
+        "width": 768,
+        "scroll": 768
+      },
+      {
+        "width": 1280,
+        "scroll": 1280
+      }
+    ]
+  },
+  {
+    "test": "Offline UI logic with mocked storage/assets; no fake send",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "No unhandled JavaScript errors in tested flow",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Login succeeds when service-worker API is unavailable",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Cancelled login cannot resurrect an old login response",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Pending service-worker ready does not block login",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "Unavailable browser storage does not break login and does not claim draft saved",
+    "ok": true,
+    "detail": ""
+  }
+]

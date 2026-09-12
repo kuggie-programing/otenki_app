@@ -1,0 +1,4 @@
+/* 通常は空文字のまま。同じPythonサーバーへ接続します。
+   フロントとAPIを別公開している場合のみ、以前のデータがあるAPIのHTTPS URLを設定。
+   API側のOTENKI_ALLOWED_ORIGINSにもフロントのURLを設定してください。 */
+window.OTENKI_API_BASE_URL = "";

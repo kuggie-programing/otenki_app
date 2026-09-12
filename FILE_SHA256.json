@@ -1,0 +1,158 @@
+"""認証・JSON保存の中核。標準ライブラリのみ。Flaskとは独立して検証可能です。"""
+from __future__ import annotations
+import base64
+import binascii
+import copy
+import hashlib
+import hmac
+import json
+import os
+from pathlib import Path
+import shutil
+import tempfile
+import threading
+
+
+class DataStoreError(RuntimeError):
+    """壊れたデータを空データで上書きしないための例外。"""
+
+
+def normalize_key(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("セキュリティキーを文字で入力してください。")
+    # 旧版と同じく前後の空白だけ除去。大文字小文字・全角半角は変換しない。
+    key = value.strip().strip("\ufeff").strip()
+    if not key:
+        raise ValueError("セキュリティキーを入力してください。")
+    if len(key) > 256:
+        raise ValueError("セキュリティキーは256文字以内にしてください。")
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in key):
+        raise ValueError("セキュリティキーに改行や制御文字は使用できません。")
+    return key
+
+
+def hash_key(key: str) -> str:
+    # 既存アカウントのSHA-256との互換性を維持する。
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()
+
+
+def decode_key_header(headers) -> str:
+    encoded = headers.get("X-Security-Key-Encoded", "")
+    if encoded:
+        if not isinstance(encoded, str) or len(encoded) > 2048:
+            return ""
+        try:
+            value = base64.b64decode(encoded, validate=True).decode("utf-8")
+            return normalize_key(value)
+        except (ValueError, UnicodeError, binascii.Error):
+            return ""
+    raw = headers.get("X-Security-Key") or headers.get("Authorization") or ""
+    if raw.startswith("Bearer "):
+        raw = raw[7:]
+    try:
+        return normalize_key(raw)
+    except ValueError:
+        return ""
+
+
+def find_account(data: dict, key: str) -> dict | None:
+    try:
+        digest = hash_key(normalize_key(key))
+    except ValueError:
+        return None
+    for user_id, user in data.get("users", {}).items():
+        if not isinstance(user, dict):
+            continue
+        stored = user.get("security_key_hash")
+        if isinstance(stored, str) and hmac.compare_digest(stored, digest):
+            return dict(user, id=user_id)
+    return None
+
+
+def resolve_data_path(base_dir: str | Path, configured: str = "") -> Path:
+    base = Path(base_dir).resolve()
+    path = Path(configured).expanduser() if configured else Path("otenki_data.json")
+    return (path if path.is_absolute() else base / path).resolve()
+
+
+class JsonStore:
+    """単一プロセス・複数スレッド用。呼び出し元もread→変更→writeをlock内で行う。"""
+    def __init__(self, path: str | Path, defaults: dict, lock=None):
+        self.path = Path(path)
+        self.defaults = copy.deepcopy(defaults)
+        self.lock = lock or threading.RLock()
+
+    def _validate(self, data):
+        if not isinstance(data, dict):
+            raise DataStoreError("登録データの形式が正しくありません。元ファイルを保護して停止しました。")
+        result = copy.deepcopy(data)
+        for key, default in self.defaults.items():
+            if key not in result:
+                result[key] = copy.deepcopy(default)
+            elif not isinstance(result[key], type(default)):
+                raise DataStoreError(f"登録データの {key} の形式が不正です。上書きはしていません。")
+        return result
+
+    def _existing(self):
+        try:
+            with self.path.open("r", encoding="utf-8-sig") as f:
+                return self._validate(json.load(f))
+        except DataStoreError:
+            raise
+        except (OSError, ValueError) as exc:
+            raise DataStoreError(
+                "登録データを読み込めません。空のデータには置き換えず保護しました。"
+                "サーバー側の otenki_data.json と .bak を確認してください。"
+            ) from exc
+
+    def ensure(self):
+        with self.lock:
+            if self.path.exists():
+                self._existing()
+                return
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            # 初回だけ作成。更新ZIPにはこのファイル自体を同梱しない。
+            self._atomic_write(copy.deepcopy(self.defaults), backup=False)
+
+    def read(self) -> dict:
+        with self.lock:
+            self.ensure()
+            return self._existing()
+
+    def _atomic_write(self, data, backup=True):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        text = json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False)
+        temp = None
+        try:
+            fd, temp = tempfile.mkstemp(prefix=self.path.name + ".", suffix=".tmp",
+                                        dir=str(self.path.parent))
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(text)
+                f.flush()
+                os.fsync(f.fileno())
+            if backup and self.path.exists():
+                # 壊れた既存ファイルや唯一のバックアップを上書きしない。
+                self._existing()
+                backup_path = self.path.with_name(self.path.name + ".bak")
+                backup_tmp = self.path.with_name(self.path.name + ".bak.tmp")
+                shutil.copy2(self.path, backup_tmp)
+                os.replace(backup_tmp, backup_path)
+            os.replace(temp, self.path)
+            temp = None
+        except DataStoreError:
+            raise
+        except (OSError, ValueError) as exc:
+            raise DataStoreError("データの保存に失敗しました。元のデータは上書きしていません。") from exc
+        finally:
+            if temp and os.path.exists(temp):
+                os.unlink(temp)
+
+    def write(self, data):
+        with self.lock:
+            try:
+                checked = self._validate(data)
+                self._atomic_write(checked)
+            except DataStoreError:
+                raise
+            except (OSError, ValueError) as exc:
+                raise DataStoreError("保存内容を確認できません。保存していません。") from exc
